@@ -332,7 +332,7 @@ export class Transformer {
 
     for (const child of node.getJsxChildren()) {
       if (Node.isJsxText(child)) {
-        const text = extractInlineText(child);
+        const text = extractText(child);
         if (text) {
           // Plain text in li - merge into last paragraph if exists
           const textNode: InlineNode = { kind: 'text', value: text };
