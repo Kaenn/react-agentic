@@ -21,8 +21,24 @@ import type {
   CodeBlockNode,
   LinkNode,
   FrontmatterNode,
+  XmlBlockNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue } from './parser.js';
+
+/**
+ * Validate that a string is a valid XML tag name
+ * Per XML 1.0 spec (simplified): starts with letter or underscore,
+ * followed by letters, digits, underscores, hyphens, or periods.
+ * Cannot start with 'xml' (case-insensitive).
+ */
+const XML_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_.\-]*$/;
+
+function isValidXmlName(name: string): boolean {
+  if (!name) return false;
+  if (!XML_NAME_REGEX.test(name)) return false;
+  if (name.toLowerCase().startsWith('xml')) return false;
+  return true;
+}
 
 export class Transformer {
   /**
@@ -165,6 +181,16 @@ export class Transformer {
     // Code block (pre containing code)
     if (name === 'pre') {
       return this.transformCodeBlock(node);
+    }
+
+    // XML block via div with name attribute
+    if (name === 'div') {
+      return this.transformDiv(node);
+    }
+
+    // Markdown passthrough
+    if (name === 'Markdown') {
+      return this.transformMarkdown(node);
     }
 
     throw new Error(`Unsupported block element: <${name}>`);
@@ -410,6 +436,81 @@ export class Transformer {
 
     const children = this.transformInlineChildren(node);
     return { kind: 'link', url: href, children };
+  }
+
+  private transformDiv(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Get name attribute (optional - if missing, output as <div>)
+    const nameAttr = getAttributeValue(openingElement, 'name');
+    const tagName = nameAttr || 'div';
+
+    // Validate XML name if custom name provided
+    if (nameAttr && !isValidXmlName(nameAttr)) {
+      throw new Error(
+        `Invalid XML tag name '${nameAttr}' - must start with letter/underscore, contain only letters, digits, underscores, hyphens, or periods, and not start with 'xml'`
+      );
+    }
+
+    // Extract other attributes (excluding 'name' which becomes the tag)
+    const attributes: Record<string, string> = {};
+    for (const attr of openingElement.getAttributes()) {
+      if (Node.isJsxAttribute(attr)) {
+        const attrName = attr.getNameNode().getText();
+        if (attrName !== 'name') {
+          const value = getAttributeValue(openingElement, attrName);
+          if (value !== undefined) {
+            attributes[attrName] = value;
+          }
+        }
+      }
+    }
+
+    // Transform children as blocks
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return {
+      kind: 'xmlBlock',
+      name: tagName,
+      attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+      children,
+    };
+  }
+
+  private transformMarkdown(node: JsxElement | JsxSelfClosingElement): BlockNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      // Self-closing <Markdown /> - empty content
+      return { kind: 'raw', content: '' };
+    }
+
+    // Extract raw content from children
+    const parts: string[] = [];
+    for (const child of node.getJsxChildren()) {
+      if (Node.isJsxText(child)) {
+        // Get raw text preserving whitespace
+        parts.push(child.getText());
+      } else if (Node.isJsxExpression(child)) {
+        // Handle {variable} or {"literal"} expressions
+        const expr = child.getExpression();
+        if (expr && Node.isStringLiteral(expr)) {
+          parts.push(expr.getLiteralValue());
+        }
+        // Non-string expressions ignored (can't evaluate at transpile time)
+      }
+    }
+
+    // Trim outer boundaries, preserve internal whitespace
+    const content = parts.join('').trim();
+
+    return { kind: 'raw', content };
   }
 }
 
