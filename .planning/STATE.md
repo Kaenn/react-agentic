@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 8 - IR Extensions
+**Current focus:** Phase 9 - Agent Transpilation
 
 ## Current Position
 
-Phase: 8 of 11 (IR Extensions)
-Plan: 1 of 1 (complete)
-Status: Phase complete
-Last activity: 2026-01-21 - Completed 08-01-PLAN.md
+Phase: 9 of 11 (Agent Transpilation)
+Plan: Ready to plan
+Status: Phase 8 verified complete, ready to plan Phase 9
+Last activity: 2026-01-21 - Phase 8 (IR Extensions) complete
 
-Progress: [█░░░░░░░░░] v1.1 14%
+Progress: [█░░░░░░░░░] v1.1 25%
 
 ## Milestone History
 
@@ -67,5 +67,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 08-01-PLAN.md (IR Extensions)
-Resume with: /gsd:plan-phase 9
+Stopped at: Phase 8 (IR Extensions) complete and verified
+Resume with: /gsd:discuss-phase 9

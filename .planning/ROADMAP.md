@@ -18,7 +18,7 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 **Milestone Goal:** Enable Commands to spawn typed Agents with shared input/output contracts — the foundation for agentic TSX programming.
 
-- [ ] **Phase 8: IR Extensions** - Foundation types for Agent and SpawnAgent nodes
+- [x] **Phase 8: IR Extensions** - Foundation types for Agent and SpawnAgent nodes
 - [ ] **Phase 9: Agent Transpilation** - Agent component with GSD frontmatter format
 - [ ] **Phase 10: SpawnAgent Component** - Task() syntax generation in Commands
 - [ ] **Phase 11: Type Safety** - Generic typing and cross-file validation
@@ -38,7 +38,7 @@ See: .planning/milestones/v1.0-ROADMAP.md
 **Plans:** 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md — IR node interfaces and discriminated union updates
+- [x] 08-01-PLAN.md — IR node interfaces and discriminated union updates
 
 ### Phase 9: Agent Transpilation
 **Goal**: Agent component transpiles to GSD-compatible markdown files in .claude/agents/
@@ -95,7 +95,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. IR Extensions | v1.1 | 0/1 | Planned | - |
+| 8. IR Extensions | v1.1 | 1/1 | ✓ Complete | 2026-01-21 |
 | 9. Agent Transpilation | v1.1 | 0/2 | Not started | - |
 | 10. SpawnAgent Component | v1.1 | 0/2 | Not started | - |
 | 11. Type Safety | v1.1 | 0/2 | Not started | - |

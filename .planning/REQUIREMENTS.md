@@ -37,11 +37,11 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 
 ### IR Extensions
 
-- [ ] **IR-01**: Add `AgentDocumentNode` type to IR
-- [ ] **IR-02**: Add `AgentFrontmatterNode` type with GSD-specific fields
-- [ ] **IR-03**: Add `SpawnAgentNode` type to IR
-- [ ] **IR-04**: Add `TypeReference` type for cross-file type tracking
-- [ ] **IR-05**: Update discriminated union and assertNever handling
+- [x] **IR-01**: Add `AgentDocumentNode` type to IR
+- [x] **IR-02**: Add `AgentFrontmatterNode` type with GSD-specific fields
+- [x] **IR-03**: Add `SpawnAgentNode` type to IR
+- [x] **IR-04**: Add `TypeReference` type for cross-file type tracking
+- [x] **IR-05**: Update discriminated union and assertNever handling
 
 ## Future Requirements
 
@@ -84,11 +84,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IR-01 | Phase 8 | Pending |
-| IR-02 | Phase 8 | Pending |
-| IR-03 | Phase 8 | Pending |
-| IR-04 | Phase 8 | Pending |
-| IR-05 | Phase 8 | Pending |
+| IR-01 | Phase 8 | Complete |
+| IR-02 | Phase 8 | Complete |
+| IR-03 | Phase 8 | Complete |
+| IR-04 | Phase 8 | Complete |
+| IR-05 | Phase 8 | Complete |
 | AGENT-01 | Phase 9 | Pending |
 | AGENT-02 | Phase 9 | Pending |
 | AGENT-03 | Phase 9 | Pending |
@@ -116,4 +116,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after initial definition*
+*Last updated: 2026-01-21 after Phase 8 completion*
