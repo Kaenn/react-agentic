@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 4 of 6 (CLI Interface)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-01-21 — Phase 3 complete, verified
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-21 — Completed 04-01-PLAN.md (CLI entry point)
 
-Progress: [█████░░░░░] 50%
+Progress: [█████░░░░░] 53%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 4 min
-- Total execution time: 28 min
+- Total execution time: 30 min
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████░░░░░] 50%
 | 01-foundation-ir | 2 | 6 min | 3 min |
 | 02-core-transpilation | 3 | 18 min | 6 min |
 | 03-full-element-coverage | 2 | 4 min | 2 min |
+| 04-cli-interface | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (4 min), 02-02 (10 min), 02-03 (4 min), 03-01 (2 min), 03-02 (2 min)
-- Trend: excellent velocity (Phase 3 completed in 4 min total)
+- Last 5 plans: 02-02 (10 min), 02-03 (4 min), 03-01 (2 min), 03-02 (2 min), 04-01 (2 min)
+- Trend: excellent velocity maintained
 
 *Updated after each plan completion*
 
@@ -70,6 +71,9 @@ Recent decisions affecting current work:
 - [03-02]: div without name outputs as <div> unchanged
 - [03-02]: XML name validation prevents invalid tag names at transpile time
 - [03-02]: Markdown component passes content through as raw
+- [04-01]: CLI uses Commander.js for automatic --help/--version handling
+- [04-01]: Version read from package.json at runtime (stays in sync)
+- [04-01]: tsup builds both library (index) and CLI entry points
 
 ### Pending Todos
 
@@ -82,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 03-02-PLAN.md (Phase 3 complete)
+Stopped at: Completed 04-01-PLAN.md (CLI entry point)
 Resume file: None
