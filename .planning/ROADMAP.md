@@ -20,7 +20,7 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [x] **Phase 8: IR Extensions** - Foundation types for Agent and SpawnAgent nodes
 - [x] **Phase 9: Agent Transpilation** - Agent component with GSD frontmatter format
-- [ ] **Phase 10: SpawnAgent Component** - Task() syntax generation in Commands
+- [x] **Phase 10: SpawnAgent Component** - Task() syntax generation in Commands
 - [ ] **Phase 11: Type Safety** - Generic typing and cross-file validation
 
 ## Phase Details
@@ -69,8 +69,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — SpawnAgent component parsing and IR transformation
-- [ ] 10-02-PLAN.md — Task() syntax emitter
+- [x] 10-01-PLAN.md — SpawnAgent component parsing and IR transformation
+- [x] 10-02-PLAN.md — Task() syntax emitter
 
 ### Phase 11: Type Safety
 **Goal**: Generic typing and cross-file validation ensure type-safe agent spawning
@@ -97,7 +97,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 |-------|-----------|----------------|--------|-----------|
 | 8. IR Extensions | v1.1 | 1/1 | ✓ Complete | 2026-01-21 |
 | 9. Agent Transpilation | v1.1 | 2/2 | ✓ Complete | 2026-01-21 |
-| 10. SpawnAgent Component | v1.1 | 0/2 | Not started | - |
+| 10. SpawnAgent Component | v1.1 | 2/2 | ✓ Complete | 2026-01-21 |
 | 11. Type Safety | v1.1 | 0/2 | Not started | - |
 
 ---

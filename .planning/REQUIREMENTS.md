@@ -20,12 +20,12 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 
 ### SpawnAgent Component
 
-- [ ] **SPAWN-01**: SpawnAgent component accepts `agent` prop (string, agent name)
-- [ ] **SPAWN-02**: SpawnAgent component accepts `model` prop (string, supports `{variable}` syntax)
-- [ ] **SPAWN-03**: SpawnAgent component accepts `description` prop (string, human-readable)
-- [ ] **SPAWN-04**: SpawnAgent component accepts `prompt` prop (string/template literal)
-- [ ] **SPAWN-05**: SpawnAgent emits GSD Task() syntax in command markdown
-- [ ] **SPAWN-06**: SpawnAgent preserves `{variable}` placeholders in prompt (no interpolation)
+- [x] **SPAWN-01**: SpawnAgent component accepts `agent` prop (string, agent name)
+- [x] **SPAWN-02**: SpawnAgent component accepts `model` prop (string, supports `{variable}` syntax)
+- [x] **SPAWN-03**: SpawnAgent component accepts `description` prop (string, human-readable)
+- [x] **SPAWN-04**: SpawnAgent component accepts `prompt` prop (string/template literal)
+- [x] **SPAWN-05**: SpawnAgent emits GSD Task() syntax in command markdown
+- [x] **SPAWN-06**: SpawnAgent preserves `{variable}` placeholders in prompt (no interpolation)
 - [ ] **SPAWN-07**: SpawnAgent supports generic type parameter `<SpawnAgent<TInput>>`
 - [ ] **SPAWN-08**: SpawnAgent can import type from Agent file for validation
 
@@ -95,12 +95,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AGENT-04 | Phase 9 | Complete |
 | AGENT-05 | Phase 9 | Complete |
 | AGENT-06 | Phase 9 | Complete |
-| SPAWN-01 | Phase 10 | Pending |
-| SPAWN-02 | Phase 10 | Pending |
-| SPAWN-03 | Phase 10 | Pending |
-| SPAWN-04 | Phase 10 | Pending |
-| SPAWN-05 | Phase 10 | Pending |
-| SPAWN-06 | Phase 10 | Pending |
+| SPAWN-01 | Phase 10 | Complete |
+| SPAWN-02 | Phase 10 | Complete |
+| SPAWN-03 | Phase 10 | Complete |
+| SPAWN-04 | Phase 10 | Complete |
+| SPAWN-05 | Phase 10 | Complete |
+| SPAWN-06 | Phase 10 | Complete |
 | AGENT-07 | Phase 11 | Pending |
 | AGENT-08 | Phase 11 | Pending |
 | SPAWN-07 | Phase 11 | Pending |
@@ -116,4 +116,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after Phase 9 completion*
+*Last updated: 2026-01-21 after Phase 10 completion*

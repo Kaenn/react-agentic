@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 11 - Type Validation
+**Current focus:** Phase 11 - Type Safety
 
 ## Current Position
 
@@ -74,4 +74,4 @@ None.
 
 Last session: 2026-01-21
 Stopped at: Completed 10-02-PLAN.md (Phase 10 complete)
-Resume with: /gsd:execute-phase 11-01
+Resume with: /gsd:discuss-phase 11
