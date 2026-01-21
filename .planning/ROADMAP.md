@@ -30,11 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. IR types exist for all planned node kinds (Heading, Paragraph, List, XmlBlock, Command, etc.)
   3. Markdown emitter can convert hand-crafted IR to valid Markdown output
   4. Unit tests verify emitter produces correct Markdown for each IR node type
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Project setup (package.json, tsconfig, dependencies)
-- [ ] 01-02: IR type definitions and Markdown emitter
+- [ ] 01-01-PLAN.md — Project setup (package.json, tsconfig, dependencies)
+- [ ] 01-02-PLAN.md — IR type definitions and Markdown emitter
 
 ### Phase 2: Core Transpilation
 **Goal**: Parse TSX files and transform basic HTML-like elements to Markdown via IR
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & IR | 0/2 | Not started | - |
+| 1. Foundation & IR | 0/2 | Planned | - |
 | 2. Core Transpilation | 0/3 | Not started | - |
 | 3. Full Element Coverage | 0/2 | Not started | - |
 | 4. CLI Interface | 0/3 | Not started | - |
