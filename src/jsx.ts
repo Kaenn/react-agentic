@@ -40,6 +40,20 @@ export interface AgentProps {
 }
 
 /**
+ * Props for the SpawnAgent component
+ */
+export interface SpawnAgentProps {
+  /** Agent name to spawn (e.g., 'gsd-researcher') */
+  agent: string;
+  /** Model to use - supports {variable} placeholders */
+  model: string;
+  /** Human-readable description of the task */
+  description: string;
+  /** Prompt content - supports multi-line and {variable} placeholders */
+  prompt: string;
+}
+
+/**
  * Props for the Markdown component
  */
 export interface MarkdownProps {
@@ -122,5 +136,23 @@ export function Markdown(_props: MarkdownProps): null {
  * </instructions>
  */
 export function XmlBlock(_props: XmlBlockProps): null {
+  return null;
+}
+
+/**
+ * SpawnAgent component - emits GSD Task() syntax inside a Command
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It emits Task() function-call syntax, not markdown.
+ *
+ * @example
+ * <SpawnAgent
+ *   agent="gsd-researcher"
+ *   model="{researcher_model}"
+ *   description="Research phase requirements"
+ *   prompt={`<context>Phase: {phase}</context>`}
+ * />
+ */
+export function SpawnAgent(_props: SpawnAgentProps): null {
   return null;
 }

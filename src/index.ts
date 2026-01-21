@@ -14,5 +14,5 @@ export * from './emitter/index.js';
 export * from './parser/index.js';
 
 // JSX components and types
-export { Agent, Command, Markdown, XmlBlock } from './jsx.js';
-export type { AgentProps, CommandProps, MarkdownProps, XmlBlockProps } from './jsx.js';
+export { Agent, Command, Markdown, SpawnAgent, XmlBlock } from './jsx.js';
+export type { AgentProps, CommandProps, MarkdownProps, SpawnAgentProps, XmlBlockProps } from './jsx.js';
