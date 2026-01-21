@@ -166,14 +166,10 @@ export class MarkdownEmitter {
       const child = item.children[i];
 
       if (child.kind === 'list') {
-        // Nested list: emit with proper indentation
+        // Nested list: emitList already handles indentation via listStack
+        // The nested list items will have their own indent based on stack depth
         const nestedList = this.emitBlock(child);
-        // Add indent to each line of nested list
-        const indentedLines = nestedList
-          .split('\n')
-          .map((line) => indent + '  ' + line)
-          .join('\n');
-        contentParts.push(indentedLines);
+        contentParts.push(nestedList);
       } else if (child.kind === 'paragraph' && i === 0) {
         // First paragraph is inline with marker
         contentParts.push(this.emitBlock(child));
