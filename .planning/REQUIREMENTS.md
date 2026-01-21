@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Core Transpilation
 
-- [ ] **CORE-01**: Parse TSX files via ts-morph to extract AST
-- [ ] **CORE-02**: Transform `<Command>` props (name, description, allowedTools) to YAML frontmatter
-- [ ] **CORE-03**: Transform HTML-like elements to Markdown (h1-h6, p, b, i, code, a, ul, ol, li, blockquote, pre, br, hr)
-- [ ] **CORE-04**: Transform `<div name="x">` to XML-like blocks `<x>...</x>`
-- [ ] **CORE-05**: `<Markdown>` component passes raw content through unchanged
+- [x] **CORE-01**: Parse TSX files via ts-morph to extract AST
+- [x] **CORE-02**: Transform `<Command>` props (name, description, allowedTools) to YAML frontmatter
+- [x] **CORE-03**: Transform HTML-like elements to Markdown (h1-h6, p, b, i, code, a, ul, ol, li, blockquote, pre, br, hr)
+- [x] **CORE-04**: Transform `<div name="x">` to XML-like blocks `<x>...</x>`
+- [x] **CORE-05**: `<Markdown>` component passes raw content through unchanged
 
 ### Composition
 
@@ -76,10 +76,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CORE-01 | Phase 2 | Complete |
-| CORE-02 | Phase 3 | Pending |
+| CORE-02 | Phase 3 | Complete |
 | CORE-03 | Phase 2 | Complete |
-| CORE-04 | Phase 3 | Pending |
-| CORE-05 | Phase 3 | Pending |
+| CORE-04 | Phase 3 | Complete |
+| CORE-05 | Phase 3 | Complete |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
 | CLI-01 | Phase 4 | Pending |
@@ -99,4 +99,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-20 after roadmap creation*
+*Last updated: 2026-01-21 after Phase 3 completion*
