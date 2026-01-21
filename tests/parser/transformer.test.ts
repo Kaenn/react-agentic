@@ -887,4 +887,143 @@ line3</code></pre>
       expect(markdown).toContain('> Second line');
     });
   });
+
+  describe('Command component', () => {
+    it('transforms Command with name and description to frontmatter', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command name="test" description="A test command">
+              <p>Command content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.frontmatter).toBeDefined();
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'test',
+        description: 'A test command',
+      });
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('paragraph');
+    });
+
+    it('transforms Command with allowedTools array', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command
+              name="fetch"
+              description="Fetch files"
+              allowedTools={["Read", "Glob", "Grep"]}
+            >
+              <p>Fetch content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'fetch',
+        description: 'Fetch files',
+        'allowed-tools': ['Read', 'Glob', 'Grep'],
+      });
+    });
+
+    it('throws error when name prop is missing', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command description="Missing name">
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow('Command requires name prop');
+    });
+
+    it('throws error when description prop is missing', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command name="test">
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow('Command requires description prop');
+    });
+
+    it('transforms Command with multiple children', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command name="multi" description="Multiple blocks">
+              <h1>Title</h1>
+              <p>First paragraph</p>
+              <p>Second paragraph</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.children).toHaveLength(3);
+      expect(doc.children[0].kind).toBe('heading');
+      expect(doc.children[1].kind).toBe('paragraph');
+      expect(doc.children[2].kind).toBe('paragraph');
+    });
+
+    it('transforms self-closing Command (no body)', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command name="empty" description="Empty command" />
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.frontmatter?.data.name).toBe('empty');
+      expect(doc.children).toHaveLength(0);
+    });
+  });
+
+  describe('Command E2E', () => {
+    it('produces valid Claude Code command output', () => {
+      const source = `
+        export default function MyCommand() {
+          return (
+            <Command
+              name="analyze"
+              description="Analyze code patterns"
+              allowedTools={["Read", "Grep"]}
+            >
+              <h1>Analysis Instructions</h1>
+              <p>Follow these steps to analyze code.</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      const output = emit(doc);
+
+      // Should have frontmatter with block-style arrays
+      expect(output).toContain('---');
+      expect(output).toContain('name: analyze');
+      expect(output).toContain('description: Analyze code patterns');
+      expect(output).toContain('allowed-tools:');
+      expect(output).toContain('  - Read');
+      expect(output).toContain('  - Grep');
+
+      // Should have body content
+      expect(output).toContain('# Analysis Instructions');
+      expect(output).toContain('Follow these steps to analyze code.');
+    });
+  });
 });
