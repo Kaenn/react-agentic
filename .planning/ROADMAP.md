@@ -35,10 +35,10 @@ See: .planning/milestones/v1.0-ROADMAP.md
   3. SpawnAgentNode type captures agent reference, model, description, and prompt
   4. TypeReference type can store cross-file interface references
   5. assertNever in emitter handles all new node types without compile errors
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 08-01: IR node types and discriminated union updates
+- [ ] 08-01-PLAN.md — IR node interfaces and discriminated union updates
 
 ### Phase 9: Agent Transpilation
 **Goal**: Agent component transpiles to GSD-compatible markdown files in .claude/agents/
@@ -95,7 +95,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. IR Extensions | v1.1 | 0/1 | Not started | - |
+| 8. IR Extensions | v1.1 | 0/1 | Planned | - |
 | 9. Agent Transpilation | v1.1 | 0/2 | Not started | - |
 | 10. SpawnAgent Component | v1.1 | 0/2 | Not started | - |
 | 11. Type Safety | v1.1 | 0/2 | Not started | - |
