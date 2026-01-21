@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 8 of 11 (IR Extensions)
-Plan: Ready to plan
-Status: Ready to plan
-Last activity: 2026-01-21 — Roadmap created for v1.1
+Plan: 1 of 1 (complete)
+Status: Phase complete
+Last activity: 2026-01-21 - Completed 08-01-PLAN.md
 
-Progress: [░░░░░░░░░░] v1.1 0%
+Progress: [█░░░░░░░░░] v1.1 14%
 
 ## Milestone History
 
@@ -24,15 +24,15 @@ Progress: [░░░░░░░░░░] v1.1 0%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0 (v1.1)
-- Average duration: -
-- Total execution time: -
+- Total plans completed: 1 (v1.1)
+- Average duration: 2m 35s
+- Total execution time: 2m 35s
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 8 | 0/1 | - | - |
+| 8 | 1/1 | 2m 35s | 2m 35s |
 | 9 | 0/2 | - | - |
 | 10 | 0/2 | - | - |
 | 11 | 0/2 | - | - |
@@ -51,6 +51,11 @@ v1.1 research decisions:
 - @ references must NOT be resolved - emit verbatim
 - GSD format: Agent uses `tools` (string), Command uses `allowed-tools` (array)
 
+v1.1 implementation decisions:
+- tools-as-string: AgentFrontmatterNode uses tools as space-separated string (GSD format)
+- spawnagent-in-blocknode: SpawnAgentNode is block-level element in BlockNode union
+- stub-throws: Emitter stub throws 'not yet implemented' to preserve compilability
+
 ### Pending Todos
 
 None.
@@ -62,5 +67,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Roadmap created for v1.1
-Resume with: /gsd:plan-phase 8
+Stopped at: Completed 08-01-PLAN.md (IR Extensions)
+Resume with: /gsd:plan-phase 9
