@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 9 - Agent Transpilation
+**Current focus:** Phase 10 - Agent Orchestration
 
 ## Current Position
 
-Phase: 9 of 11 (Agent Transpilation)
-Plan: 1 of 2 complete
-Status: Plan 09-01 complete, ready for 09-02
-Last activity: 2026-01-21 - Completed 09-01-PLAN.md (Agent Transformation)
+Phase: 10 of 11 (Agent Orchestration)
+Plan: 0 of 2 complete
+Status: Phase 9 complete, ready for Phase 10
+Last activity: 2026-01-21 - Completed 09-02-PLAN.md (Agent Emission)
 
-Progress: [██░░░░░░░░] v1.1 37.5%
+Progress: [███░░░░░░░] v1.1 50%
 
 ## Milestone History
 
@@ -24,16 +24,16 @@ Progress: [██░░░░░░░░] v1.1 37.5%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2 (v1.1)
-- Average duration: 3m 17s
-- Total execution time: 6m 35s
+- Total plans completed: 3 (v1.1)
+- Average duration: 3m 22s
+- Total execution time: 10m 07s
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 8 | 1/1 | 2m 35s | 2m 35s |
-| 9 | 1/2 | 4m 00s | 4m 00s |
+| 9 | 2/2 | 7m 32s | 3m 46s |
 | 10 | 0/2 | - | - |
 | 11 | 0/2 | - | - |
 
@@ -57,6 +57,8 @@ v1.1 implementation decisions:
 - stub-throws: Emitter stub throws 'not yet implemented' to preserve compilability
 - agent-transformation-pattern: Agent follows Command transformation pattern exactly
 - folder-prop-routing: folder prop affects output path only, not stored in frontmatter
+- separate-emit-functions: emitAgent() separate from emit() for document-kind-aware emission
+- per-file-mkdir: mkdir called per-file to handle different Agent output directories
 
 ### Pending Todos
 
@@ -69,5 +71,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Plan 09-01 (Agent Transformation) complete
-Resume with: /gsd:execute-plan .planning/phases/09-agent-transpilation/09-02-PLAN.md
+Stopped at: Plan 09-02 (Agent Emission) complete - Phase 9 complete
+Resume with: /gsd:execute-plan .planning/phases/10-agent-orchestration/10-01-PLAN.md
