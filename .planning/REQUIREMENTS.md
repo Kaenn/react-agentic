@@ -9,12 +9,12 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 
 ### Agent Component
 
-- [ ] **AGENT-01**: Agent component accepts `name` prop (string, required)
-- [ ] **AGENT-02**: Agent component accepts `description` prop (string, required)
-- [ ] **AGENT-03**: Agent component accepts `tools` prop (string, space-separated tool names)
-- [ ] **AGENT-04**: Agent component accepts `color` prop (string, terminal color name)
-- [ ] **AGENT-05**: Agent transpiles to `.claude/agents/{name}.md` output path
-- [ ] **AGENT-06**: Agent frontmatter uses GSD format (tools as string, not array)
+- [x] **AGENT-01**: Agent component accepts `name` prop (string, required)
+- [x] **AGENT-02**: Agent component accepts `description` prop (string, required)
+- [x] **AGENT-03**: Agent component accepts `tools` prop (string, space-separated tool names)
+- [x] **AGENT-04**: Agent component accepts `color` prop (string, terminal color name)
+- [x] **AGENT-05**: Agent transpiles to `.claude/agents/{name}.md` output path
+- [x] **AGENT-06**: Agent frontmatter uses GSD format (tools as string, not array)
 - [ ] **AGENT-07**: Agent supports generic type parameters `<Agent<TInput, TOutput>>`
 - [ ] **AGENT-08**: Agent file can export TypeScript interface for input contract
 
@@ -89,12 +89,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IR-03 | Phase 8 | Complete |
 | IR-04 | Phase 8 | Complete |
 | IR-05 | Phase 8 | Complete |
-| AGENT-01 | Phase 9 | Pending |
-| AGENT-02 | Phase 9 | Pending |
-| AGENT-03 | Phase 9 | Pending |
-| AGENT-04 | Phase 9 | Pending |
-| AGENT-05 | Phase 9 | Pending |
-| AGENT-06 | Phase 9 | Pending |
+| AGENT-01 | Phase 9 | Complete |
+| AGENT-02 | Phase 9 | Complete |
+| AGENT-03 | Phase 9 | Complete |
+| AGENT-04 | Phase 9 | Complete |
+| AGENT-05 | Phase 9 | Complete |
+| AGENT-06 | Phase 9 | Complete |
 | SPAWN-01 | Phase 10 | Pending |
 | SPAWN-02 | Phase 10 | Pending |
 | SPAWN-03 | Phase 10 | Pending |
@@ -116,4 +116,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after Phase 8 completion*
+*Last updated: 2026-01-21 after Phase 9 completion*
