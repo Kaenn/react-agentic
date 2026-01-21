@@ -334,8 +334,14 @@ export class Transformer {
       if (Node.isJsxText(child)) {
         const text = extractText(child);
         if (text) {
-          // Plain text in li becomes paragraph
-          children.push({ kind: 'paragraph', children: [{ kind: 'text', value: text }] });
+          // Plain text in li - merge into last paragraph if exists
+          const textNode: InlineNode = { kind: 'text', value: text };
+          const lastChild = children[children.length - 1];
+          if (lastChild?.kind === 'paragraph') {
+            lastChild.children.push(textNode);
+          } else {
+            children.push({ kind: 'paragraph', children: [textNode] });
+          }
         }
       } else if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
         const childName = getElementName(child);

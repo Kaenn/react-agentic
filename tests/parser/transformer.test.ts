@@ -448,6 +448,7 @@ describe('Transformer', () => {
       const list = doc.children[0];
       expect(list.kind).toBe('list');
       if (list.kind === 'list') {
+        // Bold and text should be merged into a single paragraph
         expect(list.items[0]).toEqual({
           kind: 'listItem',
           children: [
@@ -455,11 +456,8 @@ describe('Transformer', () => {
               kind: 'paragraph',
               children: [
                 { kind: 'bold', children: [{ kind: 'text', value: 'bold' }] },
+                { kind: 'text', value: 'text' },
               ],
-            },
-            {
-              kind: 'paragraph',
-              children: [{ kind: 'text', value: 'text' }],
             },
           ],
         });
