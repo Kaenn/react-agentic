@@ -17,8 +17,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Composition
 
-- [ ] **COMP-01**: Support props spreading (`{...baseProps}`) with static resolution at transpile time
-- [ ] **COMP-02**: Support component composition — import and flatten shared fragments across commands
+- [x] **COMP-01**: Support props spreading (`{...baseProps}`) with static resolution at transpile time
+- [x] **COMP-02**: Support component composition — import and flatten shared fragments across commands
 
 ### CLI
 
@@ -80,8 +80,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-03 | Phase 2 | Complete |
 | CORE-04 | Phase 3 | Complete |
 | CORE-05 | Phase 3 | Complete |
-| COMP-01 | Phase 5 | Pending |
-| COMP-02 | Phase 5 | Pending |
+| COMP-01 | Phase 5 | Complete |
+| COMP-02 | Phase 5 | Complete |
 | CLI-01 | Phase 4 | Complete |
 | CLI-02 | Phase 4 | Complete |
 | CLI-03 | Phase 6 | Pending |
@@ -99,4 +99,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 4 completion*
+*Last updated: 2026-01-21 after Phase 5 completion*

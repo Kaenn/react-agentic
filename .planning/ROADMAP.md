@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Core Transpilation** - TSX parsing and basic element transformation
 - [x] **Phase 3: Full Element Coverage** - Command frontmatter, XML blocks, and raw markdown
 - [x] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
-- [ ] **Phase 5: Composition** - Props spreading and component composition support
+- [x] **Phase 5: Composition** - Props spreading and component composition support
 - [ ] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
 
 ## Phase Details
@@ -95,8 +95,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Static props spreading resolution
-- [ ] 05-02-PLAN.md — Component composition and fragment flattening
+- [x] 05-01-PLAN.md — Static props spreading resolution
+- [x] 05-02-PLAN.md — Component composition and fragment flattening
 
 ### Phase 6: Watch & Error Handling
 **Goal**: Production-ready CLI with watch mode, dry run, and developer-friendly error messages
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Core Transpilation | 3/3 | ✓ Complete | 2026-01-21 |
 | 3. Full Element Coverage | 2/2 | ✓ Complete | 2026-01-21 |
 | 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
-| 5. Composition | 0/2 | Planned | - |
+| 5. Composition | 2/2 | ✓ Complete | 2026-01-21 |
 | 6. Watch & Error Handling | 0/3 | Not started | - |
 
 ---
