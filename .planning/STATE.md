@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 
 ## Current Position
 
-Phase: None (between milestones)
-Plan: Not started
-Status: Ready for next milestone
-Last activity: 2026-01-21 — v1.0 milestone shipped
+Phase: Not started (defining requirements)
+Plan: —
+Status: Researching domain
+Last activity: 2026-01-21 — Milestone v1.1 started
 
-Progress: [██████████] v1.0 SHIPPED
+Progress: [░░░░░░░░░░] v1.1 STARTING
 
 ## Milestone History
 
@@ -44,5 +44,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: v1.0 milestone completion
-Resume with: /gsd:new-milestone
+Stopped at: v1.1 research phase
+Resume with: /gsd:plan-phase 8

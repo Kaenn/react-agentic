@@ -27,7 +27,16 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 
 ### Active
 
-(None — start next milestone to add requirements)
+**Current Milestone: v1.1 Agent Framework**
+
+**Goal:** Enable Commands to spawn typed Agents with shared input/output contracts — the foundation for agentic TSX programming.
+
+**Target features:**
+- `<Agent>` component that transpiles to Claude Code agent markdown
+- `<SpawnAgent>` component for Commands to invoke Agents with typed input
+- Shared interface definitions (Agent owns contract, Command imports it)
+- TypeScript type safety across command → agent boundary
+- Output format matches GSD (get-shit-done) exactly
 
 ### Out of Scope
 
@@ -94,4 +103,4 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | JSX `{' '}` pattern | Standard JSX whitespace behavior, not a bug | ✓ Good — documented in example |
 
 ---
-*Last updated: 2026-01-21 after v1.0 milestone*
+*Last updated: 2026-01-21 after v1.1 milestone started*
