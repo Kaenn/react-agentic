@@ -29,7 +29,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "commander": "^14.0.2",
+    "globby": "^16.1.0",
     "gray-matter": "^4.0.3",
+    "picocolors": "^1.1.1",
     "ts-morph": "^27.0.2"
   },
   "devDependencies": {
