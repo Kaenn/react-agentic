@@ -164,3 +164,37 @@ export function findRootJsxElement(
 
   return result;
 }
+
+// ============================================================================
+// Text Extraction Utilities
+// ============================================================================
+
+/**
+ * Check if a JsxText node contains only whitespace (formatting between elements)
+ */
+export function isWhitespaceOnlyText(node: JsxText): boolean {
+  return node.containsOnlyTriviaWhiteSpaces();
+}
+
+/**
+ * Normalize whitespace in text content
+ *
+ * Collapses multiple spaces/newlines to a single space and trims edges.
+ */
+export function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Extract text content from a JsxText node
+ *
+ * Returns null for whitespace-only nodes (formatting between elements).
+ * Otherwise returns normalized text content.
+ */
+export function extractText(node: JsxText): string | null {
+  if (isWhitespaceOnlyText(node)) {
+    return null;
+  }
+  const normalized = normalizeWhitespace(node.getText());
+  return normalized || null;
+}

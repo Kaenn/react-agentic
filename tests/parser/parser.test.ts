@@ -6,6 +6,9 @@ import {
   getAttributeValue,
   findRootJsxElement,
   getJsxChildren,
+  isWhitespaceOnlyText,
+  normalizeWhitespace,
+  extractText,
 } from '../../src/index.js';
 import { Node } from 'ts-morph';
 
@@ -239,6 +242,131 @@ describe('Parser', () => {
       );
 
       expect(elementChildren.length).toBe(2);
+    });
+  });
+
+  describe('isWhitespaceOnlyText', () => {
+    it('returns true for whitespace-only text between elements', () => {
+      const project = createProject();
+      const source = `
+        export default function Page() {
+          return (
+            <div>
+              <span>A</span>
+              <span>B</span>
+            </div>
+          );
+        }
+      `;
+      const sourceFile = parseSource(project, source);
+      const root = findRootJsxElement(sourceFile);
+      expect(root).not.toBeNull();
+
+      const children = getJsxChildren(root as any);
+      const textNodes = children.filter((c) => Node.isJsxText(c));
+
+      // All text nodes between elements should be whitespace-only
+      textNodes.forEach((textNode) => {
+        expect(isWhitespaceOnlyText(textNode as any)).toBe(true);
+      });
+    });
+
+    it('returns false for text with content', () => {
+      const project = createProject();
+      const source = `export default function Page() { return <p>Hello world</p>; }`;
+      const sourceFile = parseSource(project, source);
+      const root = findRootJsxElement(sourceFile);
+      expect(root).not.toBeNull();
+
+      const children = getJsxChildren(root as any);
+      const textNode = children.find((c) => Node.isJsxText(c));
+
+      expect(textNode).toBeDefined();
+      expect(isWhitespaceOnlyText(textNode as any)).toBe(false);
+    });
+  });
+
+  describe('normalizeWhitespace', () => {
+    it('collapses multiple spaces to single space', () => {
+      expect(normalizeWhitespace('Hello    world')).toBe('Hello world');
+    });
+
+    it('collapses newlines and spaces', () => {
+      expect(normalizeWhitespace('Hello\n  world')).toBe('Hello world');
+    });
+
+    it('trims leading and trailing whitespace', () => {
+      expect(normalizeWhitespace('  Hello world  ')).toBe('Hello world');
+    });
+
+    it('handles complex whitespace', () => {
+      expect(normalizeWhitespace('\n  Hello\n    world  \n')).toBe(
+        'Hello world'
+      );
+    });
+
+    it('returns empty string for whitespace-only input', () => {
+      expect(normalizeWhitespace('   \n\t  ')).toBe('');
+    });
+  });
+
+  describe('extractText', () => {
+    it('returns null for whitespace-only text nodes', () => {
+      const project = createProject();
+      const source = `
+        export default function Page() {
+          return (
+            <div>
+              <span>A</span>
+            </div>
+          );
+        }
+      `;
+      const sourceFile = parseSource(project, source);
+      const root = findRootJsxElement(sourceFile);
+      expect(root).not.toBeNull();
+
+      const children = getJsxChildren(root as any);
+      const textNode = children.find((c) => Node.isJsxText(c));
+
+      expect(textNode).toBeDefined();
+      expect(extractText(textNode as any)).toBeNull();
+    });
+
+    it('extracts and normalizes text content', () => {
+      const project = createProject();
+      const source = `export default function Page() { return <p>Hello    world</p>; }`;
+      const sourceFile = parseSource(project, source);
+      const root = findRootJsxElement(sourceFile);
+      expect(root).not.toBeNull();
+
+      const children = getJsxChildren(root as any);
+      const textNode = children.find((c) => Node.isJsxText(c));
+
+      expect(textNode).toBeDefined();
+      expect(extractText(textNode as any)).toBe('Hello world');
+    });
+
+    it('extracts text with newlines normalized', () => {
+      const project = createProject();
+      const source = `
+        export default function Page() {
+          return (
+            <p>
+              Hello    world
+            </p>
+          );
+        }
+      `;
+      const sourceFile = parseSource(project, source);
+      const root = findRootJsxElement(sourceFile);
+      expect(root).not.toBeNull();
+
+      const children = getJsxChildren(root as any);
+      const textNode = children.find((c) => Node.isJsxText(c));
+
+      expect(textNode).toBeDefined();
+      expect(extractText(textNode as any)).toBe('Hello world');
     });
   });
 });
