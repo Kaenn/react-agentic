@@ -23,8 +23,9 @@ export interface CommandProps {
 
 /**
  * Props for the Agent component
+ * @typeParam TInput - Type interface for agent input contract (compile-time only)
  */
-export interface AgentProps {
+export interface AgentProps<TInput = unknown> {
   /** Agent name (used in frontmatter and Task() spawning) */
   name: string;
   /** Agent description (used in frontmatter) */
@@ -37,12 +38,14 @@ export interface AgentProps {
   folder?: string;
   /** Agent body content */
   children?: ReactNode;
+  // TInput is compile-time only - used for cross-file type validation
 }
 
 /**
  * Props for the SpawnAgent component
+ * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
  */
-export interface SpawnAgentProps {
+export interface SpawnAgentProps<TInput = unknown> {
   /** Agent name to spawn (e.g., 'gsd-researcher') */
   agent: string;
   /** Model to use - supports {variable} placeholders */
@@ -51,6 +54,7 @@ export interface SpawnAgentProps {
   description: string;
   /** Prompt content - supports multi-line and {variable} placeholders */
   prompt: string;
+  // TInput enables compile-time validation against Agent's interface
 }
 
 /**
@@ -92,13 +96,18 @@ export function Command(_props: CommandProps): null {
  * This is a compile-time component transformed by react-agentic.
  * It's never executed at runtime.
  *
+ * @typeParam TInput - Type interface for agent input contract (compile-time only)
  * @example
- * <Agent name="researcher" description="Research topics" tools="Read Grep Glob" color="cyan">
+ * // Define input contract
+ * export interface ResearcherInput { phase: string; description: string; }
+ *
+ * // Use generic to declare contract
+ * <Agent<ResearcherInput> name="researcher" description="Research topics" tools="Read Grep Glob">
  *   <h1>Role</h1>
  *   <p>You are a researcher that finds information using code analysis tools.</p>
  * </Agent>
  */
-export function Agent(_props: AgentProps): null {
+export function Agent<TInput = unknown>(_props: AgentProps<TInput>): null {
   return null;
 }
 
@@ -145,14 +154,19 @@ export function XmlBlock(_props: XmlBlockProps): null {
  * This is a compile-time component transformed by react-agentic.
  * It emits Task() function-call syntax, not markdown.
  *
+ * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
  * @example
- * <SpawnAgent
+ * // Import the Agent's input type
+ * import type { ResearcherInput } from './researcher.agent.js';
+ *
+ * // Use generic to validate against Agent's contract
+ * <SpawnAgent<ResearcherInput>
  *   agent="gsd-researcher"
  *   model="{researcher_model}"
  *   description="Research phase requirements"
  *   prompt={`<context>Phase: {phase}</context>`}
  * />
  */
-export function SpawnAgent(_props: SpawnAgentProps): null {
+export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput>): null {
   return null;
 }
