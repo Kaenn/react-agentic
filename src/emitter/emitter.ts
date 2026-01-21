@@ -128,8 +128,7 @@ export class MarkdownEmitter {
       case 'raw':
         return node.content;
       case 'spawnAgent':
-        // TODO: Implement in Phase 10 - SpawnAgent emission
-        throw new Error('SpawnAgent emission not yet implemented');
+        return this.emitSpawnAgent(node);
       default:
         return assertNever(node);
     }
@@ -258,6 +257,31 @@ export class MarkdownEmitter {
       .split('\n')
       .map((line) => (line ? `> ${line}` : '>'))
       .join('\n');
+  }
+
+  /**
+   * Emit SpawnAgent as GSD Task() syntax
+   *
+   * Output format:
+   * Task(
+   *   prompt="...",
+   *   subagent_type="...",
+   *   model="...",
+   *   description="..."
+   * )
+   */
+  private emitSpawnAgent(node: SpawnAgentNode): string {
+    // Escape double quotes in string values (backslash escape for Task() syntax)
+    const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
+
+    // Build Task() with proper formatting
+    // Note: prompt can be multi-line, preserve actual newlines
+    return `Task(
+  prompt="${escapeQuotes(node.prompt)}",
+  subagent_type="${escapeQuotes(node.agent)}",
+  model="${escapeQuotes(node.model)}",
+  description="${escapeQuotes(node.description)}"
+)`;
   }
 
   /**
