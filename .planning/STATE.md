@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 1 of 6 (Foundation & IR)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-01-20 — Roadmap created
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-21 — Completed 01-01-PLAN.md (Project Setup)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 8%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 2 min
+- Total execution time: 2 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation-ir | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 01-01 (2 min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Architecture follows Parse -> Transform -> Emit with IR layer
 - [Roadmap]: Build order: IR types first, then emitter, then transformer, then CLI
 - [Roadmap]: Watch mode uses chokidar with debouncing (research pitfall)
+- [01-01]: TypeScript 5.9.3 with NodeNext module resolution
+- [01-01]: Vitest 4.0.17 with v8 coverage provider
+- [01-01]: ESM-first configuration (type: module)
 
 ### Pending Todos
 
@@ -56,6 +59,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-20
-Stopped at: Roadmap creation complete
+Last session: 2026-01-21
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None
