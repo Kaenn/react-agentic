@@ -159,6 +159,7 @@ export interface SpawnAgentNode {
   model: string;           // Model to use (supports {variable} syntax)
   description: string;     // Human-readable task description
   prompt: string;          // Task prompt (supports {variable} and template literals)
+  inputType?: TypeReference; // Optional: generic type parameter if provided (for validation)
 }
 
 /**
@@ -197,6 +198,7 @@ export interface AgentFrontmatterNode {
   description: string;       // Required: agent purpose
   tools?: string;            // Optional: space-separated tool names (e.g., 'Read Grep Glob')
   color?: string;            // Optional: terminal color (e.g., 'cyan')
+  inputType?: TypeReference; // Optional: generic type parameter if provided (e.g., 'ResearcherInput')
 }
 
 /**

@@ -464,6 +464,36 @@ export function resolveComponentImport(
  * @param decl - The component's declaration node
  * @returns The JSX element/fragment returned, or null if not found
  */
+/**
+ * Extract generic type arguments from a JSX element
+ *
+ * For <SpawnAgent<ResearcherInput>> returns ['ResearcherInput']
+ * For <Agent<MyInput>> returns ['MyInput']
+ * Returns undefined if no type arguments present
+ *
+ * Uses ts-morph's getDescendantsOfKind to find TypeReference nodes within the
+ * opening element's tag, which is where JSX type arguments are attached.
+ */
+export function extractTypeArguments(
+  element: JsxElement | JsxSelfClosingElement
+): string[] | undefined {
+  // Get the opening element (where generics are attached in JSX)
+  const openingElement = Node.isJsxElement(element)
+    ? element.getOpeningElement()
+    : element;
+
+  // Get all TypeReference descendants of the opening tag
+  // In JSX, type arguments appear as TypeReference children of the tag name
+  const typeRefNodes = openingElement.getDescendantsOfKind(SyntaxKind.TypeReference);
+
+  if (typeRefNodes.length === 0) {
+    return undefined;
+  }
+
+  // Extract the type name text from each TypeReference
+  return typeRefNodes.map(node => node.getText());
+}
+
 export function extractJsxFromComponent(
   decl: Node
 ): JsxElement | JsxSelfClosingElement | JsxFragment | null {
