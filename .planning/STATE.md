@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 2 of 6 (Core Transpilation)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-21 — Completed 02-01-PLAN.md
+Last activity: 2026-01-21 — Completed 02-02-PLAN.md
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3.3 min
-- Total execution time: 10 min
+- Total plans completed: 4
+- Average duration: 5.0 min
+- Total execution time: 20 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-ir | 2 | 6 min | 3 min |
-| 02-core-transpilation | 1 | 4 min | 4 min |
+| 02-core-transpilation | 2 | 14 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 01-02 (4 min), 02-01 (4 min)
-- Trend: stable
+- Last 5 plans: 01-01 (2 min), 01-02 (4 min), 02-01 (4 min), 02-02 (10 min)
+- Trend: increased (JSX whitespace handling complexity)
 
 *Updated after each plan completion*
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - [02-01]: ts-morph ^27.0.2 for TSX parsing with JsxEmit.Preserve
 - [02-01]: Access JsxEmit via ts.JsxEmit from ts-morph's ts namespace
 - [02-01]: useInMemoryFileSystem: true in Project for in-memory parsing
+- [02-02]: extractInlineText preserves internal spacing, boundary trimming at edges
+- [02-02]: JSX expressions {' '} supported for explicit spacing (JSX whitespace workaround)
+- [02-02]: Throw on unsupported elements; XmlBlock support deferred to Phase 3
 
 ### Pending Todos
 
@@ -67,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-01-PLAN.md
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
