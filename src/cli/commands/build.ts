@@ -109,7 +109,7 @@ async function runBuild(
 
 export const buildCommand = new Command('build')
   .description('Transpile TSX command files to Markdown')
-  .argument('<patterns...>', 'Glob patterns for TSX files (e.g., src/**/*.tsx)')
+  .argument('[patterns...]', 'Glob patterns for TSX files (e.g., src/**/*.tsx)')
   .option('-o, --out <dir>', 'Output directory', '.claude/commands')
   .option('-d, --dry-run', 'Preview output without writing files')
   .option('-w, --watch', 'Watch for changes and rebuild automatically')
@@ -118,6 +118,16 @@ export const buildCommand = new Command('build')
     if (options.watch && options.dryRun) {
       console.error('Cannot use --dry-run with --watch');
       process.exit(1);
+    }
+
+    // Default to src/app/**/*.tsx in watch mode if no patterns provided
+    if (patterns.length === 0) {
+      if (options.watch) {
+        patterns = ['src/app/**/*.tsx'];
+      } else {
+        console.error('No patterns provided. Specify glob patterns or use --watch for default src/app/**/*.tsx');
+        process.exit(1);
+      }
     }
 
     // Expand glob patterns
