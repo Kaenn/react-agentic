@@ -227,14 +227,23 @@ export function extractText(node: JsxText): string | null {
 /**
  * Extract text content from a JsxText node for inline context
  *
- * Returns null for whitespace-only nodes.
+ * For inline context, we need to preserve whitespace that separates
+ * inline elements. Only skip nodes that are purely formatting whitespace
+ * (newlines + indentation between block elements).
+ *
  * Preserves leading/trailing spaces as they separate inline elements.
  */
 export function extractInlineText(node: JsxText): string | null {
-  if (isWhitespaceOnlyText(node)) {
+  const raw = node.getText();
+
+  // Skip purely structural whitespace (newlines with optional indentation)
+  // These are formatting between block-level elements
+  if (/^\s*\n\s*$/.test(raw)) {
     return null;
   }
-  const normalized = normalizeInlineWhitespace(node.getText());
+
+  // Normalize multiple whitespace to single space, preserving edges
+  const normalized = normalizeInlineWhitespace(raw);
   return normalized || null;
 }
 

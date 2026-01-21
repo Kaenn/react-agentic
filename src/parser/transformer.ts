@@ -401,62 +401,71 @@ export class Transformer {
   }
 
   private transformListItem(node: JsxElement): ListItemNode {
-    // List items can contain blocks (paragraphs, nested lists)
+    // List items can contain blocks (paragraphs, nested lists) or inline content
+    // We need to collect inline content together to preserve spacing between elements
     const children: BlockNode[] = [];
+    const jsxChildren = node.getJsxChildren();
 
-    for (const child of node.getJsxChildren()) {
-      if (Node.isJsxText(child)) {
-        const text = extractText(child);
-        if (text) {
-          // Plain text in li - merge into last paragraph if exists
-          const textNode: InlineNode = { kind: 'text', value: text };
-          const lastChild = children[children.length - 1];
-          if (lastChild?.kind === 'paragraph') {
-            lastChild.children.push(textNode);
-          } else {
-            children.push({ kind: 'paragraph', children: [textNode] });
-          }
-        }
-      } else if (Node.isJsxExpression(child)) {
-        // Handle JSX expressions like {' '} for explicit spacing in list items
+    // Helper to check if a child is block-level content
+    const isBlockContent = (child: Node): boolean => {
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const name = getElementName(child);
+        return name === 'ul' || name === 'ol' || name === 'p';
+      }
+      return false;
+    };
+
+    // Collect inline content sequences and process them together
+    let inlineSequence: Node[] = [];
+
+    const flushInlineSequence = () => {
+      if (inlineSequence.length === 0) return;
+
+      // Process all inline nodes together, preserving spacing
+      const inlines: InlineNode[] = [];
+      for (const child of inlineSequence) {
         const inline = this.transformToInline(child);
-        if (inline) {
-          // Merge into last paragraph if possible
-          const lastChild = children[children.length - 1];
-          if (lastChild?.kind === 'paragraph') {
-            lastChild.children.push(inline);
-          } else {
-            children.push({ kind: 'paragraph', children: [inline] });
-          }
-        }
-      } else if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
-        const childName = getElementName(child);
+        if (inline) inlines.push(inline);
+      }
 
-        // Check if it's a nested list
-        if (childName === 'ul' || childName === 'ol') {
-          const nestedList = this.transformElement(childName, child);
-          if (nestedList) children.push(nestedList);
-        } else if (childName === 'p') {
-          // Explicit paragraph
-          const para = this.transformElement(childName, child);
-          if (para) children.push(para);
+      // Trim only the outer boundaries (preserves internal spacing)
+      this.trimBoundaryTextNodes(inlines);
+
+      if (inlines.length > 0) {
+        // Merge into last paragraph or create new one
+        const lastChild = children[children.length - 1];
+        if (lastChild?.kind === 'paragraph') {
+          lastChild.children.push(...inlines);
         } else {
-          // Inline elements get wrapped in implicit paragraph
-          const inline = Node.isJsxSelfClosingElement(child)
-            ? this.transformToInline(child)
-            : this.transformInlineElement(childName, child);
-          if (inline) {
-            // Merge into last paragraph if possible
-            const lastChild = children[children.length - 1];
-            if (lastChild?.kind === 'paragraph') {
-              lastChild.children.push(inline);
-            } else {
-              children.push({ kind: 'paragraph', children: [inline] });
-            }
-          }
+          children.push({ kind: 'paragraph', children: inlines });
         }
       }
+
+      inlineSequence = [];
+    };
+
+    for (const child of jsxChildren) {
+      if (isBlockContent(child)) {
+        // Flush any pending inline content before block
+        flushInlineSequence();
+
+        // Process block content
+        const childName = getElementName(child as JsxElement | JsxSelfClosingElement);
+        if (childName === 'ul' || childName === 'ol') {
+          const nestedList = this.transformElement(childName, child as JsxElement);
+          if (nestedList) children.push(nestedList);
+        } else if (childName === 'p') {
+          const para = this.transformElement(childName, child as JsxElement);
+          if (para) children.push(para);
+        }
+      } else {
+        // Accumulate inline content (text, expressions, inline elements)
+        inlineSequence.push(child);
+      }
     }
+
+    // Flush any remaining inline content
+    flushInlineSequence();
 
     return { kind: 'listItem', children };
   }
@@ -727,18 +736,81 @@ export class Transformer {
     }
 
     // Extract raw content from children
+    // JSX strips whitespace after expressions, so we need to detect and restore it
+    //
+    // In markdown, we need to preserve:
+    // - Newlines before section headers (## )
+    // - Newlines between paragraphs/blocks
+    // - Spaces between inline elements
     const parts: string[] = [];
-    for (const child of node.getJsxChildren()) {
+    const jsxChildren = node.getJsxChildren();
+
+    for (let i = 0; i < jsxChildren.length; i++) {
+      const child = jsxChildren[i];
+      const prev = parts[parts.length - 1];
+
       if (Node.isJsxText(child)) {
-        // Get raw text preserving whitespace
-        parts.push(child.getText());
+        let text = child.getText();
+
+        // Empty text between two expressions likely had a newline that JSX stripped
+        // We restore it as a newline (inside code blocks, between list items, etc.)
+        if (text === '' && i > 0 && i < jsxChildren.length - 1) {
+          const prevChild = jsxChildren[i - 1];
+          const nextChild = jsxChildren[i + 1];
+          if (Node.isJsxExpression(prevChild) && Node.isJsxExpression(nextChild)) {
+            // Two adjacent expressions had whitespace between them that was stripped
+            parts.push('\n');
+            continue;
+          }
+        }
+
+        // Check if we need to restore stripped whitespace before this text
+        // JSX eats leading whitespace from text following an expression
+        if (prev && !/\s$/.test(prev) && !/^\s/.test(text) && text !== '') {
+          // Detect what kind of whitespace was likely stripped:
+          // - If text starts with ## (heading), add double newline
+          // - If text starts with ``` (code fence), add double newline
+          // - If text starts with ** (bold), add newline (often a new paragraph)
+          // - If text starts with - or * or digit. (list item), add newline
+          // - For | (table), only add newline if prev ends with | (new row)
+          //   Otherwise it's a cell separator, just needs space
+          // - Otherwise add space
+          if (/^#{1,6}\s/.test(text) || /^```/.test(text)) {
+            parts.push('\n\n');
+          } else if (/^\*\*/.test(text)) {
+            // Bold at start of line usually means new paragraph or list item
+            parts.push('\n');
+          } else if (/^[-*]\s/.test(text) || /^\d+\.\s/.test(text)) {
+            parts.push('\n');
+          } else if (/^[|]/.test(text)) {
+            // Table pipe: if previous content ended with | it's a new row
+            // Otherwise it's a cell separator (just needs space)
+            if (/[|]\s*$/.test(prev)) {
+              parts.push('\n');
+            } else {
+              parts.push(' ');
+            }
+          } else if (!/^[.,;:!?)}\]>`"'/]/.test(text)) {
+            parts.push(' ');
+          }
+        }
+
+        parts.push(text);
       } else if (Node.isJsxExpression(child)) {
         // Handle {variable} or {"literal"} expressions
         const expr = child.getExpression();
-        if (expr && Node.isStringLiteral(expr)) {
-          parts.push(expr.getLiteralValue());
+        if (expr) {
+          if (Node.isStringLiteral(expr)) {
+            // String literal: {"text"} -> text
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isIdentifier(expr)) {
+            // Identifier expression: {var} was likely ${var} in bash
+            // JSX splits ${var} into "$" + {var}, so reconstruct as {var}
+            // which preserves the intent for code blocks
+            parts.push(`{${expr.getText()}}`);
+          }
+          // Other expressions (function calls, etc.) cannot be evaluated at transpile time
         }
-        // Non-string expressions ignored (can't evaluate at transpile time)
       }
     }
 

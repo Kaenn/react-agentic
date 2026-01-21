@@ -157,10 +157,69 @@ export class MarkdownEmitter {
   }
 
   /**
-   * Emit a sequence of inline nodes
+   * Emit a sequence of inline nodes with proper spacing
+   *
+   * JSX whitespace handling can strip spaces between elements like:
+   *   `</code> → ` becomes `→ ` (space before arrow lost)
+   *
+   * This method ensures inline formatting elements (code, bold, italic)
+   * have proper spacing when adjacent to text that doesn't end/start with space.
    */
   private emitInlineChildren(nodes: InlineNode[]): string {
-    return nodes.map((node) => this.emitInline(node)).join('');
+    const parts: string[] = [];
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const emitted = this.emitInline(node);
+      const prev = parts[parts.length - 1];
+
+      // Check if we need to insert a space between elements
+      if (prev !== undefined && this.needsSpaceBetween(nodes[i - 1], node, prev, emitted)) {
+        parts.push(' ');
+      }
+
+      parts.push(emitted);
+    }
+
+    return parts.join('');
+  }
+
+  /**
+   * Determine if a space is needed between two inline elements
+   *
+   * We need a space when:
+   * - Previous element is formatting (code/bold/italic) AND doesn't end with space
+   * - Current element is text AND doesn't start with space or punctuation
+   *
+   * OR:
+   * - Previous element is text AND doesn't end with space
+   * - Current element is formatting (code/bold/italic)
+   */
+  private needsSpaceBetween(
+    prevNode: InlineNode,
+    currNode: InlineNode,
+    prevEmitted: string,
+    currEmitted: string
+  ): boolean {
+    // Don't add space if previous ends with whitespace
+    if (/\s$/.test(prevEmitted)) return false;
+
+    // Don't add space if current starts with whitespace or punctuation
+    if (/^[\s.,;:!?)}\]>]/.test(currEmitted)) return false;
+
+    const prevIsFormatting = prevNode.kind === 'inlineCode' || prevNode.kind === 'bold' || prevNode.kind === 'italic';
+    const currIsFormatting = currNode.kind === 'inlineCode' || currNode.kind === 'bold' || currNode.kind === 'italic';
+
+    // Space needed: formatting → text (that doesn't start with space/punct)
+    if (prevIsFormatting && currNode.kind === 'text') return true;
+
+    // Space needed: text → formatting (when text doesn't end with space)
+    if (prevNode.kind === 'text' && currIsFormatting) return true;
+
+    // Space needed: formatting → formatting
+    if (prevIsFormatting && currIsFormatting) return true;
+
+    return false;
   }
 
   /**
