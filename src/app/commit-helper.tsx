@@ -7,7 +7,7 @@ export default function CommitHelperCommand() {
       description="Helps create well-formatted git commits"
       allowedTools={['Bash', 'Read']}
     >
-      <h2>Objective</h2>
+      <h2>ObjectiveGlenn</h2>
       <p>
         Analyze staged changes and generate a commit message following{' '}
         <a href="https://www.conventionalcommits.org">conventional commits</a>{' '}

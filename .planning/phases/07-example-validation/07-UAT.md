@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 07-example-validation
 source: 07-01-SUMMARY.md
 started: 2026-01-21T14:00:00Z
@@ -65,16 +65,31 @@ skipped: 0
   reason: "User reported: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Cannot find name 'Command'."
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "@types/react not installed; no JSX type definitions for Command/Markdown components"
+  artifacts:
+    - path: "package.json"
+      issue: "Missing @types/react in devDependencies"
+    - path: "src/jsx.d.ts"
+      issue: "Does not exist - needs Command/Markdown type definitions"
+  missing:
+    - "Add @types/react to devDependencies"
+    - "Create src/jsx.d.ts with Command and Markdown component type definitions"
+    - "Export JSX types from src/index.ts"
+  debug_session: ".planning/debug/tsx-typescript-errors.md"
 
 - truth: "Bold text in list items stays inline with following content"
   status: failed
   reason: "User reported: List items with bold break onto new lines. Expected '- **Working directory:** Current git repository' but got multiline output."
   severity: minor
   test: 6
-  artifacts: []
-  missing: []
+  root_cause: "transformListItem() creates new paragraph for JsxText instead of merging into last existing paragraph"
+  artifacts:
+    - path: "src/parser/transformer.ts"
+      issue: "JsxText handling (lines 334-339) always creates new paragraph instead of merging"
+  missing:
+    - "Modify JsxText branch to merge into last paragraph if one exists"
+    - "Update test expectation in tests/parser/transformer.test.ts"
+  debug_session: ".planning/debug/bold-list-item-newline.md"
 
 ## Feature Requests (Out of Phase Scope)
 

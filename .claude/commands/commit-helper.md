@@ -6,7 +6,7 @@ allowed-tools:
   - Read
 ---
 
-## Objective
+## ObjectiveGlenn
 
 Analyze staged changes and generate a commit message following [conventional commits](https://www.conventionalcommits.org) format.
 
