@@ -45,12 +45,12 @@ Plans:
   2. Running transpiler on TSX produces correctly formatted Markdown output
   3. Text content is preserved through the parse->transform->emit pipeline
   4. Nested elements (bold inside paragraph, list items with formatting) render correctly
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: ts-morph parser setup and JSX AST traversal
-- [ ] 02-02: Transformer for basic elements (headings, paragraphs, text formatting)
-- [ ] 02-03: Transformer for lists, blockquotes, code blocks, and links
+- [ ] 02-01-PLAN.md — ts-morph parser setup and JSX AST traversal
+- [ ] 02-02-PLAN.md — Transformer for basic elements (headings, paragraphs, text formatting)
+- [ ] 02-03-PLAN.md — Transformer for lists, blockquotes, code blocks, and links
 
 ### Phase 3: Full Element Coverage
 **Goal**: Complete element support including Command frontmatter, XML blocks, and raw markdown passthrough
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & IR | 2/2 | ✓ Complete | 2026-01-21 |
-| 2. Core Transpilation | 0/3 | Not started | - |
+| 2. Core Transpilation | 0/3 | Ready to execute | - |
 | 3. Full Element Coverage | 0/2 | Not started | - |
 | 4. CLI Interface | 0/3 | Not started | - |
 | 5. Composition | 0/2 | Not started | - |
