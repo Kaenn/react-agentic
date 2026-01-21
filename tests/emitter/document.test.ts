@@ -255,4 +255,34 @@ describe('Document emission', () => {
       "
     `);
   });
+
+  describe('XmlBlock with attributes', () => {
+    it('emits XML block without attributes', () => {
+      const doc: DocumentNode = {
+        kind: 'document',
+        children: [{
+          kind: 'xmlBlock',
+          name: 'example',
+          children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'Content' }] }],
+        }],
+      };
+      const output = emit(doc);
+      expect(output).toBe('<example>\nContent\n</example>\n');
+    });
+
+    it('emits XML block with attributes', () => {
+      const doc: DocumentNode = {
+        kind: 'document',
+        children: [{
+          kind: 'xmlBlock',
+          name: 'section',
+          attributes: { id: 'intro', class: 'main' },
+          children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'Content' }] }],
+        }],
+      };
+      const output = emit(doc);
+      expect(output).toContain('<section id="intro" class="main">');
+      expect(output).toContain('</section>');
+    });
+  });
 });

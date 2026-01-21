@@ -359,9 +359,9 @@ describe('Transformer', () => {
 
   describe('error handling', () => {
     it('throws for unsupported block element', () => {
-      const tsx = `export default function Doc() { return <div>content</div>; }`;
+      const tsx = `export default function Doc() { return <section>content</section>; }`;
 
-      expect(() => transformTsx(tsx)).toThrow('Unsupported block element: <div>');
+      expect(() => transformTsx(tsx)).toThrow('Unsupported block element: <section>');
     });
 
     it('throws for unsupported inline element', () => {
@@ -1024,6 +1024,221 @@ line3</code></pre>
       // Should have body content
       expect(output).toContain('# Analysis Instructions');
       expect(output).toContain('Follow these steps to analyze code.');
+    });
+  });
+
+  describe('Named div blocks', () => {
+    it('transforms div with name attribute to XmlBlock', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <div name="example">
+              <p>Content inside</p>
+            </div>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.children).toHaveLength(1);
+      const block = doc.children[0];
+      expect(block.kind).toBe('xmlBlock');
+      if (block.kind === 'xmlBlock') {
+        expect(block.name).toBe('example');
+        expect(block.children).toHaveLength(1);
+      }
+    });
+
+    it('transforms div without name as <div>', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <div>
+              <p>Plain div</p>
+            </div>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      expect(block.kind).toBe('xmlBlock');
+      if (block.kind === 'xmlBlock') {
+        expect(block.name).toBe('div');
+      }
+    });
+
+    it('passes through additional attributes', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <div name="section" id="intro" class="main">
+              <p>Content</p>
+            </div>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      expect(block.kind).toBe('xmlBlock');
+      if (block.kind === 'xmlBlock') {
+        expect(block.name).toBe('section');
+        expect(block.attributes).toEqual({ id: 'intro', class: 'main' });
+      }
+    });
+
+    it('handles self-closing div', () => {
+      const source = `
+        export default function Example() {
+          return <div name="break" />;
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      expect(block.kind).toBe('xmlBlock');
+      if (block.kind === 'xmlBlock') {
+        expect(block.name).toBe('break');
+        expect(block.children).toHaveLength(0);
+      }
+    });
+
+    it('throws error on invalid XML name with spaces', () => {
+      const source = `
+        export default function Example() {
+          return <div name="has spaces"><p>Bad</p></div>;
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow(/Invalid XML tag name/);
+    });
+
+    it('throws error on name starting with number', () => {
+      const source = `
+        export default function Example() {
+          return <div name="123start"><p>Bad</p></div>;
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow(/Invalid XML tag name/);
+    });
+
+    it('throws error on name starting with xml', () => {
+      const source = `
+        export default function Example() {
+          return <div name="xmlData"><p>Bad</p></div>;
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow(/Invalid XML tag name/);
+    });
+  });
+
+  describe('Markdown passthrough', () => {
+    it('passes through raw markdown content', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <Markdown>
+              # Pre-formatted heading
+
+              Some **bold** already formatted.
+            </Markdown>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      expect(doc.children).toHaveLength(1);
+      const block = doc.children[0];
+      expect(block.kind).toBe('raw');
+      if (block.kind === 'raw') {
+        expect(block.content).toContain('# Pre-formatted heading');
+        expect(block.content).toContain('**bold**');
+      }
+    });
+
+    it('handles JSX expression with string literal', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <Markdown>{"# Dynamic heading"}</Markdown>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      expect(block.kind).toBe('raw');
+      if (block.kind === 'raw') {
+        expect(block.content).toBe('# Dynamic heading');
+      }
+    });
+
+    it('handles self-closing Markdown as empty', () => {
+      const source = `
+        export default function Example() {
+          return <Markdown />;
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      expect(block.kind).toBe('raw');
+      if (block.kind === 'raw') {
+        expect(block.content).toBe('');
+      }
+    });
+
+    it('trims outer whitespace but preserves internal', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <Markdown>
+              Line one
+
+              Line three
+            </Markdown>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+
+      const block = doc.children[0];
+      if (block.kind === 'raw') {
+        // Should not have leading/trailing newlines from JSX formatting
+        expect(block.content).not.toMatch(/^\s/);
+        expect(block.content).not.toMatch(/\s$/);
+        // But should preserve internal blank line
+        expect(block.content).toContain('\n\n');
+      }
+    });
+  });
+
+  describe('Named div and Markdown E2E', () => {
+    it('produces correct XML block output', () => {
+      const source = `
+        export default function Example() {
+          return (
+            <>
+              <div name="instructions" id="main">
+                <p>Follow these steps</p>
+              </div>
+              <Markdown>
+                ## Raw Section
+
+                Already formatted content.
+              </Markdown>
+            </>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      const output = emit(doc);
+
+      expect(output).toContain('<instructions id="main">');
+      expect(output).toContain('Follow these steps');
+      expect(output).toContain('</instructions>');
+      expect(output).toContain('## Raw Section');
+      expect(output).toContain('Already formatted content.');
     });
   });
 });
