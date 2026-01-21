@@ -82,11 +82,11 @@ Plans:
   3. Transpiler errors if referenced Agent file does not exist
   4. Transpiler errors if SpawnAgent input type doesn't match Agent's exported interface
   5. Error messages include source locations for both Command and Agent files
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 11-01: Generic type parameter extraction
-- [ ] 11-02: Cross-file validation
+- [ ] 11-01-PLAN.md — Generic type parameter extraction
+- [ ] 11-02-PLAN.md — Cross-file validation
 
 ## Progress
 
