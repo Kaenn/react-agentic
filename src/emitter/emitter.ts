@@ -219,12 +219,19 @@ export class MarkdownEmitter {
   }
 
   /**
-   * Emit XML block - <name>content</name>
+   * Emit XML block - <name attrs>content</name>
    */
   private emitXmlBlock(node: XmlBlockNode): string {
+    // Serialize attributes if present
+    const attrs = node.attributes
+      ? ' ' + Object.entries(node.attributes)
+          .map(([k, v]) => `${k}="${v}"`)
+          .join(' ')
+      : '';
+
     const innerContent = node.children.map((child) => this.emitBlock(child)).join('\n\n');
 
-    return `<${node.name}>\n${innerContent}\n</${node.name}>`;
+    return `<${node.name}${attrs}>\n${innerContent}\n</${node.name}>`;
   }
 }
 

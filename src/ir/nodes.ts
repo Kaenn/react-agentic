@@ -137,6 +137,7 @@ export interface ThematicBreakNode {
 export interface XmlBlockNode {
   kind: 'xmlBlock';
   name: string;
+  attributes?: Record<string, string>;
   children: BlockNode[];
 }
 
