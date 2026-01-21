@@ -186,6 +186,16 @@ export function normalizeWhitespace(text: string): string {
 }
 
 /**
+ * Normalize whitespace for inline text content
+ *
+ * Collapses multiple spaces/newlines to a single space but preserves
+ * leading/trailing spaces (they separate inline elements).
+ */
+export function normalizeInlineWhitespace(text: string): string {
+  return text.replace(/\s+/g, ' ');
+}
+
+/**
  * Extract text content from a JsxText node
  *
  * Returns null for whitespace-only nodes (formatting between elements).
@@ -196,5 +206,19 @@ export function extractText(node: JsxText): string | null {
     return null;
   }
   const normalized = normalizeWhitespace(node.getText());
+  return normalized || null;
+}
+
+/**
+ * Extract text content from a JsxText node for inline context
+ *
+ * Returns null for whitespace-only nodes.
+ * Preserves leading/trailing spaces as they separate inline elements.
+ */
+export function extractInlineText(node: JsxText): string | null {
+  if (isWhitespaceOnlyText(node)) {
+    return null;
+  }
+  const normalized = normalizeInlineWhitespace(node.getText());
   return normalized || null;
 }

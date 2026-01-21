@@ -16,32 +16,34 @@ import type {
   InlineNode,
   DocumentNode,
 } from '../ir/index.js';
-import { getElementName, extractText } from './parser.js';
+import { getElementName, extractText, extractInlineText } from './parser.js';
 
 export class Transformer {
   /**
    * Transform a root JSX element/fragment into a DocumentNode
    */
   transform(node: JsxElement | JsxSelfClosingElement | JsxFragment): DocumentNode {
-    const blocks = this.transformChildren(node);
-    return { kind: 'document', children: blocks };
-  }
-
-  private transformChildren(node: JsxElement | JsxSelfClosingElement | JsxFragment): BlockNode[] {
-    // Handle self-closing elements (no children)
-    if (Node.isJsxSelfClosingElement(node)) {
-      const block = this.transformToBlock(node);
-      return block ? [block] : [];
+    // Fragment: transform each child as a block
+    if (Node.isJsxFragment(node)) {
+      const blocks = this.transformFragmentChildren(node);
+      return { kind: 'document', children: blocks };
     }
 
-    // Get children from element or fragment
-    const children = node.getJsxChildren();
+    // Single element: transform it as the one block
+    const block = this.transformToBlock(node);
+    const children = block ? [block] : [];
+    return { kind: 'document', children };
+  }
 
+  private transformFragmentChildren(node: JsxFragment): BlockNode[] {
+    const children = node.getJsxChildren();
     const blocks: BlockNode[] = [];
+
     for (const child of children) {
       const block = this.transformToBlock(child);
       if (block) blocks.push(block);
     }
+
     return blocks;
   }
 
@@ -98,12 +100,41 @@ export class Transformer {
       if (inline) inlines.push(inline);
     }
 
+    // Trim leading/trailing whitespace from first and last text nodes
+    // (preserves internal spacing between inline elements)
+    this.trimBoundaryTextNodes(inlines);
+
     return inlines;
+  }
+
+  private trimBoundaryTextNodes(inlines: InlineNode[]): void {
+    if (inlines.length === 0) return;
+
+    // Trim leading whitespace from first text node
+    const first = inlines[0];
+    if (first.kind === 'text') {
+      first.value = first.value.trimStart();
+      if (!first.value) {
+        inlines.shift();
+      }
+    }
+
+    if (inlines.length === 0) return;
+
+    // Trim trailing whitespace from last text node
+    const last = inlines[inlines.length - 1];
+    if (last.kind === 'text') {
+      last.value = last.value.trimEnd();
+      if (!last.value) {
+        inlines.pop();
+      }
+    }
   }
 
   private transformToInline(node: Node): InlineNode | null {
     if (Node.isJsxText(node)) {
-      const text = extractText(node);
+      // Use extractInlineText to preserve leading/trailing spaces
+      const text = extractInlineText(node);
       if (!text) return null;
       return { kind: 'text', value: text };
     }
@@ -119,6 +150,19 @@ export class Transformer {
     if (Node.isJsxElement(node)) {
       const name = getElementName(node);
       return this.transformInlineElement(name, node);
+    }
+
+    // Handle JSX expressions like {' '} for explicit spacing
+    if (Node.isJsxExpression(node)) {
+      const expr = node.getExpression();
+      if (expr && Node.isStringLiteral(expr)) {
+        const value = expr.getLiteralValue();
+        if (value) {
+          return { kind: 'text', value };
+        }
+      }
+      // Non-string expressions are ignored for now
+      return null;
     }
 
     return null;
