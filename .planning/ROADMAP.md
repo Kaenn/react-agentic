@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
 - [x] **Phase 5: Composition** - Props spreading and component composition support
 - [x] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
-- [ ] **Phase 7: Example Validation** - Create working example command that validates transpiler output
+- [x] **Phase 7: Example Validation** - Create working example command that validates transpiler output
 
 ## Phase Details
 
@@ -128,7 +128,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 07-01-PLAN.md — Fix and validate example command TSX file
+- [x] 07-01-PLAN.md — Fix and validate example command TSX file
 
 ## Progress
 
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
 | 5. Composition | 2/2 | ✓ Complete | 2026-01-21 |
 | 6. Watch & Error Handling | 3/3 | ✓ Complete | 2026-01-21 |
-| 7. Example Validation | 0/1 | Not started | - |
+| 7. Example Validation | 1/1 | ✓ Complete | 2026-01-21 |
 
 ---
 *Roadmap created: 2026-01-20*
