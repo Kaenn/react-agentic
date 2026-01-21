@@ -92,11 +92,11 @@ Plans:
   2. User can import and use shared component fragments across multiple command files
   3. Composed components flatten correctly into final Markdown output
   4. TypeScript provides type checking for spread props and composed components
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Static props spreading resolution
-- [ ] 05-02: Component composition and fragment flattening
+- [ ] 05-01-PLAN.md — Static props spreading resolution
+- [ ] 05-02-PLAN.md — Component composition and fragment flattening
 
 ### Phase 6: Watch & Error Handling
 **Goal**: Production-ready CLI with watch mode, dry run, and developer-friendly error messages
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Core Transpilation | 3/3 | ✓ Complete | 2026-01-21 |
 | 3. Full Element Coverage | 2/2 | ✓ Complete | 2026-01-21 |
 | 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
-| 5. Composition | 0/2 | Not started | - |
+| 5. Composition | 0/2 | Planned | - |
 | 6. Watch & Error Handling | 0/3 | Not started | - |
 
 ---
