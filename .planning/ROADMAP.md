@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
 - [x] **Phase 5: Composition** - Props spreading and component composition support
 - [x] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
-- [x] **Phase 7: Example Validation** - Create working example command that validates transpiler output
+- [ ] **Phase 7: Example Validation** - Create working example command that validates transpiler output
 
 ## Phase Details
 
@@ -125,10 +125,14 @@ Plans:
   2. Running `react-agentic build` on the example produces valid markdown
   3. Output markdown can be used as a Claude Code command
   4. Example demonstrates all supported features (headings, lists, formatting, XML blocks)
-**Plans**: 1 plan
+  5. TSX files open without TypeScript errors in IDE (JSX types available)
+  6. List items with bold text render inline (no line breaks)
+  7. Example lives in src/app/ with default watch path support
+**Plans**: 2 plans
 
 Plans:
 - [x] 07-01-PLAN.md — Fix and validate example command TSX file
+- [ ] 07-02-PLAN.md — Close UAT gaps: JSX types, list item fix, src/app location
 
 ## Progress
 
@@ -137,13 +141,13 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & IR | 2/2 | ✓ Complete | 2026-01-21 |
-| 2. Core Transpilation | 3/3 | ✓ Complete | 2026-01-21 |
-| 3. Full Element Coverage | 2/2 | ✓ Complete | 2026-01-21 |
-| 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
-| 5. Composition | 2/2 | ✓ Complete | 2026-01-21 |
-| 6. Watch & Error Handling | 3/3 | ✓ Complete | 2026-01-21 |
-| 7. Example Validation | 1/1 | ✓ Complete | 2026-01-21 |
+| 1. Foundation & IR | 2/2 | Complete | 2026-01-21 |
+| 2. Core Transpilation | 3/3 | Complete | 2026-01-21 |
+| 3. Full Element Coverage | 2/2 | Complete | 2026-01-21 |
+| 4. CLI Interface | 2/2 | Complete | 2026-01-21 |
+| 5. Composition | 2/2 | Complete | 2026-01-21 |
+| 6. Watch & Error Handling | 3/3 | Complete | 2026-01-21 |
+| 7. Example Validation | 1/2 | In Progress | - |
 
 ---
 *Roadmap created: 2026-01-20*
