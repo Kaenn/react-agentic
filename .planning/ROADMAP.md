@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Full Element Coverage** - Command frontmatter, XML blocks, and raw markdown
 - [x] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
 - [x] **Phase 5: Composition** - Props spreading and component composition support
-- [ ] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
+- [x] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
 - [ ] **Phase 7: Example Validation** - Create working example command that validates transpiler output
 
 ## Phase Details
@@ -112,9 +112,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Source-located error messages with TypeScript-style formatting
-- [ ] 06-02-PLAN.md — Dry run mode with build tree preview
-- [ ] 06-03-PLAN.md — Watch mode with chokidar and debouncing
+- [x] 06-01-PLAN.md — Source-located error messages with TypeScript-style formatting
+- [x] 06-02-PLAN.md — Dry run mode with build tree preview
+- [x] 06-03-PLAN.md — Watch mode with chokidar and debouncing
 
 ### Phase 7: Example Validation
 **Goal**: Fix and validate the example command TSX file to demonstrate correct syntax and all supported features
@@ -142,7 +142,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Full Element Coverage | 2/2 | ✓ Complete | 2026-01-21 |
 | 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
 | 5. Composition | 2/2 | ✓ Complete | 2026-01-21 |
-| 6. Watch & Error Handling | 0/3 | Not started | - |
+| 6. Watch & Error Handling | 3/3 | ✓ Complete | 2026-01-21 |
 | 7. Example Validation | 0/1 | Not started | - |
 
 ---

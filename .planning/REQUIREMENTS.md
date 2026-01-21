@@ -24,14 +24,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **CLI-01**: Directory/glob processing: `react-agentic build src/**/*.tsx`
 - [x] **CLI-02**: Output follows `.claude` convention — commands go to `.claude/commands/` regardless of source location
-- [ ] **CLI-03**: Watch mode — auto-rebuild on file changes with debouncing
-- [ ] **CLI-04**: Dry run mode — `--dry-run` prints output without writing files
+- [x] **CLI-03**: Watch mode — auto-rebuild on file changes with debouncing
+- [x] **CLI-04**: Dry run mode — `--dry-run` prints output without writing files
 - [x] **CLI-05**: Colored terminal output with visual hierarchy (respects NO_COLOR)
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Error messages include file path, line number, and column
-- [ ] **INFRA-02**: Non-zero exit code on transpilation errors
+- [x] **INFRA-01**: Error messages include file path, line number, and column
+- [x] **INFRA-02**: Non-zero exit code on transpilation errors
 - [x] **INFRA-03**: `--help` displays usage information
 - [x] **INFRA-04**: `--version` displays current version
 
@@ -84,11 +84,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 5 | Complete |
 | CLI-01 | Phase 4 | Complete |
 | CLI-02 | Phase 4 | Complete |
-| CLI-03 | Phase 6 | Pending |
-| CLI-04 | Phase 6 | Pending |
+| CLI-03 | Phase 6 | Complete |
+| CLI-04 | Phase 6 | Complete |
 | CLI-05 | Phase 4 | Complete |
-| INFRA-01 | Phase 6 | Pending |
-| INFRA-02 | Phase 6 | Pending |
+| INFRA-01 | Phase 6 | Complete |
+| INFRA-02 | Phase 6 | Complete |
 | INFRA-03 | Phase 4 | Complete |
 | INFRA-04 | Phase 4 | Complete |
 
@@ -99,4 +99,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 5 completion*
+*Last updated: 2026-01-21 after Phase 6 completion*
