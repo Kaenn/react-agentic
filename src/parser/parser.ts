@@ -18,6 +18,7 @@ import {
   JsxFragment,
   JsxText,
   JsxExpression,
+  ArrayLiteralExpression,
 } from 'ts-morph';
 
 /**
@@ -221,4 +222,38 @@ export function extractInlineText(node: JsxText): string | null {
   }
   const normalized = normalizeInlineWhitespace(node.getText());
   return normalized || null;
+}
+
+/**
+ * Get the value of a JSX array attribute by name
+ *
+ * Handles JSX expressions containing array literals: attr={["a", "b"]}
+ * Returns undefined if attribute is missing or not a string array.
+ */
+export function getArrayAttributeValue(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string
+): string[] | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init || !Node.isJsxExpression(init)) {
+    return undefined;
+  }
+
+  const expr = init.getExpression();
+  if (!expr || !Node.isArrayLiteralExpression(expr)) {
+    return undefined;
+  }
+
+  const elements: string[] = [];
+  for (const el of expr.getElements()) {
+    if (Node.isStringLiteral(el)) {
+      elements.push(el.getLiteralValue());
+    }
+  }
+  return elements.length > 0 ? elements : undefined;
 }
