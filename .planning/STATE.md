@@ -10,28 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 2 of 6 (Core Transpilation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-01-21 — Phase 1 complete, verified
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-21 — Completed 02-01-PLAN.md
 
-Progress: [██░░░░░░░░] 17%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 3 min
-- Total execution time: 6 min
+- Total plans completed: 3
+- Average duration: 3.3 min
+- Total execution time: 10 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-ir | 2 | 6 min | 3 min |
+| 02-core-transpilation | 1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 01-02 (4 min)
-- Trend: -
+- Last 5 plans: 01-01 (2 min), 01-02 (4 min), 02-01 (4 min)
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -51,6 +52,9 @@ Recent decisions affecting current work:
 - [01-02]: IR uses discriminated unions with kind property for type-safe switching
 - [01-02]: Emitter uses class with listStack for nested list context tracking
 - [01-02]: gray-matter used for frontmatter YAML stringification
+- [02-01]: ts-morph ^27.0.2 for TSX parsing with JsxEmit.Preserve
+- [02-01]: Access JsxEmit via ts.JsxEmit from ts-morph's ts namespace
+- [02-01]: useInMemoryFileSystem: true in Project for in-memory parsing
 
 ### Pending Todos
 
@@ -63,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 01-02-PLAN.md (Phase 1 complete)
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
