@@ -1,410 +1,396 @@
-# Pitfalls Research: TSX-to-Markdown Transpiler
+# Pitfalls Research: Agent Framework for TSX-to-Markdown Transpiler (v1.1)
 
-**Domain:** TSX/TypeScript transpiler with ts-morph for Claude Code commands
-**Researched:** 2026-01-20
-**Overall Confidence:** HIGH (verified against ts-morph docs, TypeScript Compiler API, and community issues)
+**Domain:** Adding typed Agent inter-component communication to existing TSX transpiler
+**Researched:** 2026-01-21
+**Overall Confidence:** HIGH for transpiler-specific pitfalls, MEDIUM for GSD-specific patterns
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that will cause project failure or require major rewrites.
+Mistakes that will cause project failure or require major architectural changes.
 
-### Pitfall 1: Generating Output Directly from Source AST
+### Pitfall 1: Type Information Loss at the Transpilation Boundary
 
-**What goes wrong:** Attempting to transform TSX directly to Markdown strings without an intermediate representation. This creates unmaintainable spaghetti code where parsing, transformation, and output generation are all tangled together.
+**What goes wrong:** TypeScript types are erased during transpilation. The Agent defines an interface contract (`interface AgentInput { ... }`), but the Markdown output is just text. The Command imports and uses this interface for compile-time checking, but the generated output contains no runtime representation of the type.
 
-**Why it happens:** Feels faster for a "simple" transpiler. The source-to-target path seems short enough to skip abstraction.
-
-**Consequences:**
-- Cannot easily add new elements without modifying core transform logic
-- Error handling becomes scattered and inconsistent
-- Testing requires full end-to-end setup for every case
-- Edge cases proliferate without clear boundaries
-
-**Prevention:**
-1. Design a clear intermediate representation (IR) between TSX AST and Markdown output
-2. Structure as: TSX Source -> ts-morph AST -> IR Nodes -> Markdown Strings
-3. Each transformation phase has single responsibility
-4. IR should be serializable for debugging and testing
-
-**Detection (early warning signs):**
-- Functions growing past 50 lines
-- Same file handling both AST traversal and string concatenation
-- Tests requiring full file fixtures instead of unit inputs
-
-**Phase to address:** Phase 1 (Architecture) - establish IR pattern before any element implementations
-
-**Sources:** [Strumenta - How to Write a Transpiler](https://tomassetti.me/how-to-write-a-transpiler/)
-
----
-
-### Pitfall 2: Ignoring ts-morph Node Invalidation After Manipulation
-
-**What goes wrong:** After modifying AST nodes, previously-obtained node references become invalid. Accessing properties on invalidated nodes throws errors.
-
-**Why it happens:** ts-morph re-parses and rebuilds the AST after manipulations for correctness. Old node references point to stale data.
+**Why it happens:** TypeScript fundamentally erases types at compile time. The transpiler outputs Markdown strings, not JavaScript. There's no mechanism to preserve type information in the output format.
 
 **Consequences:**
-- Runtime crashes during transformation
-- Unpredictable behavior in complex transforms
-- Silent data corruption if errors are swallowed
+- Commands using `<SpawnAgent input={data}>` have TypeScript checking during authoring
+- But the emitted Markdown just contains the serialized values with no schema
+- If the Agent's expected input format changes, Commands won't fail at build time unless they also import the updated interface
+- Type mismatches become runtime failures in Claude Code, not build-time errors
 
 **Prevention:**
-1. For read-only operations (our case: parsing TSX), work in analysis-first mode
-2. Complete all AST reads before any manipulations
-3. If manipulation needed, use ts-morph's `forget()` method deliberately
-4. Consider using ts-morph Structures (simplified AST) for generation
+1. **Document the limitation clearly:** Type safety exists only within the TSX authoring phase, not across compiled artifacts
+2. **Consider generating schema comments:** Emit `<!-- Input schema: { field: string, ... } -->` in the Markdown for debugging
+3. **Require interface exports from Agent files:** Agent must `export interface` its contract, Command must import it
+4. **Validate at transpile time:** When processing `<SpawnAgent>`, resolve the Agent's interface and compare prop types
 
 **Detection (early warning signs):**
-- Random "node has been removed" errors
-- Inconsistent test failures
-- Errors that disappear when adding console.log statements
+- Tests pass for isolated Command/Agent compilation but fail for cross-file type checking
+- Users report "it compiled but Claude Code got confused about the format"
+- Interface changes don't trigger Command rebuilds
 
-**Phase to address:** Phase 1 (Core Pipeline) - establish read-only traversal pattern
+**Phase to address:** Phase 1 (Interface Design) - establish the contract pattern before implementing components
 
-**Sources:** [ts-morph Performance Documentation](https://ts-morph.com/manipulation/performance)
+**Confidence:** HIGH - verified against TypeScript type erasure documentation and the fundamental constraint that Markdown has no type system
 
 ---
 
-### Pitfall 3: Conflating getType() with getTypeNode()
+### Pitfall 2: Circular Dependencies Between Agent and Command Files
 
-**What goes wrong:** Using `getType()` when `getTypeNode()` is needed (or vice versa) leads to incorrect type information extraction.
+**What goes wrong:** Agent defines interface, Command imports interface, but transformer needs to resolve both to validate the connection. If the resolution order isn't careful, circular import chains form.
 
-**Why it happens:** Naming is confusing. `getType()` returns the TypeChecker's computed type; `getTypeNode()` returns the actual AST node containing the type annotation.
+**Why it happens:** The existing `resolveComponentImport()` in transformer.ts tracks visited paths for circular detection on *component composition*. But Agent/Command have a different relationship - one defines types that the other consumes, plus the orchestration flows the other direction.
 
 **Consequences:**
-- Props validation fails to catch actual type errors
-- Generic type parameters resolve incorrectly
-- Type inference behavior differs from expectations
+- `Circular import detected` errors on valid Agent + Command pairs
+- Or worse: infinite loops in the transformer if detection isn't updated
+- Confusing error messages that don't explain the Agent/Command relationship
 
 **Prevention:**
-1. Use [ts-ast-viewer.com](https://ts-ast-viewer.com/) to understand node structure
-2. `getType()` (purple in viewer) = computed type from TypeChecker
-3. `getTypeNode()` (blue in viewer) = AST syntax node
-4. For props extraction, typically want `getType()` for resolved types
+1. **Separate type resolution from component resolution:** Agent interfaces are *type-only imports* (`import type { AgentInput } from './agent'`), which should be handled differently
+2. **Use TypeScript's `import type` detection:** ts-morph can distinguish `import type` from `import`, allowing different circular dependency rules
+3. **Allow cross-references for types only:** Command can import Agent's interface without triggering component resolution
+4. **Test the diamond dependency pattern:** Agent defines interface, two Commands both import it, both spawn the same Agent
 
 **Detection (early warning signs):**
-- Type information coming back as `string` when expecting object
-- Generic types not resolving to concrete types
-- Differences between expected and actual prop types
+- Circular import errors when Agent and Command are in same directory
+- Need to move interface to third file to make it work (symptom of underlying issue)
+- Tests with simple Agent/Command pairs pass but multi-file scenarios fail
 
-**Phase to address:** Phase 2 (Element Handling) - when implementing props extraction
+**Phase to address:** Phase 1 (Architecture) - update `resolveComponentImport` logic or create parallel `resolveTypeImport` path
 
-**Sources:** [ts-morph Navigation Documentation](https://ts-morph.com/navigation/)
+**Confidence:** HIGH - the existing codebase already handles circular detection for composition, this is an extension
 
 ---
 
-### Pitfall 4: Generics vs JSX Opening Tags Parser Ambiguity
+### Pitfall 3: Context Isolation Misunderstanding (@ References Don't Cross Task Boundaries)
 
-**What goes wrong:** TypeScript parser cannot distinguish `<T>` as a generic type parameter from `<T>` as a JSX opening tag.
+**What goes wrong:** GSD's `@` references (like `@.planning/PROJECT.md`) are lazy-loading signals that tell agents what files to read. They're NOT pre-loaded content. Developers assume the transpiler should inline referenced content, but that breaks the context isolation pattern GSD relies on.
 
-**Why it happens:** JSX syntax conflicts with TypeScript generic syntax. This is a fundamental parser limitation.
+**Why it happens:** Intuition from bundlers (Webpack, Rollup) says "resolve and inline." GSD intentionally doesn't work that way - each Task/Agent gets fresh 200K token context, and @ references are instructions to *that* agent, not the orchestrator.
 
 **Consequences:**
-- Arrow functions with generics fail to parse in TSX files
-- Cryptic parser errors that confuse users
-- Workarounds required for component type parameters
+- Transpiler inlines @ references, bloating the Markdown with content that should stay lazy
+- Context budget consumed in orchestrator instead of distributed across spawned agents
+- Breaks GSD's "fresh context per subagent" pattern, degrading quality
 
 **Prevention:**
-1. Document the constraint for users: use `<T,>` or `<T extends unknown>` syntax
-2. Provide clear error messages when this pattern is detected
-3. Consider supporting `.ts` files with JSX pragma for advanced cases
-4. Add validation to catch common misformations early
+1. **Treat @ references as opaque strings:** Emit them verbatim in the Markdown, do NOT resolve them
+2. **Document the pattern explicitly:** "@ references are passed through unchanged - they're instructions for the agent, not the transpiler"
+3. **Consider a `<Reference path="...">` component:** Explicit JSX syntax that makes the "emit as-is" behavior clear
+4. **Test that @ references survive round-trip:** Input TSX with `@.planning/foo.md` should produce output with identical text
 
 **Detection (early warning signs):**
-- Parser errors mentioning "JSX element" when user wrote generics
-- Users reporting "works in VS Code, fails in transpiler"
+- Build output is much larger than expected
+- File paths in output have been resolved to absolute paths
+- Tests check for content inlining (wrong) instead of reference preservation (right)
 
-**Phase to address:** Phase 3 (CLI/Error Handling) - clear error messages for this case
+**Phase to address:** Phase 2 (Component Implementation) - when building `<Agent>` and `<SpawnAgent>` components
 
-**Sources:** [TypeScript JSX Documentation](https://www.typescriptlang.org/docs/handbook/jsx.html), [TypeScript Parser Deep Dive](https://poteboy.dev/posts/20240802-ts-parser-eng)
+**Confidence:** MEDIUM - derived from GSD documentation, need to verify exact behavior with actual GSD usage
 
 ---
 
-### Pitfall 5: Not Handling JSX Children Manipulation Limitation
+### Pitfall 4: Generic Component Type Inference Failures in TSX
 
-**What goes wrong:** ts-morph has incomplete JSX children manipulation support. `setChildren()` throws `NotImplementedError`.
+**What goes wrong:** TypeScript's generic inference in TSX has known edge cases where type parameters aren't correctly propagated, especially with complex nested generics or conditional types.
 
-**Why it happens:** JSX support in ts-morph is less mature than standard TypeScript. The source code literally says "not implemented."
+**Why it happens:** Parser ambiguity between `<T>` as generic parameter vs JSX tag. TypeScript 2.9+ added `<Component<Type> ...>` syntax but inference still struggles with certain patterns.
 
 **Consequences:**
-- Cannot programmatically modify JSX children
-- Workarounds required for any child manipulation
-- May block certain transformation patterns
+- `<SpawnAgent<MyInput> input={...}>` may not correctly infer that `input` must match `MyInput`
+- Developers get vague "Type '{}' is not assignable" errors instead of helpful messages
+- Complex Agent interfaces with generics fail to provide autocomplete
 
 **Prevention:**
-1. Use read-only traversal for our use case (we parse, not modify)
-2. For any generation needs, use string templates via `setBodyText()`
-3. Avoid patterns that require programmatic JSX construction
-4. Work with raw text when structure manipulation hits limitations
+1. **Prefer explicit interface props over inline generics:** `interface SpawnAgentProps<T> { agent: Agent<T>; input: T }` with explicit type on the agent reference
+2. **Use trailing comma syntax for generic functions in TSX:** `<T,>` not `<T>` to avoid parser ambiguity
+3. **Test generic inference explicitly:** Include tests that verify autocomplete/type errors work as expected
+4. **Consider non-generic alternative:** `<SpawnAgent agent={MyAgent} input={...}>` where type is inferred from agent reference
 
 **Detection (early warning signs):**
-- `NotImplementedError` exceptions
-- Features requiring "modify then emit" patterns
+- TypeScript errors mention `{}` or `unknown` where specific type was expected
+- IDE autocomplete shows wrong or no suggestions for props
+- Works in `.ts` test file but fails in actual `.tsx` usage
 
-**Phase to address:** Phase 1 (Architecture) - design around read-only traversal
+**Phase to address:** Phase 1 (Interface Design) - choose component API that avoids inference pitfalls
 
-**Sources:** [ts-morph JSX Source](https://github.com/dsherret/ts-morph/blob/latest/packages/ts-morph/src/compiler/ast/jsx/JsxElement.ts), [Issue #240](https://github.com/dsherret/ts-morph/issues/240)
-
----
-
-## Common Mistakes
-
-Frequent errors that cause delays or technical debt.
-
-### Mistake 1: Props Spreading Without Runtime Evaluation Awareness
-
-**What goes wrong:** AST analysis cannot see runtime values of spread props. `{...props}` creates an opaque spread that can't be statically analyzed for content.
-
-**Why it happens:** AST is static analysis. Spread values are only known at runtime.
-
-**Prevention:**
-1. Extract what CAN be known: spread expression name, source location
-2. Document limitation clearly: spread props must be typed for compile-time checks
-3. Consider requiring explicit type annotations on spread sources
-4. For build-time transforms, evaluate only literal spreads
-
-**Which phase:** Phase 2 (Props Handling) - design props extraction with this in mind
-
-**Sources:** [JSX Spread Attributes](https://gist.github.com/sebmarkbage/07bbe37bc42b6d4aef81)
+**Confidence:** HIGH - verified against TypeScript GitHub issues and community documentation
 
 ---
 
-### Mistake 2: Watch Mode Without Proper Debouncing
+### Pitfall 5: Structured Return Format Mismatch
 
-**What goes wrong:** File system events fire multiple times per save. Without debouncing, the transpiler runs repeatedly for single saves.
+**What goes wrong:** GSD expects agents to return structured data in specific XML formats (`<execution_context>`, `<context>`, `<step>` blocks). The transpiler emits Markdown that doesn't match these conventions, causing GSD orchestration to fail.
 
-**Why it happens:** Editors save files in multiple steps (write temp, rename, etc.). File watchers see each step.
+**Why it happens:** The existing emitter produces generic Markdown. GSD has specific expectations about XML block naming, attribute patterns (`name` in snake_case, `priority` values), and nesting structure.
+
+**Consequences:**
+- Agents compile successfully but GSD can't parse their output
+- Orchestrator logs show "unexpected format" or silently drops data
+- Users debug their Agent logic when the issue is output format
 
 **Prevention:**
-1. Use `awaitWriteFinish` option in chokidar
-2. Add debounce wrapper (250-500ms typical)
-3. Track file content hashes to skip no-op rebuilds
-4. Consider `atomic: true` for atomic write detection
+1. **Study GSD output format requirements:** Identify required vs optional XML blocks, naming conventions, attribute schemas
+2. **Create dedicated IR nodes for GSD constructs:** `ExecutionContextNode`, `StepNode` with enforced naming patterns
+3. **Validate structured return blocks at transpile time:** Error if `<step>` is missing `name` attribute or uses wrong casing
+4. **Include format examples in component documentation:** Show exact output that GSD expects
 
-**Which phase:** Phase 3 (CLI/Watch Mode) - implement debouncing from start
+**Detection (early warning signs):**
+- Manual comparison of transpiler output vs GSD examples shows differences
+- Tests validate IR structure but don't verify final Markdown against GSD expectations
+- Users report "Agent works standalone but not when spawned"
 
-**Sources:** [chokidar debounce patterns](https://github.com/eklingen/watch-debounced), [chokidar awaitWriteFinish](https://github.com/paulmillr/chokidar)
+**Phase to address:** Phase 2 (Component Implementation) - study GSD format before implementing `<Agent>` component
+
+**Confidence:** MEDIUM - need to verify exact GSD parsing requirements (may vary by version)
 
 ---
 
-### Mistake 3: JSX Whitespace Handling Inconsistencies
+## Moderate Pitfalls
 
-**What goes wrong:** JSX collapses whitespace differently than HTML. Unexpected whitespace in Markdown output.
+Mistakes that cause delays or technical debt but are recoverable.
 
-**Why it happens:** JSX whitespace rules are subtle. Newlines between elements collapse, but text content whitespace is preserved.
+### Pitfall 6: Props vs Children Ambiguity for Agent Content
+
+**What goes wrong:** Unclear API design for Agent content. Should instructions be props (`<Agent instructions="...">`) or children (`<Agent><p>Instructions...</p></Agent>`)? Inconsistent decisions lead to confusing API.
+
+**Why it happens:** The existing Command uses children for body content. But Agent has multiple content sections (system prompt, role, execution context, structured return). Mixing props and children creates awkwardness.
 
 **Prevention:**
-1. Normalize whitespace in IR layer, not output layer
-2. Test explicitly for whitespace edge cases
-3. Use `<br/>` elements for intentional line breaks
-4. Document whitespace behavior for users
+1. **Define clear slots upfront:** Role (prop), System prompt (child of specific component), Execution context (child), Structured return (child)
+2. **Consider slot components:** `<Agent.SystemPrompt>`, `<Agent.ExecutionContext>`, `<Agent.Return>` pattern
+3. **Follow Command precedent:** If it works for Command, use same pattern for Agent's body
+4. **Document slot composition:** Show complete example with all slots filled
 
-**Which phase:** Phase 2 (Element Handling) - address early in element implementation
+**Detection (early warning signs):**
+- Debates about "where does X go" during implementation
+- Need to nest components 3+ levels deep for basic Agent definition
+- Users ask "why is this a prop and that's a child?"
+
+**Phase to address:** Phase 1 (Interface Design) - decide API before implementation
 
 ---
 
-### Mistake 4: File Extension Detection Failures
+### Pitfall 7: Implicit vs Explicit Agent Resolution
 
-**What goes wrong:** Parsing `.ts` files as TSX (or vice versa) causes parser errors or silent failures.
+**What goes wrong:** `<SpawnAgent>` needs to reference a specific Agent. Should it use string name (`agent="researcher"`), import reference (`agent={Researcher}`), or path reference (`agent="./agents/researcher.tsx"`)? Each has tradeoffs.
 
-**Why it happens:** TypeScript compiler needs explicit file extension hints for JSX parsing mode.
+**Why it happens:** Multiple valid approaches exist. String names are simple but not type-safe. Import references are type-safe but couple files. Path references work at transpile time but lose IDE support.
 
 **Prevention:**
-1. Use file extension to set compiler options dynamically
-2. For `.tsx`: `jsx: "preserve"` or `jsx: "react"`
-3. For `.ts`: no JSX support, fail fast with clear error
-4. Consider supporting JSX pragma comments in `.ts` files
+1. **Require import reference for type safety:** `import { Researcher } from './agents/researcher'` then `<SpawnAgent agent={Researcher}>`
+2. **Resolve agent interface from import:** At transpile time, follow the import to extract the Agent's interface
+3. **Allow string override for external agents:** `agentPath="~/.claude/commands/external.md"` when Agent isn't in transpiler scope
+4. **Test both internal and external agent patterns**
 
-**Which phase:** Phase 1 (Core Pipeline) - set up correct parsing modes
+**Detection (early warning signs):**
+- Implementation starts before deciding resolution strategy
+- Tests use strings but product uses imports (or vice versa)
+- IDE shows no autocomplete for agent reference
 
-**Sources:** [TypeScript JSX Modes](https://www.typescriptlang.org/docs/handbook/jsx.html)
+**Phase to address:** Phase 1 (Interface Design) - choose resolution strategy upfront
 
 ---
 
-### Mistake 5: Error Messages Without Source Location
+### Pitfall 8: Frontmatter Schema Extension Conflicts
 
-**What goes wrong:** User sees "Invalid element" without knowing where in their file the error occurred.
+**What goes wrong:** Command uses frontmatter for `name`, `description`, `allowed-tools`. Agent needs additional fields (model, spawn-strategy, etc.). Mixing these creates confusion about which fields apply where.
 
-**Why it happens:** Error handling added as afterthought. Source positions not captured during traversal.
+**Why it happens:** YAML frontmatter is untyped. Easy to add fields without schema validation. Different component types need different schemas.
 
 **Prevention:**
-1. Every AST node has position info - always capture it
-2. Wrap errors in custom error class with `{ line, column, file }` metadata
-3. Format errors like TypeScript: `file.tsx(10,5): error TS0000: message`
-4. Include source snippet in error when possible
+1. **Define schema per component type:** CommandFrontmatter vs AgentFrontmatter interfaces
+2. **Validate at transpile time:** Error on unknown frontmatter fields
+3. **Use distinct required fields:** Command requires `name`, Agent requires `name` + something Agent-specific
+4. **Document frontmatter schemas clearly:** Table showing field, type, which components use it
 
-**Which phase:** Phase 3 (CLI/Error Handling) - design error format before building
+**Detection (early warning signs):**
+- Users put Command fields on Agent or vice versa
+- Silent acceptance of typos in field names
+- "Works sometimes" because field was ignored
+
+**Phase to address:** Phase 2 (Component Implementation) - implement validation when building components
 
 ---
 
-### Mistake 6: Catching All Errors as `any`
+### Pitfall 9: Whitespace Sensitivity in Structured Blocks
 
-**What goes wrong:** TypeScript catches are `unknown` by default (strict mode). Using `any` loses type safety.
+**What goes wrong:** GSD's XML blocks may be whitespace-sensitive for parsing. The existing emitter normalizes whitespace. Normalization might break expected indentation in code blocks or structured returns.
 
-**Why it happens:** Quick fix for "error is unknown" compile errors.
+**Why it happens:** The Markdown emitter joins blocks with `\n\n`. XML blocks use `\n` for inner content. Mismatch between "pretty" output and "parseable" output.
 
 **Prevention:**
-1. Enable `useUnknownInCatchVariables` in tsconfig
-2. Use `instanceof Error` narrowing in catch blocks
-3. Create Result pattern for expected failures
-4. Never throw strings, always throw Error instances
+1. **Test output whitespace exactly:** Snapshot tests that capture exact spacing
+2. **Preserve whitespace in structured return blocks:** Don't normalize content inside `<execution_context>` etc.
+3. **Add emitter option for strict whitespace:** Some blocks need preservation, others can be pretty-printed
+4. **Verify against actual GSD parsing:** Feed transpiler output to GSD and confirm it works
 
-**Which phase:** Phase 1 (Foundation) - configure strict error handling from start
+**Detection (early warning signs):**
+- Tests pass but visual diff shows unexpected blank lines
+- Code blocks inside XML blocks lose indentation
+- GSD reports "malformed block" on valid-looking output
 
-**Sources:** [TypeScript Error Handling Best Practices](https://medium.com/@arreyetta/error-handling-in-typescript-best-practices-80cdfe6d06db)
+**Phase to address:** Phase 3 (Integration Testing) - verify against real GSD
 
 ---
 
-### Mistake 7: Performance Degradation with Large Files
+## Minor Pitfalls
 
-**What goes wrong:** ts-morph re-parses after each manipulation, causing O(n^2) behavior on large files.
+Mistakes that cause annoyance but are easily fixable.
 
-**Why it happens:** ts-morph optimizes for correctness over performance by default.
+### Pitfall 10: Naming Convention Mismatch
+
+**What goes wrong:** TSX uses PascalCase for components (`SpawnAgent`), but GSD conventions might expect snake_case for certain identifiers (task names, step names). Output uses wrong case.
 
 **Prevention:**
-1. Batch all reads before any writes
-2. Use Structures API for generation (simpler, faster)
-3. Profile early with realistic file sizes
-4. Consider per-file parallelization for multi-file builds
-
-**Which phase:** Phase 4 (Optimization) - measure and optimize after core works
-
-**Sources:** [ts-morph Performance](https://ts-morph.com/manipulation/performance)
+1. **Document casing rules:** "Component names are PascalCase, output identifiers are snake_case"
+2. **Auto-convert where appropriate:** `<Step name="validateInput">` emits `name="validate_input"`
+3. **Warn on casing violations:** At transpile time, flag names that don't match expected convention
 
 ---
 
-### Mistake 8: Ignoring Component Composition Edge Cases
+### Pitfall 11: Missing Source Location in Agent Errors
 
-**What goes wrong:** Nested components, fragments, conditional rendering patterns fail to transform correctly.
-
-**Why it happens:** Initial implementation handles simple cases. Complex patterns added as afterthought.
+**What goes wrong:** Errors from Agent/SpawnAgent don't include helpful file:line:col information because the error happens during inter-file resolution, not single-file parsing.
 
 **Prevention:**
-1. Define supported patterns upfront:
-   - Simple elements: `<h1>text</h1>`
-   - Nested elements: `<ul><li>item</li></ul>`
-   - Component references: `<SharedSection />`
-   - Conditional: `{condition && <Element />}`
-   - Fragments: `<>...</>` or `<Fragment>...</Fragment>`
-2. Decide unsupported patterns early with clear errors
-3. Test composition patterns from Phase 2
+1. **Propagate source location through resolution:** When resolving Agent import, track the SpawnAgent usage location
+2. **Include both locations in errors:** "SpawnAgent at file.tsx:15:5 references Agent at agent.tsx:3:1"
+3. **Test error messages explicitly:** Verify errors show correct locations
 
-**Which phase:** Phase 2 (Element Handling) - establish composition model early
+---
+
+### Pitfall 12: Stale Type Definitions After Agent Changes
+
+**What goes wrong:** Developer changes Agent's interface but doesn't rebuild. Command uses old type definitions from previous transpilation. Type mismatch only discovered at runtime.
+
+**Prevention:**
+1. **Document rebuild requirements:** "After changing Agent interfaces, rebuild all dependent Commands"
+2. **Consider emitting `.d.ts` files:** Let TypeScript track dependencies normally
+3. **Watch mode should rebuild dependents:** When Agent changes, rebuild Commands that import it
 
 ---
 
 ## Prevention Strategies
 
-### Strategy 1: Read-Only AST Traversal Pattern
+### Strategy 1: Type-Only Import Detection
 
-**Applies to:** Pitfalls 2, 5
+**Applies to:** Pitfalls 1, 2
 
 ```typescript
-// Good: Collect all data in single traversal pass
-function collectElements(sourceFile: SourceFile): IRNode[] {
-  const nodes: IRNode[] = [];
-
-  sourceFile.forEachDescendant((node) => {
-    if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
-      nodes.push(toIRNode(node)); // Extract all needed data here
-    }
-  });
-
-  return nodes; // No further AST access after this
+// In transformer.ts or new type-resolver.ts
+function isTypeOnlyImport(importDecl: ImportDeclaration): boolean {
+  // TypeScript 3.8+ has import type syntax
+  return importDecl.isTypeOnly();
 }
 
-// Bad: Interleaved reading and manipulation
-function transformBad(sourceFile: SourceFile) {
-  sourceFile.forEachDescendant((node) => {
-    // This may invalidate other nodes!
-    node.replaceWithText(transform(node));
+function resolveAgentInterface(
+  componentName: string,
+  sourceFile: SourceFile
+): InterfaceDeclaration | null {
+  const importDecl = sourceFile.getImportDeclaration((decl) => {
+    // Find import that includes the interface name
+    return decl.getNamedImports().some((ni) => ni.getName() === componentName);
   });
+
+  if (!importDecl) return null;
+
+  // Type-only imports follow different resolution rules
+  // They don't trigger circular dependency errors
+  const isTypeOnly = isTypeOnlyImport(importDecl);
+
+  // ... resolve to interface declaration
 }
 ```
 
-### Strategy 2: Intermediate Representation Design
+### Strategy 2: GSD Format Validation
 
-**Applies to:** Pitfall 1
-
-```typescript
-// Define clear IR types separate from AST and output
-interface IRNode {
-  type: 'element' | 'text' | 'component';
-  tagName?: string;
-  props?: Record<string, IRPropValue>;
-  children?: IRNode[];
-  sourceLocation: SourceLocation;
-}
-
-// Pipeline becomes testable at each stage
-const pipeline = {
-  parse: (tsx: string) => SourceFile,           // ts-morph
-  extract: (ast: SourceFile) => IRNode,         // our logic
-  transform: (ir: IRNode) => IRNode,            // optional transforms
-  emit: (ir: IRNode) => string,                 // markdown output
-};
-```
-
-### Strategy 3: Structured Error Handling
-
-**Applies to:** Mistakes 5, 6
+**Applies to:** Pitfall 5
 
 ```typescript
-// Custom error with source location
-class TranspileError extends Error {
-  constructor(
-    message: string,
-    public location: { file: string; line: number; column: number },
-    public sourceSnippet?: string
-  ) {
-    super(message);
-    this.name = 'TranspileError';
+// New validation in emitter or post-emit phase
+const GSD_STEP_NAME_PATTERN = /^[a-z][a-z0-9_]*$/;
+
+function validateStepNode(node: StepNode): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!node.name) {
+    errors.push({ message: '<step> requires name attribute' });
+  } else if (!GSD_STEP_NAME_PATTERN.test(node.name)) {
+    errors.push({
+      message: `Step name "${node.name}" must be snake_case`,
+      suggestion: toSnakeCase(node.name),
+    });
   }
 
-  format(): string {
-    return `${this.location.file}(${this.location.line},${this.location.column}): ${this.message}`;
-  }
-}
-
-// Capture location from AST node
-function createError(message: string, node: Node): TranspileError {
-  const { line, column } = node.getStartLinePos();
-  return new TranspileError(message, {
-    file: node.getSourceFile().getFilePath(),
-    line,
-    column,
-  });
+  return errors;
 }
 ```
 
-### Strategy 4: Watch Mode Debouncing
+### Strategy 3: Interface Contract Extraction
 
-**Applies to:** Mistake 2
+**Applies to:** Pitfalls 1, 4, 7
 
 ```typescript
-import chokidar from 'chokidar';
-import { debounce } from 'lodash-es';
+// Extract interface schema from Agent definition
+interface ExtractedContract {
+  inputInterface: string;      // Interface name
+  inputSchema: PropertyInfo[]; // Simplified schema for documentation
+  outputFormat: string;        // "structured" | "markdown" | "raw"
+}
 
-const rebuild = debounce((paths: string[]) => {
-  console.log(`Rebuilding: ${paths.length} files changed`);
-  // actual build logic
-}, 300); // 300ms debounce
+function extractAgentContract(
+  agentSourceFile: SourceFile
+): ExtractedContract {
+  // Find exported interface that matches naming convention
+  const inputInterface = agentSourceFile.getInterface((iface) =>
+    iface.getName()?.endsWith('Input')
+  );
 
-const watcher = chokidar.watch('src/**/*.tsx', {
-  awaitWriteFinish: {
-    stabilityThreshold: 100,
-    pollInterval: 50,
-  },
-});
+  // Extract property names and types for schema comment
+  const properties = inputInterface?.getProperties().map((p) => ({
+    name: p.getName(),
+    type: p.getType().getText(),
+    optional: p.hasQuestionToken(),
+  }));
 
-const changedFiles = new Set<string>();
+  return {
+    inputInterface: inputInterface?.getName() ?? 'unknown',
+    inputSchema: properties ?? [],
+    outputFormat: detectOutputFormat(agentSourceFile),
+  };
+}
+```
 
-watcher.on('change', (path) => {
-  changedFiles.add(path);
-  rebuild([...changedFiles]);
-  changedFiles.clear();
+### Strategy 4: @ Reference Preservation Test
+
+**Applies to:** Pitfall 3
+
+```typescript
+// Test that verifies @ references are NOT resolved
+describe('@ reference handling', () => {
+  it('preserves @ references verbatim', () => {
+    const input = `
+      <Agent name="researcher">
+        <Markdown>
+          Load context from @.planning/PROJECT.md before proceeding.
+        </Markdown>
+      </Agent>
+    `;
+
+    const output = transpile(input);
+
+    // @ reference should appear unchanged in output
+    expect(output).toContain('@.planning/PROJECT.md');
+
+    // Should NOT contain resolved content
+    expect(output).not.toContain('# Project Name'); // hypothetical file content
+  });
 });
 ```
 
@@ -414,36 +400,104 @@ watcher.on('change', (path) => {
 
 | Phase | Topic | Likely Pitfall | Mitigation |
 |-------|-------|----------------|------------|
-| Phase 1 | Core Pipeline | Direct AST-to-output (Pitfall 1) | Design IR first, implement elements second |
-| Phase 1 | ts-morph Setup | Node invalidation (Pitfall 2) | Read-only traversal pattern |
-| Phase 2 | JSX Elements | getType vs getTypeNode (Pitfall 3) | Use ts-ast-viewer to verify |
-| Phase 2 | Props Handling | Spread props limitation (Mistake 1) | Document, require typed spreads |
-| Phase 2 | Composition | Complex patterns (Mistake 8) | Define supported patterns upfront |
-| Phase 3 | Parser Errors | Generics ambiguity (Pitfall 4) | Clear error messages |
-| Phase 3 | Watch Mode | No debounce (Mistake 2) | awaitWriteFinish + debounce |
-| Phase 3 | Error Handling | No source location (Mistake 5) | Capture location at parse time |
-| Phase 4 | Performance | Large file slowdown (Mistake 7) | Structures API, batch reads |
+| Phase 1 | Interface Design | Generic type inference failures (Pitfall 4) | Test API with complex types before committing to design |
+| Phase 1 | Interface Design | Props vs children ambiguity (Pitfall 6) | Define slot pattern upfront with examples |
+| Phase 1 | Architecture | Circular dependency handling (Pitfall 2) | Separate type resolution from component resolution |
+| Phase 2 | Agent Component | @ reference inlining (Pitfall 3) | Emit references verbatim, test preservation |
+| Phase 2 | Agent Component | Structured return format (Pitfall 5) | Study GSD output examples before implementation |
+| Phase 2 | SpawnAgent Component | Agent resolution strategy (Pitfall 7) | Require import reference for type safety |
+| Phase 2 | Frontmatter | Schema conflicts (Pitfall 8) | Define distinct schemas per component type |
+| Phase 3 | Integration | Whitespace sensitivity (Pitfall 9) | Snapshot test exact output format |
+| Phase 3 | Integration | Type boundary loss (Pitfall 1) | Document limitation, consider schema comments |
+| Post-MVP | DX | Stale types (Pitfall 12) | Watch mode should track cross-file dependencies |
+
+---
+
+## GSD-Specific Gotchas Explained
+
+### "Context doesn't cross Task boundaries"
+
+**What it means:**
+- Each Task runs in a fresh subagent with its own 200K token context
+- The orchestrator doesn't share its context with spawned Tasks
+- Tasks communicate through files (.planning/STATE.md, agent-history.json) not memory
+
+**Transpiler implications:**
+1. @ references are instructions for the Task, not content for the orchestrator
+2. Don't inline file contents - that bloats orchestrator context
+3. Each Agent output should be self-contained (include all needed references)
+4. Structured returns write to files, not return to orchestrator memory
+
+### "Subagents have 200k tokens purely for implementation"
+
+**What it means:**
+- Main context accumulates garbage (conversation history, failed attempts)
+- Subagents start fresh with only explicit context injections
+- Quality degrades beyond 50% context utilization
+
+**Transpiler implications:**
+1. Agent definitions should be concise (the Markdown is loaded into subagent)
+2. Large inline content hurts the subagent's working context
+3. Reference external files via @ rather than embedding content
+
+### Structured Return Pattern
+
+**What GSD expects:**
+```xml
+<execution_context>
+  @~/.claude/get-shit-done/workflows/execute-phase.md
+</execution_context>
+
+<step name="validate_inputs" priority="high">
+  1. Check that all required fields are present
+  2. Verify types match expected schema
+</step>
+```
+
+**Key conventions:**
+- `name` attribute uses snake_case
+- `priority` is optional, values: high | medium | low
+- Steps are ordered execution instructions
+- References use @ prefix
 
 ---
 
 ## Sources
 
-### Official Documentation
+### TypeScript Type System
+- [TypeScript Type Erasure - FreeCodeCamp](https://www.freecodecamp.org/news/what-is-type-erasure-in-typescript/)
+- [TypeScript 3.8 - Type-Only Imports](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html)
 - [TypeScript JSX Documentation](https://www.typescriptlang.org/docs/handbook/jsx.html)
-- [ts-morph Documentation](https://ts-morph.com/)
-- [ts-morph Performance Guide](https://ts-morph.com/manipulation/performance)
-- [TypeScript Compiler API Wiki](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API)
 
-### Community Resources
-- [How to Write a Transpiler - Strumenta](https://tomassetti.me/how-to-write-a-transpiler/)
-- [TypeScript Transformer Handbook](https://github.com/itsdouges/typescript-transformer-handbook)
-- [TypeScript AST Viewer](https://ts-ast-viewer.com/)
+### Generic Type Inference in TSX
+- [Passing Generics to JSX Elements - Marius Schulz](https://mariusschulz.com/blog/passing-generics-to-jsx-elements-in-typescript)
+- [TypeScript Issue #16499 - Generic Inference Failures](https://github.com/Microsoft/TypeScript/issues/16499)
+- [TypeScript Issue #3960 - Generics in JSX](https://github.com/Microsoft/TypeScript/issues/3960)
 
-### GitHub Issues
-- [ts-morph Issue #240 - TSX Generation](https://github.com/dsherret/ts-morph/issues/240)
-- [ts-morph Issue #897 - JSX Formatting](https://github.com/dsherret/ts-morph/issues/897)
-- [TypeScript Issue #57054 - JSX Transform](https://github.com/microsoft/TypeScript/issues/57054)
+### Circular Dependencies
+- [Taming Circular Dependencies in TypeScript - Medium](https://medium.com/inkitt-tech/taming-circular-dependencies-in-typescript-d63df1ec8c80)
+- [Fix Circular Dependencies Once and For All - Michel Weststrate](https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de)
 
-### Best Practices
-- [TypeScript Error Handling](https://medium.com/@arreyetta/error-handling-in-typescript-best-practices-80cdfe6d06db)
-- [chokidar File Watching](https://github.com/paulmillr/chokidar)
+### GSD Framework
+- [GSD GitHub Repository](https://github.com/glittercowboy/get-shit-done)
+- [GSD Style Guide](https://github.com/glittercowboy/get-shit-done/blob/main/GSD-STYLE.md)
+
+### Context Engineering for Agentic Systems
+- [MCP Security Analysis - arxiv](https://arxiv.org/html/2512.08290v1)
+- [Prompt Injection in AI Coding Editors - arxiv](https://arxiv.org/html/2509.22040v1)
+
+---
+
+## Summary
+
+The v1.1 Agent framework addition faces three categories of challenges:
+
+1. **Type boundary challenges:** TypeScript types exist at compile time but Markdown has no type system. Accept this limitation and focus on compile-time validation.
+
+2. **Resolution complexity:** Agents and Commands have different dependency relationships than component composition. Type-only imports need separate handling.
+
+3. **GSD format compliance:** The output must match GSD's specific XML block conventions, whitespace expectations, and @ reference patterns. Study actual GSD usage before implementation.
+
+**Highest-risk pitfall:** Type information loss (Pitfall 1) because it's fundamental to the problem space and cannot be fully solved, only mitigated through documentation and compile-time validation.
+
+**Most likely pitfall:** Circular dependency errors (Pitfall 2) because the existing codebase already handles this for composition, making it easy to assume the same logic applies to Agent/Command relationships.
