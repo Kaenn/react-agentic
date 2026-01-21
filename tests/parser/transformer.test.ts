@@ -1372,4 +1372,237 @@ line3</code></pre>
       expect(() => transformTsx(source)).toThrow('Spread source must be an object literal');
     });
   });
+
+  describe('Component composition', () => {
+    function transformWithComponents(files: Record<string, string>, mainFile: string) {
+      const project = createProject({ inMemory: true });
+      for (const [name, content] of Object.entries(files)) {
+        project.createSourceFile(name, content);
+      }
+      const source = project.getSourceFileOrThrow(mainFile);
+      const root = findRootJsxElement(source);
+      if (!root) throw new Error('No JSX found');
+      const transformer = new Transformer();
+      return transformer.transform(root, source);
+    }
+
+    it('inlines composed component JSX', () => {
+      const files = {
+        'shared.tsx': `
+          export function Instructions() {
+            return <p>Follow these steps</p>;
+          }
+        `,
+        'main.tsx': `
+          import { Instructions } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <Instructions />
+              </Command>
+            );
+          }
+        `,
+      };
+      const doc = transformWithComponents(files, 'main.tsx');
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('paragraph');
+      if (doc.children[0].kind === 'paragraph') {
+        expect(doc.children[0].children[0]).toEqual({ kind: 'text', value: 'Follow these steps' });
+      }
+    });
+
+    it('inlines component returning XML block', () => {
+      const files = {
+        'shared.tsx': `
+          export function SharedSection() {
+            return <div name="section"><p>Shared content</p></div>;
+          }
+        `,
+        'main.tsx': `
+          import { SharedSection } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <SharedSection />
+              </Command>
+            );
+          }
+        `,
+      };
+      const doc = transformWithComponents(files, 'main.tsx');
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('xmlBlock');
+      if (doc.children[0].kind === 'xmlBlock') {
+        expect(doc.children[0].name).toBe('section');
+      }
+    });
+
+    it('supports arrow function components', () => {
+      const files = {
+        'shared.tsx': `
+          export const Warning = () => <p>Warning message</p>;
+        `,
+        'main.tsx': `
+          import { Warning } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <Warning />
+              </Command>
+            );
+          }
+        `,
+      };
+      const doc = transformWithComponents(files, 'main.tsx');
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('paragraph');
+    });
+
+    it('supports arrow function with parenthesized return', () => {
+      const files = {
+        'shared.tsx': `
+          export const Section = () => (
+            <div name="context">
+              <p>Context here</p>
+            </div>
+          );
+        `,
+        'main.tsx': `
+          import { Section } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <Section />
+              </Command>
+            );
+          }
+        `,
+      };
+      const doc = transformWithComponents(files, 'main.tsx');
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('xmlBlock');
+    });
+
+    it('throws for package imports (non-relative)', () => {
+      const files = {
+        'main.tsx': `
+          import { ExternalComponent } from 'some-package';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <ExternalComponent />
+              </Command>
+            );
+          }
+        `,
+      };
+      expect(() => transformWithComponents(files, 'main.tsx')).toThrow(
+        /Only relative imports supported/
+      );
+    });
+
+    it('throws for circular imports', () => {
+      // A uses B, B uses A - circular when resolving A from main
+      const files = {
+        'a.tsx': `
+          import { B } from './b';
+          export function A() {
+            return <B />;
+          }
+        `,
+        'b.tsx': `
+          import { A } from './a';
+          export function B() {
+            return <A />;
+          }
+        `,
+        'main.tsx': `
+          import { A } from './a';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <A />
+              </Command>
+            );
+          }
+        `,
+      };
+      expect(() => transformWithComponents(files, 'main.tsx')).toThrow(
+        /Circular import detected/
+      );
+    });
+
+    it('throws for component with props', () => {
+      const files = {
+        'shared.tsx': `
+          export function Section({ title }: { title: string }) {
+            return <p>{title}</p>;
+          }
+        `,
+        'main.tsx': `
+          import { Section } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <Section title="Custom" />
+              </Command>
+            );
+          }
+        `,
+      };
+      expect(() => transformWithComponents(files, 'main.tsx')).toThrow(
+        /Component props not supported/
+      );
+    });
+
+    it('throws for component not imported', () => {
+      const files = {
+        'main.tsx': `
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <NonExistent />
+              </Command>
+            );
+          }
+        `,
+      };
+      expect(() => transformWithComponents(files, 'main.tsx')).toThrow(
+        /Component 'NonExistent' not imported/
+      );
+    });
+
+    it('handles component returning fragment (takes first block)', () => {
+      const files = {
+        'shared.tsx': `
+          export function MultiBlock() {
+            return (
+              <>
+                <p>First block</p>
+                <p>Second block</p>
+              </>
+            );
+          }
+        `,
+        'main.tsx': `
+          import { MultiBlock } from './shared';
+          export default function MyCommand() {
+            return (
+              <Command name="test" description="Test">
+                <MultiBlock />
+              </Command>
+            );
+          }
+        `,
+      };
+      const doc = transformWithComponents(files, 'main.tsx');
+      // Should have exactly 1 block (first from fragment)
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].kind).toBe('paragraph');
+      if (doc.children[0].kind === 'paragraph') {
+        expect(doc.children[0].children[0]).toEqual({ kind: 'text', value: 'First block' });
+      }
+    });
+  });
 });

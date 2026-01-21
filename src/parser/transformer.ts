@@ -78,10 +78,25 @@ function isValidXmlName(name: string): boolean {
 }
 
 export class Transformer {
+  /** Source file for component resolution (optional - only needed for composition) */
+  private sourceFile: SourceFile | undefined;
+  /** Visited paths for circular import detection */
+  private visitedPaths: Set<string> = new Set();
+
   /**
    * Transform a root JSX element/fragment into a DocumentNode
+   *
+   * @param node - The root JSX element/fragment to transform
+   * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment): DocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode {
+    // Initialize state for this transformation
+    this.sourceFile = sourceFile;
+    this.visitedPaths = new Set();
+    if (sourceFile) {
+      this.visitedPaths.add(sourceFile.getFilePath());
+    }
+
     // Check for Command wrapper at root level
     if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
       const name = getElementName(node);
@@ -268,6 +283,11 @@ export class Transformer {
     // Markdown passthrough
     if (name === 'Markdown') {
       return this.transformMarkdown(node);
+    }
+
+    // Custom component composition
+    if (isCustomComponent(name)) {
+      return this.transformCustomComponent(name, node);
     }
 
     throw new Error(`Unsupported block element: <${name}>`);
@@ -589,12 +609,64 @@ export class Transformer {
 
     return { kind: 'raw', content };
   }
+
+  /**
+   * Transform a custom component by resolving its import and inlining its JSX
+   *
+   * Custom components are user-defined TSX fragments that get inlined at
+   * transpile time. Component props are NOT supported in v1 - only parameterless
+   * composition.
+   */
+  private transformCustomComponent(name: string, node: JsxElement | JsxSelfClosingElement): BlockNode | null {
+    // Validate no props on the component (v1 limitation)
+    const openingElement = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+    const attributes = openingElement.getAttributes();
+    if (attributes.length > 0) {
+      throw new Error(`Component props not supported: <${name}> has ${attributes.length} prop(s)`);
+    }
+
+    // Require source file for component resolution
+    if (!this.sourceFile) {
+      throw new Error(
+        `Cannot resolve component '${name}': no source file context. ` +
+        `Pass sourceFile to transformer.transform() for component composition.`
+      );
+    }
+
+    // Resolve the component import
+    const resolved = resolveComponentImport(name, this.sourceFile, this.visitedPaths);
+
+    // Update visited paths for nested resolution
+    this.visitedPaths = resolved.visitedPaths;
+
+    // Save current sourceFile and set to component's sourceFile for nested resolution
+    const previousSourceFile = this.sourceFile;
+    this.sourceFile = resolved.sourceFile;
+
+    let result: BlockNode | null = null;
+
+    // Transform the resolved JSX
+    if (Node.isJsxFragment(resolved.jsx)) {
+      // Fragment: transform children and return first block
+      // (multiple root blocks from a component isn't fully supported - take first)
+      const blocks = this.transformFragmentChildren(resolved.jsx);
+      result = blocks[0] ?? null;
+    } else {
+      // Single element or self-closing
+      result = this.transformToBlock(resolved.jsx);
+    }
+
+    // Restore sourceFile
+    this.sourceFile = previousSourceFile;
+
+    return result;
+  }
 }
 
 /**
  * Convenience function to transform a JSX element to a DocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment): DocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode {
   const transformer = new Transformer();
-  return transformer.transform(node);
+  return transformer.transform(node, sourceFile);
 }
