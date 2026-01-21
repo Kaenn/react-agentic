@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 6 of 7 (Watch Mode & Error Handling)
-Plan: 2 of 3 in current phase
+Plan: 2 of 3 in current phase (06-01 and 06-02 complete)
 Status: In progress
-Last activity: 2026-01-21 — Completed 06-02-PLAN.md (Dry Run Mode)
+Last activity: 2026-01-21 — Completed 06-01-PLAN.md (Source-Located Errors)
 
-Progress: [████████░░] 85%
+Progress: [████████░░] 87%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 4 min
-- Total execution time: 43 min
+- Total execution time: 47 min
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [████████░░] 85%
 | 03-full-element-coverage | 2 | 4 min | 2 min |
 | 04-cli-interface | 2 | 5 min | 2.5 min |
 | 05-composition | 2 | 6 min | 3 min |
-| 06-watch-error-handling | 1 | 4 min | 4 min |
+| 06-watch-error-handling | 2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3 min), 05-01 (2 min), 05-02 (4 min), 06-02 (4 min)
+- Last 5 plans: 05-01 (2 min), 05-02 (4 min), 06-01 (4 min), 06-02 (4 min)
 - Trend: excellent velocity maintained
 
 *Updated after each plan completion*
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - [05-02]: Component props not supported in v1 (throws if props passed)
 - [05-02]: Fragment returns take first block only (multi-block limitation)
 - [05-02]: Circular imports detected and throw descriptive error
+- [06-01]: TranspileError extends Error with optional location/sourceCode properties
+- [06-01]: Error format follows TypeScript style: file:line:col - error: message
+- [06-01]: createError helper in Transformer for consistent location capture from nodes
 - [06-02]: Collect-then-write pattern enables dry-run without duplicating transform logic
 - [06-02]: Build tree shows after success messages, before summary
 
@@ -104,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 06-02-PLAN.md (Dry Run Mode)
+Stopped at: Completed 06-01-PLAN.md (Source-Located Errors)
 Resume file: None
