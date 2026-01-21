@@ -10,6 +10,9 @@ import {
   JsxElement,
   JsxSelfClosingElement,
   JsxFragment,
+  JsxOpeningElement,
+  JsxSpreadAttribute,
+  SourceFile,
 } from 'ts-morph';
 import type {
   BlockNode,
@@ -23,7 +26,41 @@ import type {
   FrontmatterNode,
   XmlBlockNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport } from './parser.js';
+
+// ============================================================================
+// Element Classification
+// ============================================================================
+
+/**
+ * HTML elements supported by the transformer
+ */
+const HTML_ELEMENTS = new Set([
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'p', 'div', 'span', 'ul', 'ol', 'li',
+  'a', 'b', 'i', 'strong', 'em', 'code',
+  'pre', 'blockquote', 'br', 'hr',
+]);
+
+/**
+ * Special component names that are NOT custom user components
+ */
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown']);
+
+/**
+ * Check if a tag name represents a custom user-defined component
+ *
+ * Custom components:
+ * - Are NOT HTML elements
+ * - Are NOT special components (Command, Markdown)
+ * - Start with uppercase (React convention)
+ */
+export function isCustomComponent(tagName: string): boolean {
+  if (HTML_ELEMENTS.has(tagName)) return false;
+  if (SPECIAL_COMPONENTS.has(tagName)) return false;
+  // React convention: custom components start with uppercase
+  return /^[A-Z]/.test(tagName);
+}
 
 /**
  * Validate that a string is a valid XML tag name
@@ -66,6 +103,43 @@ export class Transformer {
   }
 
   /**
+   * Merge Command props from spread attributes and explicit attributes
+   *
+   * Processes attributes in order - later props override earlier ones.
+   * Supports spread attributes: {...baseProps}
+   * Supports explicit attributes: name="value" or name={"value"} or name={["a", "b"]}
+   */
+  private mergeCommandProps(opening: JsxOpeningElement | JsxSelfClosingElement): Record<string, unknown> {
+    const merged: Record<string, unknown> = {};
+
+    for (const attr of opening.getAttributes()) {
+      if (Node.isJsxSpreadAttribute(attr)) {
+        // Resolve spread and merge
+        const spreadProps = resolveSpreadAttribute(attr);
+        Object.assign(merged, spreadProps);
+      } else if (Node.isJsxAttribute(attr)) {
+        // Explicit prop
+        const attrName = attr.getNameNode().getText();
+
+        // Try string value first
+        const stringValue = getAttributeValue(opening, attrName);
+        if (stringValue !== undefined) {
+          merged[attrName] = stringValue;
+          continue;
+        }
+
+        // Try array value
+        const arrayValue = getArrayAttributeValue(opening, attrName);
+        if (arrayValue !== undefined) {
+          merged[attrName] = arrayValue;
+        }
+      }
+    }
+
+    return merged;
+  }
+
+  /**
    * Transform a Command element to DocumentNode with frontmatter
    */
   private transformCommand(node: JsxElement | JsxSelfClosingElement): DocumentNode {
@@ -73,9 +147,12 @@ export class Transformer {
       ? node.getOpeningElement()
       : node;
 
-    // Required props
-    const name = getAttributeValue(openingElement, 'name');
-    const description = getAttributeValue(openingElement, 'description');
+    // Merge all props (spread + explicit)
+    const props = this.mergeCommandProps(openingElement);
+
+    // Extract required props
+    const name = props.name as string | undefined;
+    const description = props.description as string | undefined;
 
     if (!name) {
       throw new Error('Command requires name prop');
@@ -84,14 +161,14 @@ export class Transformer {
       throw new Error('Command requires description prop');
     }
 
-    // Optional array prop
-    const allowedTools = getArrayAttributeValue(openingElement, 'allowedTools');
-
     // Build frontmatter data
     const data: Record<string, unknown> = {
       name,
       description,
     };
+
+    // Optional array prop (check for allowedTools, map to allowed-tools)
+    const allowedTools = props.allowedTools as string[] | undefined;
     if (allowedTools) {
       data['allowed-tools'] = allowedTools;
     }

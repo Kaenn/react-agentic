@@ -1241,4 +1241,135 @@ line3</code></pre>
       expect(output).toContain('Already formatted content.');
     });
   });
+
+  describe('Command spread attributes', () => {
+    it('resolves spread props from object literal', () => {
+      const source = `
+        const baseProps = { name: "base", description: "Base command" };
+        export default function MyCommand() {
+          return (
+            <Command {...baseProps}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'base',
+        description: 'Base command',
+      });
+    });
+
+    it('explicit props override spread props (later wins)', () => {
+      const source = `
+        const baseProps = { name: "base", description: "Base description" };
+        export default function MyCommand() {
+          return (
+            <Command {...baseProps} name="override">
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'override',
+        description: 'Base description',
+      });
+    });
+
+    it('multiple spreads merge in order', () => {
+      const source = `
+        const first = { name: "first", description: "First desc" };
+        const second = { description: "Second desc" };
+        export default function MyCommand() {
+          return (
+            <Command {...first} {...second}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'first',
+        description: 'Second desc',
+      });
+    });
+
+    it('spread with allowedTools array', () => {
+      const source = `
+        const baseProps = {
+          name: "test",
+          description: "Test command",
+          allowedTools: ["Read", "Grep"]
+        };
+        export default function MyCommand() {
+          return (
+            <Command {...baseProps}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'test',
+        description: 'Test command',
+        'allowed-tools': ['Read', 'Grep'],
+      });
+    });
+
+    it('explicit array overrides spread array', () => {
+      const source = `
+        const baseProps = {
+          name: "test",
+          description: "Test",
+          allowedTools: ["Read"]
+        };
+        export default function MyCommand() {
+          return (
+            <Command {...baseProps} allowedTools={["Write", "Edit"]}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      const doc = transformTsx(source);
+      expect(doc.frontmatter?.data).toEqual({
+        name: 'test',
+        description: 'Test',
+        'allowed-tools': ['Write', 'Edit'],
+      });
+    });
+
+    it('throws for non-identifier spread expression', () => {
+      const source = `
+        function getProps() { return { name: "x", description: "y" }; }
+        export default function MyCommand() {
+          return (
+            <Command {...getProps()}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow('Spread expressions must be simple identifiers');
+    });
+
+    it('throws for non-object spread source', () => {
+      const source = `
+        const notAnObject = "string value";
+        export default function MyCommand() {
+          return (
+            <Command {...notAnObject}>
+              <p>Content</p>
+            </Command>
+          );
+        }
+      `;
+      expect(() => transformTsx(source)).toThrow('Spread source must be an object literal');
+    });
+  });
 });
