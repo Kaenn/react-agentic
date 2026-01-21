@@ -15,8 +15,8 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 - [x] **AGENT-04**: Agent component accepts `color` prop (string, terminal color name)
 - [x] **AGENT-05**: Agent transpiles to `.claude/agents/{name}.md` output path
 - [x] **AGENT-06**: Agent frontmatter uses GSD format (tools as string, not array)
-- [ ] **AGENT-07**: Agent supports generic type parameters `<Agent<TInput, TOutput>>`
-- [ ] **AGENT-08**: Agent file can export TypeScript interface for input contract
+- [x] **AGENT-07**: Agent supports generic type parameters `<Agent<TInput, TOutput>>`
+- [x] **AGENT-08**: Agent file can export TypeScript interface for input contract
 
 ### SpawnAgent Component
 
@@ -26,14 +26,14 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 - [x] **SPAWN-04**: SpawnAgent component accepts `prompt` prop (string/template literal)
 - [x] **SPAWN-05**: SpawnAgent emits GSD Task() syntax in command markdown
 - [x] **SPAWN-06**: SpawnAgent preserves `{variable}` placeholders in prompt (no interpolation)
-- [ ] **SPAWN-07**: SpawnAgent supports generic type parameter `<SpawnAgent<TInput>>`
-- [ ] **SPAWN-08**: SpawnAgent can import type from Agent file for validation
+- [x] **SPAWN-07**: SpawnAgent supports generic type parameter `<SpawnAgent<TInput>>`
+- [x] **SPAWN-08**: SpawnAgent can import type from Agent file for validation
 
 ### Cross-File Validation
 
-- [ ] **VALID-01**: Transpiler validates referenced Agent file exists
-- [ ] **VALID-02**: Transpiler validates SpawnAgent input type matches Agent's exported interface
-- [ ] **VALID-03**: Error messages include source location for both Command and Agent files
+- [x] **VALID-01**: Transpiler validates referenced Agent file exists
+- [x] **VALID-02**: Transpiler validates SpawnAgent input type matches Agent's exported interface
+- [x] **VALID-03**: Error messages include source location for both Command and Agent files
 
 ### IR Extensions
 
@@ -101,13 +101,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPAWN-04 | Phase 10 | Complete |
 | SPAWN-05 | Phase 10 | Complete |
 | SPAWN-06 | Phase 10 | Complete |
-| AGENT-07 | Phase 11 | Pending |
-| AGENT-08 | Phase 11 | Pending |
-| SPAWN-07 | Phase 11 | Pending |
-| SPAWN-08 | Phase 11 | Pending |
-| VALID-01 | Phase 11 | Pending |
-| VALID-02 | Phase 11 | Pending |
-| VALID-03 | Phase 11 | Pending |
+| AGENT-07 | Phase 11 | Complete |
+| AGENT-08 | Phase 11 | Complete |
+| SPAWN-07 | Phase 11 | Complete |
+| SPAWN-08 | Phase 11 | Complete |
+| VALID-01 | Phase 11 | Complete |
+| VALID-02 | Phase 11 | Complete |
+| VALID-03 | Phase 11 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 21 total
@@ -116,4 +116,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after Phase 10 completion*
+*Last updated: 2026-01-21 after Phase 11 completion (v1.1 complete)*

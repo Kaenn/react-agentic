@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** - Phases 1-7 (shipped 2026-01-21)
-- 🚧 **v1.1 Agent Framework** - Phases 8-11 (in progress)
+- ✅ **v1.1 Agent Framework** - Phases 8-11 (shipped 2026-01-21)
 
 ## Phases
 
@@ -14,14 +14,14 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 </details>
 
-### v1.1 Agent Framework (In Progress)
+### v1.1 Agent Framework (Complete)
 
 **Milestone Goal:** Enable Commands to spawn typed Agents with shared input/output contracts — the foundation for agentic TSX programming.
 
 - [x] **Phase 8: IR Extensions** - Foundation types for Agent and SpawnAgent nodes
 - [x] **Phase 9: Agent Transpilation** - Agent component with GSD frontmatter format
 - [x] **Phase 10: SpawnAgent Component** - Task() syntax generation in Commands
-- [ ] **Phase 11: Type Safety** - Generic typing and cross-file validation
+- [x] **Phase 11: Type Safety** - Generic typing and cross-file validation
 
 ## Phase Details
 
@@ -85,8 +85,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Generic type parameter extraction
-- [ ] 11-02-PLAN.md — Cross-file validation
+- [x] 11-01-PLAN.md — Generic type parameter extraction
+- [x] 11-02-PLAN.md — Cross-file validation
 
 ## Progress
 
@@ -98,7 +98,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 | 8. IR Extensions | v1.1 | 1/1 | ✓ Complete | 2026-01-21 |
 | 9. Agent Transpilation | v1.1 | 2/2 | ✓ Complete | 2026-01-21 |
 | 10. SpawnAgent Component | v1.1 | 2/2 | ✓ Complete | 2026-01-21 |
-| 11. Type Safety | v1.1 | 0/2 | Not started | - |
+| 11. Type Safety | v1.1 | 2/2 | ✓ Complete | 2026-01-21 |
 
 ---
 *Roadmap created: 2026-01-21*
