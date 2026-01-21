@@ -21,17 +21,27 @@ import {
   ArrayLiteralExpression,
 } from 'ts-morph';
 
+export interface CreateProjectOptions {
+  /**
+   * Use in-memory filesystem (default: false)
+   * Set to true for test scenarios where files don't exist on disk
+   */
+  inMemory?: boolean;
+}
+
 /**
  * Create a ts-morph Project configured for JSX parsing
+ *
+ * @param options.inMemory - Use in-memory filesystem (default: false)
  */
-export function createProject(): Project {
+export function createProject(options: CreateProjectOptions = {}): Project {
   return new Project({
     compilerOptions: {
       jsx: ts.JsxEmit.Preserve,
       target: ScriptTarget.ESNext,
       module: ModuleKind.ESNext,
     },
-    useInMemoryFileSystem: true,
+    useInMemoryFileSystem: options.inMemory ?? false,
   });
 }
 
