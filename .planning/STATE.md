@@ -109,7 +109,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None - project complete.
+1. **Fix inline code space preservation in ordered list items** (transpiler)
+   - `.planning/todos/pending/2026-01-21-inline-code-space-preservation-in-ol-items.md`
 
 ### Blockers/Concerns
 
