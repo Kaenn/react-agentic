@@ -2,6 +2,7 @@
  * CLI Output Utilities - Colored terminal output with NO_COLOR support
  */
 import pc from 'picocolors';
+import { TranspileError, formatTranspileError } from './errors.js';
 
 /**
  * Log successful file processing
@@ -43,6 +44,16 @@ export function logSummary(successCount: number, errorCount: number): void {
  */
 export function logWarning(message: string): void {
   console.log(pc.yellow(message));
+}
+
+/**
+ * Log a TranspileError with source location context
+ *
+ * Outputs TypeScript-style error format with file:line:col,
+ * code snippet, and caret indicator.
+ */
+export function logTranspileError(error: TranspileError): void {
+  console.error(formatTranspileError(error));
 }
 
 /**

@@ -63,8 +63,8 @@ export const buildCommand = new Command('build')
           throw new Error('No JSX element found in file');
         }
 
-        // Transform to IR
-        const doc = transform(root);
+        // Transform to IR (pass sourceFile for error location context)
+        const doc = transform(root, sourceFile);
 
         // Emit to Markdown
         const markdown = emit(doc);

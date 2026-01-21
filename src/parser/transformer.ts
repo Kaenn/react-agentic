@@ -14,6 +14,7 @@ import {
   JsxSpreadAttribute,
   SourceFile,
 } from 'ts-morph';
+import { TranspileError, getNodeLocation, getSourceCode } from '../cli/errors.js';
 import type {
   BlockNode,
   InlineNode,
@@ -82,6 +83,15 @@ export class Transformer {
   private sourceFile: SourceFile | undefined;
   /** Visited paths for circular import detection */
   private visitedPaths: Set<string> = new Set();
+
+  /**
+   * Create a TranspileError with source location context from a node
+   */
+  private createError(message: string, node: Node): TranspileError {
+    const location = getNodeLocation(node);
+    const sourceCode = getSourceCode(node.getSourceFile());
+    return new TranspileError(message, location, sourceCode);
+  }
 
   /**
    * Transform a root JSX element/fragment into a DocumentNode
@@ -170,10 +180,10 @@ export class Transformer {
     const description = props.description as string | undefined;
 
     if (!name) {
-      throw new Error('Command requires name prop');
+      throw this.createError('Command requires name prop', openingElement);
     }
     if (!description) {
-      throw new Error('Command requires description prop');
+      throw this.createError('Command requires description prop', openingElement);
     }
 
     // Build frontmatter data
@@ -290,7 +300,7 @@ export class Transformer {
       return this.transformCustomComponent(name, node);
     }
 
-    throw new Error(`Unsupported block element: <${name}>`);
+    throw this.createError(`Unsupported block element: <${name}>`, node);
   }
 
   private transformList(node: JsxElement | JsxSelfClosingElement, ordered: boolean): ListNode {
@@ -305,10 +315,10 @@ export class Transformer {
         if (childName === 'li') {
           items.push(this.transformListItem(child));
         } else {
-          throw new Error(`Expected <li> inside list, got <${childName}>`);
+          throw this.createError(`Expected <li> inside list, got <${childName}>`, child);
         }
       } else if (Node.isJsxText(child) && !child.containsOnlyTriviaWhiteSpaces()) {
-        throw new Error('Lists can only contain <li> elements');
+        throw this.createError('Lists can only contain <li> elements', child);
       }
       // Skip whitespace-only text nodes
     }
@@ -463,7 +473,7 @@ export class Transformer {
       if (name === 'br') {
         return { kind: 'lineBreak' };
       }
-      throw new Error(`Unsupported inline self-closing element: <${name}>`);
+      throw this.createError(`Unsupported inline self-closing element: <${name}>`, node);
     }
 
     if (Node.isJsxElement(node)) {
@@ -510,7 +520,7 @@ export class Transformer {
       return this.transformLink(node);
     }
 
-    throw new Error(`Unsupported inline element: <${name}>`);
+    throw this.createError(`Unsupported inline element: <${name}>`, node);
   }
 
   private extractAllText(node: JsxElement): string {
@@ -528,7 +538,7 @@ export class Transformer {
   private transformLink(node: JsxElement): LinkNode {
     const href = getAttributeValue(node.getOpeningElement(), 'href');
     if (!href) {
-      throw new Error('<a> element requires href attribute');
+      throw this.createError('<a> element requires href attribute', node);
     }
 
     const children = this.transformInlineChildren(node);
@@ -546,8 +556,9 @@ export class Transformer {
 
     // Validate XML name if custom name provided
     if (nameAttr && !isValidXmlName(nameAttr)) {
-      throw new Error(
-        `Invalid XML tag name '${nameAttr}' - must start with letter/underscore, contain only letters, digits, underscores, hyphens, or periods, and not start with 'xml'`
+      throw this.createError(
+        `Invalid XML tag name '${nameAttr}' - must start with letter/underscore, contain only letters, digits, underscores, hyphens, or periods, and not start with 'xml'`,
+        node
       );
     }
 
@@ -622,14 +633,15 @@ export class Transformer {
     const openingElement = Node.isJsxElement(node) ? node.getOpeningElement() : node;
     const attributes = openingElement.getAttributes();
     if (attributes.length > 0) {
-      throw new Error(`Component props not supported: <${name}> has ${attributes.length} prop(s)`);
+      throw this.createError(`Component props not supported: <${name}> has ${attributes.length} prop(s)`, node);
     }
 
     // Require source file for component resolution
     if (!this.sourceFile) {
-      throw new Error(
+      throw this.createError(
         `Cannot resolve component '${name}': no source file context. ` +
-        `Pass sourceFile to transformer.transform() for component composition.`
+        `Pass sourceFile to transformer.transform() for component composition.`,
+        node
       );
     }
 
