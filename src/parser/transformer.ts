@@ -13,6 +13,7 @@ import {
   JsxOpeningElement,
   JsxSpreadAttribute,
   SourceFile,
+  TemplateExpression,
 } from 'ts-morph';
 import { TranspileError, getNodeLocation, getSourceCode } from '../cli/errors.js';
 import type {
@@ -28,6 +29,7 @@ import type {
   LinkNode,
   FrontmatterNode,
   XmlBlockNode,
+  SpawnAgentNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport } from './parser.js';
 
@@ -48,7 +50,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -342,6 +344,11 @@ export class Transformer {
     // XmlBlock component
     if (name === 'XmlBlock') {
       return this.transformXmlBlock(node);
+    }
+
+    // SpawnAgent block element (inside Command)
+    if (name === 'SpawnAgent') {
+      return this.transformSpawnAgent(node);
     }
 
     // Markdown passthrough
@@ -779,6 +786,106 @@ export class Transformer {
     this.sourceFile = previousSourceFile;
 
     return result;
+  }
+
+  /**
+   * Transform a SpawnAgent element to SpawnAgentNode
+   * SpawnAgent is a block-level element that emits Task() syntax
+   */
+  private transformSpawnAgent(node: JsxElement | JsxSelfClosingElement): SpawnAgentNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract required props
+    const agent = getAttributeValue(openingElement, 'agent');
+    const model = getAttributeValue(openingElement, 'model');
+    const description = getAttributeValue(openingElement, 'description');
+    const prompt = this.extractPromptProp(openingElement);
+
+    // Validate all required props
+    if (!agent) {
+      throw this.createError('SpawnAgent requires agent prop', openingElement);
+    }
+    if (!model) {
+      throw this.createError('SpawnAgent requires model prop', openingElement);
+    }
+    if (!description) {
+      throw this.createError('SpawnAgent requires description prop', openingElement);
+    }
+    if (!prompt) {
+      throw this.createError('SpawnAgent requires prompt prop', openingElement);
+    }
+
+    return { kind: 'spawnAgent', agent, model, description, prompt };
+  }
+
+  /**
+   * Extract prompt prop value, preserving multi-line content and {variable} placeholders
+   * Supports: prompt="string", prompt={"string"}, prompt={`template`}
+   */
+  private extractPromptProp(element: JsxOpeningElement | JsxSelfClosingElement): string | undefined {
+    const attr = element.getAttribute('prompt');
+    if (!attr || !Node.isJsxAttribute(attr)) {
+      return undefined;
+    }
+
+    const init = attr.getInitializer();
+    if (!init) {
+      return undefined;
+    }
+
+    // String literal: prompt="simple string"
+    if (Node.isStringLiteral(init)) {
+      return init.getLiteralValue();
+    }
+
+    // JSX expression: prompt={...}
+    if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (!expr) {
+        return undefined;
+      }
+
+      // String literal in JSX expression: prompt={"string"}
+      if (Node.isStringLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // No-substitution template literal: prompt={`simple template`}
+      if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // Template expression with substitutions: prompt={`text ${var}`}
+      // Note: ${var} in TSX templates become {var} in output (GSD format)
+      if (Node.isTemplateExpression(expr)) {
+        return this.extractTemplateText(expr);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract text from a template expression, converting ${var} to {var}
+   * This preserves GSD's {variable} placeholder syntax
+   */
+  private extractTemplateText(expr: TemplateExpression): string {
+    const parts: string[] = [];
+
+    // Head: text before first ${...}
+    parts.push(expr.getHead().getLiteralText());
+
+    // Spans: each has expression + literal text after
+    for (const span of expr.getTemplateSpans()) {
+      const spanExpr = span.getExpression();
+      // Convert ${variable} to {variable} for GSD format
+      parts.push(`{${spanExpr.getText()}}`);
+      parts.push(span.getLiteral().getLiteralText());
+    }
+
+    return parts.join('');
   }
 }
 
