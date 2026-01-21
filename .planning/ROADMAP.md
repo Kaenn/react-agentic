@@ -117,7 +117,7 @@ Plans:
 - [ ] 06-03-PLAN.md — Watch mode with chokidar and debouncing
 
 ### Phase 7: Example Validation
-**Goal**: Create a working example command file with correct TSX syntax that transpiles to valid Claude Code command markdown
+**Goal**: Fix and validate the example command TSX file to demonstrate correct syntax and all supported features
 **Depends on**: Phase 6
 **Requirements**: None (validation phase)
 **Success Criteria** (what must be TRUE):
@@ -125,10 +125,10 @@ Plans:
   2. Running `react-agentic build` on the example produces valid markdown
   3. Output markdown can be used as a Claude Code command
   4. Example demonstrates all supported features (headings, lists, formatting, XML blocks)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 07-01: Fix and validate example command TSX file
+- [ ] 07-01-PLAN.md — Fix and validate example command TSX file
 
 ## Progress
 
