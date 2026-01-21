@@ -5,8 +5,9 @@ import { Command } from 'commander';
 import { globby } from 'globby';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { Node } from 'ts-morph';
 import type { Project } from 'ts-morph';
-import { createProject, findRootJsxElement, transform, emit } from '../../index.js';
+import { createProject, findRootJsxElement, transform, emit, emitAgent, getAttributeValue } from '../../index.js';
 import {
   logSuccess,
   logError,
@@ -58,17 +59,34 @@ async function runBuild(
       // Transform to IR (pass sourceFile for error location context)
       const doc = transform(root, sourceFile);
 
-      // Agent emission will be added in Plan 09-02
-      if (doc.kind === 'agentDocument') {
-        throw new Error('Agent emission not yet implemented (coming in Plan 09-02)');
-      }
-
-      // Emit to Markdown
-      const markdown = emit(doc);
-
-      // Determine output path
+      // Determine output path and emit based on document type
+      let markdown: string;
+      let outputPath: string;
       const basename = path.basename(inputFile, '.tsx');
-      const outputPath = path.join(options.out, `${basename}.md`);
+
+      if (doc.kind === 'agentDocument') {
+        // Agent: emit with GSD format
+        markdown = emitAgent(doc);
+
+        // Get folder prop for output path (need to re-parse for this)
+        // The folder prop affects output path but is not in frontmatter
+        const folder = (Node.isJsxElement(root) || Node.isJsxSelfClosingElement(root))
+          ? getAttributeValue(
+              Node.isJsxElement(root) ? root.getOpeningElement() : root,
+              'folder'
+            )
+          : undefined;
+
+        // Route to .claude/agents/{folder?}/{basename}.md
+        const agentDir = folder
+          ? path.join('.claude/agents', folder)
+          : '.claude/agents';
+        outputPath = path.join(agentDir, `${basename}.md`);
+      } else {
+        // Command: emit with standard format, use --out option
+        markdown = emit(doc);
+        outputPath = path.join(options.out, `${basename}.md`);
+      }
 
       // Collect result
       results.push({
@@ -90,11 +108,10 @@ async function runBuild(
 
   // Phase 2: Write files (unless dry-run) and display tree
   if (!options.dryRun) {
-    // Ensure output directory exists
-    await mkdir(options.out, { recursive: true });
-
-    // Write all files
+    // Write all files (ensure directory exists per-file since Agents may have different paths)
     for (const result of results) {
+      const outputDir = path.dirname(result.outputPath);
+      await mkdir(outputDir, { recursive: true });
       await writeFile(result.outputPath, result.content, 'utf-8');
       logSuccess(result.inputFile, result.outputPath);
     }

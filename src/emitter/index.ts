@@ -4,4 +4,4 @@
  * Exports the MarkdownEmitter class and convenience emit function.
  */
 
-export { emit, MarkdownEmitter } from './emitter.js';
+export { emit, emitAgent, MarkdownEmitter } from './emitter.js';
