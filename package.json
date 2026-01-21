@@ -29,6 +29,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "chokidar": "^5.0.0",
     "commander": "^14.0.2",
     "globby": "^16.1.0",
     "gray-matter": "^4.0.3",
