@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
 - [x] **Phase 5: Composition** - Props spreading and component composition support
 - [ ] **Phase 6: Watch & Error Handling** - Watch mode, dry run, and source-located errors
+- [ ] **Phase 7: Example Validation** - Create working example command that validates transpiler output
 
 ## Phase Details
 
@@ -108,17 +109,31 @@ Plans:
   3. User can run `react-agentic build --dry-run` to preview output without writing files
   4. Transpilation errors include file path, line number, and column
   5. CLI exits with non-zero code when transpilation fails
+**Plans**: 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Source-located error messages with TypeScript-style formatting
+- [ ] 06-02-PLAN.md — Dry run mode with build tree preview
+- [ ] 06-03-PLAN.md — Watch mode with chokidar and debouncing
+
+### Phase 7: Example Validation
+**Goal**: Create a working example command file with correct TSX syntax that transpiles to valid Claude Code command markdown
+**Depends on**: Phase 6
+**Requirements**: None (validation phase)
+**Success Criteria** (what must be TRUE):
+  1. Example command.tsx uses valid JSX syntax (all content inside Command wrapper)
+  2. Running `react-agentic build` on the example produces valid markdown
+  3. Output markdown can be used as a Claude Code command
+  4. Example demonstrates all supported features (headings, lists, formatting, XML blocks)
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Error messages with source location and exit codes
-- [ ] 06-02: Watch mode with chokidar and debouncing
-- [ ] 06-03: Dry run mode implementation
+- [ ] 07-01: Fix and validate example command TSX file
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -128,8 +143,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. CLI Interface | 2/2 | ✓ Complete | 2026-01-21 |
 | 5. Composition | 2/2 | ✓ Complete | 2026-01-21 |
 | 6. Watch & Error Handling | 0/3 | Not started | - |
+| 7. Example Validation | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
-*Depth: Standard (6 phases)*
+*Depth: Standard (7 phases)*
 *Coverage: 16/16 v1 requirements mapped*
