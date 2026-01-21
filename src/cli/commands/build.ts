@@ -58,6 +58,11 @@ async function runBuild(
       // Transform to IR (pass sourceFile for error location context)
       const doc = transform(root, sourceFile);
 
+      // Agent emission will be added in Plan 09-02
+      if (doc.kind === 'agentDocument') {
+        throw new Error('Agent emission not yet implemented (coming in Plan 09-02)');
+      }
+
       // Emit to Markdown
       const markdown = emit(doc);
 

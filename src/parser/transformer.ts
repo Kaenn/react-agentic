@@ -19,6 +19,8 @@ import type {
   BlockNode,
   InlineNode,
   DocumentNode,
+  AgentDocumentNode,
+  AgentFrontmatterNode,
   ListNode,
   ListItemNode,
   BlockquoteNode,
@@ -46,7 +48,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -94,12 +96,12 @@ export class Transformer {
   }
 
   /**
-   * Transform a root JSX element/fragment into a DocumentNode
+   * Transform a root JSX element/fragment into a DocumentNode or AgentDocumentNode
    *
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
@@ -107,11 +109,14 @@ export class Transformer {
       this.visitedPaths.add(sourceFile.getFilePath());
     }
 
-    // Check for Command wrapper at root level
+    // Check for Command or Agent wrapper at root level
     if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
       const name = getElementName(node);
       if (name === 'Command') {
         return this.transformCommand(node);
+      }
+      if (name === 'Agent') {
+        return this.transformAgent(node);
       }
     }
 
@@ -210,6 +215,50 @@ export class Transformer {
     }
 
     return { kind: 'document', frontmatter, children };
+  }
+
+  /**
+   * Transform an Agent element to AgentDocumentNode with frontmatter
+   */
+  private transformAgent(node: JsxElement | JsxSelfClosingElement): AgentDocumentNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract required props
+    const name = getAttributeValue(openingElement, 'name');
+    const description = getAttributeValue(openingElement, 'description');
+
+    if (!name) {
+      throw this.createError('Agent requires name prop', openingElement);
+    }
+    if (!description) {
+      throw this.createError('Agent requires description prop', openingElement);
+    }
+
+    // Extract optional props
+    const tools = getAttributeValue(openingElement, 'tools');
+    const color = getAttributeValue(openingElement, 'color');
+
+    // Build frontmatter (using spread for optional fields)
+    const frontmatter: AgentFrontmatterNode = {
+      kind: 'agentFrontmatter',
+      name,
+      description,
+      ...(tools && { tools }),
+      ...(color && { color }),
+    };
+
+    // Transform children as body blocks
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return { kind: 'agentDocument', frontmatter, children };
   }
 
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
@@ -734,9 +783,9 @@ export class Transformer {
 }
 
 /**
- * Convenience function to transform a JSX element to a DocumentNode
+ * Convenience function to transform a JSX element to a DocumentNode or AgentDocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode {
   const transformer = new Transformer();
   return transformer.transform(node, sourceFile);
 }
