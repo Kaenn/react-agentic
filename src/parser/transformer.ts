@@ -15,6 +15,8 @@ import type {
   BlockNode,
   InlineNode,
   DocumentNode,
+  ListNode,
+  ListItemNode,
 } from '../ir/index.js';
 import { getElementName, extractText, extractInlineText } from './parser.js';
 
@@ -88,7 +90,83 @@ export class Transformer {
       return { kind: 'thematicBreak' };
     }
 
+    // Unordered list
+    if (name === 'ul') {
+      return this.transformList(node, false);
+    }
+
+    // Ordered list
+    if (name === 'ol') {
+      return this.transformList(node, true);
+    }
+
     throw new Error(`Unsupported block element: <${name}>`);
+  }
+
+  private transformList(node: JsxElement | JsxSelfClosingElement, ordered: boolean): ListNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { kind: 'list', ordered, items: [] };
+    }
+
+    const items: ListItemNode[] = [];
+    for (const child of node.getJsxChildren()) {
+      if (Node.isJsxElement(child)) {
+        const childName = getElementName(child);
+        if (childName === 'li') {
+          items.push(this.transformListItem(child));
+        } else {
+          throw new Error(`Expected <li> inside list, got <${childName}>`);
+        }
+      } else if (Node.isJsxText(child) && !child.containsOnlyTriviaWhiteSpaces()) {
+        throw new Error('Lists can only contain <li> elements');
+      }
+      // Skip whitespace-only text nodes
+    }
+
+    return { kind: 'list', ordered, items };
+  }
+
+  private transformListItem(node: JsxElement): ListItemNode {
+    // List items can contain blocks (paragraphs, nested lists)
+    const children: BlockNode[] = [];
+
+    for (const child of node.getJsxChildren()) {
+      if (Node.isJsxText(child)) {
+        const text = extractText(child);
+        if (text) {
+          // Plain text in li becomes paragraph
+          children.push({ kind: 'paragraph', children: [{ kind: 'text', value: text }] });
+        }
+      } else if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = getElementName(child);
+
+        // Check if it's a nested list
+        if (childName === 'ul' || childName === 'ol') {
+          const nestedList = this.transformElement(childName, child);
+          if (nestedList) children.push(nestedList);
+        } else if (childName === 'p') {
+          // Explicit paragraph
+          const para = this.transformElement(childName, child);
+          if (para) children.push(para);
+        } else {
+          // Inline elements get wrapped in implicit paragraph
+          const inline = Node.isJsxSelfClosingElement(child)
+            ? this.transformToInline(child)
+            : this.transformInlineElement(childName, child);
+          if (inline) {
+            // Merge into last paragraph if possible
+            const lastChild = children[children.length - 1];
+            if (lastChild?.kind === 'paragraph') {
+              lastChild.children.push(inline);
+            } else {
+              children.push({ kind: 'paragraph', children: [inline] });
+            }
+          }
+        }
+      }
+    }
+
+    return { kind: 'listItem', children };
   }
 
   private transformInlineChildren(node: JsxElement): InlineNode[] {

@@ -387,4 +387,187 @@ describe('Transformer', () => {
       }
     });
   });
+
+  describe('lists', () => {
+    it('transforms simple unordered list', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li>First item</li>
+            <li>Second item</li>
+          </ul>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0]).toEqual({
+        kind: 'list',
+        ordered: false,
+        items: [
+          { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'First item' }] }] },
+          { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'Second item' }] }] },
+        ],
+      });
+    });
+
+    it('transforms simple ordered list', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ol>
+            <li>First</li>
+            <li>Second</li>
+            <li>Third</li>
+          </ol>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0]).toEqual({
+        kind: 'list',
+        ordered: true,
+        items: [
+          { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'First' }] }] },
+          { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'Second' }] }] },
+          { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'Third' }] }] },
+        ],
+      });
+    });
+
+    it('transforms list item with inline formatting', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li><b>bold</b> text</li>
+          </ul>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const list = doc.children[0];
+      expect(list.kind).toBe('list');
+      if (list.kind === 'list') {
+        expect(list.items[0]).toEqual({
+          kind: 'listItem',
+          children: [
+            {
+              kind: 'paragraph',
+              children: [
+                { kind: 'bold', children: [{ kind: 'text', value: 'bold' }] },
+              ],
+            },
+            {
+              kind: 'paragraph',
+              children: [{ kind: 'text', value: 'text' }],
+            },
+          ],
+        });
+      }
+    });
+
+    it('transforms nested list', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li>parent
+              <ul>
+                <li>child</li>
+              </ul>
+            </li>
+          </ul>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const list = doc.children[0];
+      expect(list.kind).toBe('list');
+      if (list.kind === 'list') {
+        expect(list.items[0]).toEqual({
+          kind: 'listItem',
+          children: [
+            { kind: 'paragraph', children: [{ kind: 'text', value: 'parent' }] },
+            {
+              kind: 'list',
+              ordered: false,
+              items: [
+                { kind: 'listItem', children: [{ kind: 'paragraph', children: [{ kind: 'text', value: 'child' }] }] },
+              ],
+            },
+          ],
+        });
+      }
+    });
+
+    it('transforms deeply nested lists (3 levels)', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li>Level 1
+              <ul>
+                <li>Level 2
+                  <ul>
+                    <li>Level 3</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const list = doc.children[0];
+      expect(list.kind).toBe('list');
+      if (list.kind === 'list') {
+        const level1Item = list.items[0];
+        expect(level1Item.children).toHaveLength(2);
+        expect(level1Item.children[1].kind).toBe('list');
+
+        if (level1Item.children[1].kind === 'list') {
+          const level2Item = level1Item.children[1].items[0];
+          expect(level2Item.children).toHaveLength(2);
+          expect(level2Item.children[1].kind).toBe('list');
+        }
+      }
+    });
+
+    it('transforms mixed ordered/unordered nesting', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ol>
+            <li>Ordered parent
+              <ul>
+                <li>Unordered child</li>
+              </ul>
+            </li>
+          </ol>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const list = doc.children[0];
+      expect(list.kind).toBe('list');
+      if (list.kind === 'list') {
+        expect(list.ordered).toBe(true);
+        const item = list.items[0];
+        expect(item.children[1].kind).toBe('list');
+        if (item.children[1].kind === 'list') {
+          expect(item.children[1].ordered).toBe(false);
+        }
+      }
+    });
+
+    it('throws for non-li children in list', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <p>Not a list item</p>
+          </ul>
+        );
+      }`;
+
+      expect(() => transformTsx(tsx)).toThrow('Expected <li> inside list');
+    });
+  });
 });
