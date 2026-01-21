@@ -19,6 +19,7 @@ import type {
   ListItemNode,
   BlockquoteNode,
   CodeBlockNode,
+  LinkNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, extractText, extractInlineText } from './parser.js';
 
@@ -327,6 +328,11 @@ export class Transformer {
       return { kind: 'inlineCode', value: text };
     }
 
+    // Link
+    if (name === 'a') {
+      return this.transformLink(node);
+    }
+
     throw new Error(`Unsupported inline element: <${name}>`);
   }
 
@@ -340,6 +346,16 @@ export class Transformer {
       }
     }
     return parts.join('');
+  }
+
+  private transformLink(node: JsxElement): LinkNode {
+    const href = getAttributeValue(node.getOpeningElement(), 'href');
+    if (!href) {
+      throw new Error('<a> element requires href attribute');
+    }
+
+    const children = this.transformInlineChildren(node);
+    return { kind: 'link', url: href, children };
   }
 }
 

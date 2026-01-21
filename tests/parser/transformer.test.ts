@@ -716,4 +716,175 @@ line3</code></pre>
       });
     });
   });
+
+  describe('links', () => {
+    it('transforms simple link', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <p><a href="https://example.com">Link text</a></p>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children[0]).toEqual({
+        kind: 'paragraph',
+        children: [
+          {
+            kind: 'link',
+            url: 'https://example.com',
+            children: [{ kind: 'text', value: 'Link text' }],
+          },
+        ],
+      });
+    });
+
+    it('transforms link with inline formatting', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <p><a href="https://example.com"><b>bold link</b></a></p>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const para = doc.children[0];
+      expect(para.kind).toBe('paragraph');
+      if (para.kind === 'paragraph') {
+        expect(para.children[0]).toEqual({
+          kind: 'link',
+          url: 'https://example.com',
+          children: [
+            { kind: 'bold', children: [{ kind: 'text', value: 'bold link' }] },
+          ],
+        });
+      }
+    });
+
+    it('transforms link with JSX expression href', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <p><a href={"https://example.com"}>Link</a></p>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const para = doc.children[0];
+      expect(para.kind).toBe('paragraph');
+      if (para.kind === 'paragraph') {
+        const link = para.children[0];
+        expect(link.kind).toBe('link');
+        if (link.kind === 'link') {
+          expect(link.url).toBe('https://example.com');
+        }
+      }
+    });
+
+    it('throws for missing href', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <p><a>No href</a></p>
+        );
+      }`;
+
+      expect(() => transformTsx(tsx)).toThrow('<a> element requires href attribute');
+    });
+  });
+
+  describe('comprehensive end-to-end transformation', () => {
+    it('transforms complete document with all element types', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <>
+            <h1>Document Title</h1>
+            <p>Intro paragraph with <b>bold</b>{' '}and{' '}<i>italic</i>{' '}text.</p>
+
+            <h2>Lists Section</h2>
+            <ul>
+              <li>First item</li>
+              <li>Second item with <code>code</code></li>
+            </ul>
+
+            <h2>Quote Section</h2>
+            <blockquote>
+              <p>This is a quote</p>
+            </blockquote>
+
+            <h2>Code Section</h2>
+            <pre><code className="language-typescript">const x = 1;</code></pre>
+
+            <p>Visit <a href="https://example.com">our site</a> for more.</p>
+            <hr />
+          </>
+        );
+      }`;
+
+      const doc = transformTsx(tsx);
+      const markdown = emit(doc);
+
+      // Verify output structure
+      expect(markdown).toContain('# Document Title');
+      expect(markdown).toContain('**bold**');
+      expect(markdown).toContain('*italic*');
+      expect(markdown).toContain('- First item');
+      expect(markdown).toContain('> This is a quote');
+      expect(markdown).toContain('```typescript');
+      expect(markdown).toContain('[our site](https://example.com)');
+      expect(markdown).toContain('---');
+    });
+
+    it('transforms nested list to correct markdown indentation', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li>Parent item
+              <ul>
+                <li>Child item</li>
+              </ul>
+            </li>
+          </ul>
+        );
+      }`;
+
+      const doc = transformTsx(tsx);
+      const markdown = emit(doc);
+
+      expect(markdown).toContain('- Parent item');
+      expect(markdown).toContain('  - Child item');
+    });
+
+    it('transforms ordered list with correct numbering', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <ol>
+            <li>First</li>
+            <li>Second</li>
+            <li>Third</li>
+          </ol>
+        );
+      }`;
+
+      const doc = transformTsx(tsx);
+      const markdown = emit(doc);
+
+      expect(markdown).toContain('1. First');
+      expect(markdown).toContain('2. Second');
+      expect(markdown).toContain('3. Third');
+    });
+
+    it('transforms blockquote with nested content', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <blockquote>
+            <p>First line</p>
+            <p>Second line</p>
+          </blockquote>
+        );
+      }`;
+
+      const doc = transformTsx(tsx);
+      const markdown = emit(doc);
+
+      expect(markdown).toContain('> First line');
+      expect(markdown).toContain('> Second line');
+    });
+  });
 });
