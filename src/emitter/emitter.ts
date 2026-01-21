@@ -7,6 +7,8 @@
 
 import matter from 'gray-matter';
 import type {
+  AgentDocumentNode,
+  AgentFrontmatterNode,
   BlockNode,
   BlockquoteNode,
   CodeBlockNode,
@@ -66,6 +68,42 @@ export class MarkdownEmitter {
     const result = matter.stringify('', node.data);
     // Result is "---\nkey: value\n---\n", trim trailing newline
     return result.trimEnd();
+  }
+
+  /**
+   * Emit Agent frontmatter (GSD format: tools as string)
+   */
+  private emitAgentFrontmatter(node: AgentFrontmatterNode): string {
+    const data: Record<string, unknown> = {
+      name: node.name,
+      description: node.description,
+    };
+    if (node.tools) {
+      data.tools = node.tools;
+    }
+    if (node.color) {
+      data.color = node.color;
+    }
+    return matter.stringify('', data).trimEnd();
+  }
+
+  /**
+   * Emit an AgentDocumentNode to markdown
+   */
+  emitAgent(doc: AgentDocumentNode): string {
+    const parts: string[] = [];
+
+    // Agent frontmatter (GSD format)
+    parts.push(this.emitAgentFrontmatter(doc.frontmatter));
+
+    // Body content (same as Command)
+    for (const child of doc.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    // Join with double newlines for block separation, then ensure single trailing newline
+    const result = parts.join('\n\n');
+    return result ? result + '\n' : '';
   }
 
   /**
@@ -245,4 +283,12 @@ export class MarkdownEmitter {
 export function emit(doc: DocumentNode): string {
   const emitter = new MarkdownEmitter();
   return emitter.emit(doc);
+}
+
+/**
+ * Convenience function for emitting an agent document
+ */
+export function emitAgent(doc: AgentDocumentNode): string {
+  const emitter = new MarkdownEmitter();
+  return emitter.emitAgent(doc);
 }
