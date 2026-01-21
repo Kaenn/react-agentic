@@ -30,8 +30,9 @@ import type {
   FrontmatterNode,
   XmlBlockNode,
   SpawnAgentNode,
+  TypeReference,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -242,6 +243,17 @@ export class Transformer {
     const tools = getAttributeValue(openingElement, 'tools');
     const color = getAttributeValue(openingElement, 'color');
 
+    // Extract generic type argument if present
+    const typeArgs = extractTypeArguments(node);
+    let inputType: TypeReference | undefined;
+    if (typeArgs && typeArgs.length > 0) {
+      inputType = {
+        kind: 'typeReference',
+        name: typeArgs[0],
+        resolved: false,  // Will be resolved in validation phase
+      };
+    }
+
     // Build frontmatter (using spread for optional fields)
     const frontmatter: AgentFrontmatterNode = {
       kind: 'agentFrontmatter',
@@ -249,6 +261,7 @@ export class Transformer {
       description,
       ...(tools && { tools }),
       ...(color && { color }),
+      ...(inputType && { inputType }),
     };
 
     // Transform children as body blocks
@@ -817,7 +830,25 @@ export class Transformer {
       throw this.createError('SpawnAgent requires prompt prop', openingElement);
     }
 
-    return { kind: 'spawnAgent', agent, model, description, prompt };
+    // Extract generic type argument if present
+    const typeArgs = extractTypeArguments(node);
+    let inputType: TypeReference | undefined;
+    if (typeArgs && typeArgs.length > 0) {
+      inputType = {
+        kind: 'typeReference',
+        name: typeArgs[0],
+        resolved: false,  // Will be resolved in validation phase
+      };
+    }
+
+    return {
+      kind: 'spawnAgent',
+      agent,
+      model,
+      description,
+      prompt,
+      ...(inputType && { inputType }),
+    };
   }
 
   /**
