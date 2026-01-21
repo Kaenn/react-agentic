@@ -20,14 +20,23 @@ import type {
   BlockquoteNode,
   CodeBlockNode,
   LinkNode,
+  FrontmatterNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue } from './parser.js';
 
 export class Transformer {
   /**
    * Transform a root JSX element/fragment into a DocumentNode
    */
   transform(node: JsxElement | JsxSelfClosingElement | JsxFragment): DocumentNode {
+    // Check for Command wrapper at root level
+    if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
+      const name = getElementName(node);
+      if (name === 'Command') {
+        return this.transformCommand(node);
+      }
+    }
+
     // Fragment: transform each child as a block
     if (Node.isJsxFragment(node)) {
       const blocks = this.transformFragmentChildren(node);
@@ -38,6 +47,51 @@ export class Transformer {
     const block = this.transformToBlock(node);
     const children = block ? [block] : [];
     return { kind: 'document', children };
+  }
+
+  /**
+   * Transform a Command element to DocumentNode with frontmatter
+   */
+  private transformCommand(node: JsxElement | JsxSelfClosingElement): DocumentNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Required props
+    const name = getAttributeValue(openingElement, 'name');
+    const description = getAttributeValue(openingElement, 'description');
+
+    if (!name) {
+      throw new Error('Command requires name prop');
+    }
+    if (!description) {
+      throw new Error('Command requires description prop');
+    }
+
+    // Optional array prop
+    const allowedTools = getArrayAttributeValue(openingElement, 'allowedTools');
+
+    // Build frontmatter data
+    const data: Record<string, unknown> = {
+      name,
+      description,
+    };
+    if (allowedTools) {
+      data['allowed-tools'] = allowedTools;
+    }
+
+    const frontmatter: FrontmatterNode = { kind: 'frontmatter', data };
+
+    // Transform children as body blocks
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return { kind: 'document', frontmatter, children };
   }
 
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
