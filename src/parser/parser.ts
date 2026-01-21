@@ -11,6 +11,13 @@ import {
   ScriptTarget,
   ModuleKind,
   ts,
+  Node,
+  JsxElement,
+  JsxSelfClosingElement,
+  JsxOpeningElement,
+  JsxFragment,
+  JsxText,
+  JsxExpression,
 } from 'ts-morph';
 
 /**
@@ -43,4 +50,117 @@ export function parseSource(
   fileName = 'source.tsx'
 ): SourceFile {
   return project.createSourceFile(fileName, source, { overwrite: true });
+}
+
+// ============================================================================
+// JSX Traversal Utilities
+// ============================================================================
+
+/**
+ * Get the element tag name from a JSX element or self-closing element
+ */
+export function getElementName(
+  node: JsxElement | JsxSelfClosingElement
+): string {
+  if (Node.isJsxElement(node)) {
+    return node.getOpeningElement().getTagNameNode().getText();
+  }
+  return node.getTagNameNode().getText();
+}
+
+/**
+ * JSX child node types
+ */
+export type JsxChild = JsxElement | JsxSelfClosingElement | JsxText | JsxExpression;
+
+/**
+ * Get the JSX children of an element
+ */
+export function getJsxChildren(node: JsxElement): JsxChild[] {
+  return node.getJsxChildren() as JsxChild[];
+}
+
+/**
+ * Get the value of a JSX attribute by name
+ *
+ * Handles both string literals (attr="value") and JSX expressions with
+ * string literals (attr={"value"}).
+ *
+ * Returns undefined if attribute is missing or not a string.
+ */
+export function getAttributeValue(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string
+): string | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init) {
+    return undefined;
+  }
+
+  // String literal: attr="value"
+  if (Node.isStringLiteral(init)) {
+    return init.getLiteralValue();
+  }
+
+  // JSX expression: attr={value} or attr={"value"}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (expr && Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Find the root JSX element returned by the default export function
+ *
+ * Searches for a ReturnStatement containing JSX within the file.
+ * Returns null if no JSX is found.
+ */
+export function findRootJsxElement(
+  sourceFile: SourceFile
+): JsxElement | JsxSelfClosingElement | JsxFragment | null {
+  let result: JsxElement | JsxSelfClosingElement | JsxFragment | null = null;
+
+  sourceFile.forEachDescendant((node, traversal) => {
+    // Look for return statements
+    if (Node.isReturnStatement(node)) {
+      const expr = node.getExpression();
+      if (expr) {
+        // Check if the return expression is JSX
+        if (Node.isJsxElement(expr)) {
+          result = expr;
+          traversal.stop();
+        } else if (Node.isJsxSelfClosingElement(expr)) {
+          result = expr;
+          traversal.stop();
+        } else if (Node.isJsxFragment(expr)) {
+          result = expr;
+          traversal.stop();
+        } else if (Node.isParenthesizedExpression(expr)) {
+          // Handle parenthesized JSX: return (<div>...</div>)
+          const inner = expr.getExpression();
+          if (Node.isJsxElement(inner)) {
+            result = inner;
+            traversal.stop();
+          } else if (Node.isJsxSelfClosingElement(inner)) {
+            result = inner;
+            traversal.stop();
+          } else if (Node.isJsxFragment(inner)) {
+            result = inner;
+            traversal.stop();
+          }
+        }
+      }
+    }
+  });
+
+  return result;
 }
