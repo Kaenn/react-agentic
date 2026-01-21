@@ -128,11 +128,12 @@ Plans:
   5. TSX files open without TypeScript errors in IDE (JSX types available)
   6. List items with bold text render inline (no line breaks)
   7. Example lives in src/app/ with default watch path support
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 07-01-PLAN.md — Fix and validate example command TSX file
-- [ ] 07-02-PLAN.md — Close UAT gaps: JSX types, list item fix, src/app location
+- [x] 07-02-PLAN.md — Close UAT gaps: JSX types, list item fix, src/app location
+- [ ] 07-03-PLAN.md — Fix space preservation in list items with bold text
 
 ## Progress
 
@@ -147,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. CLI Interface | 2/2 | Complete | 2026-01-21 |
 | 5. Composition | 2/2 | Complete | 2026-01-21 |
 | 6. Watch & Error Handling | 3/3 | Complete | 2026-01-21 |
-| 7. Example Validation | 1/2 | In Progress | - |
+| 7. Example Validation | 2/3 | In Progress | - |
 
 ---
 *Roadmap created: 2026-01-20*
