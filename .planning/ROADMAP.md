@@ -77,12 +77,11 @@ Plans:
   3. Terminal output has visual hierarchy with colors (respects NO_COLOR)
   4. User can run `react-agentic --help` and see usage information
   5. User can run `react-agentic --version` and see current version
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: CLI scaffolding with commander (help, version, basic structure)
-- [ ] 04-02: Build command with glob processing and output path resolution
-- [ ] 04-03: Colored terminal output with visual hierarchy
+- [ ] 04-01-PLAN.md — CLI scaffolding with commander (help, version, basic structure)
+- [ ] 04-02-PLAN.md — Build command with glob processing and colored output
 
 ### Phase 5: Composition
 **Goal**: Enable props spreading and component composition for reusable command fragments
@@ -126,7 +125,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation & IR | 2/2 | ✓ Complete | 2026-01-21 |
 | 2. Core Transpilation | 3/3 | ✓ Complete | 2026-01-21 |
 | 3. Full Element Coverage | 2/2 | ✓ Complete | 2026-01-21 |
-| 4. CLI Interface | 0/3 | Not started | - |
+| 4. CLI Interface | 0/2 | Not started | - |
 | 5. Composition | 0/2 | Not started | - |
 | 6. Watch & Error Handling | 0/3 | Not started | - |
 
