@@ -7,7 +7,19 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { Node } from 'ts-morph';
 import type { Project } from 'ts-morph';
-import { createProject, findRootJsxElement, transform, emit, emitAgent, getAttributeValue } from '../../index.js';
+import {
+  createProject,
+  findRootJsxElement,
+  transform,
+  emit,
+  emitAgent,
+  getAttributeValue,
+  resolveTypeImport,
+  extractInterfaceProperties,
+  extractPromptPlaceholders,
+} from '../../index.js';
+import type { DocumentNode, AgentDocumentNode } from '../../index.js';
+import type { SourceFile } from 'ts-morph';
 import {
   logSuccess,
   logError,
@@ -18,13 +30,85 @@ import {
   logTranspileError,
   BuildResult,
 } from '../output.js';
-import { TranspileError } from '../errors.js';
+import { TranspileError, CrossFileError, formatCrossFileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 
 interface BuildOptions {
   out: string;
   dryRun?: boolean;
   watch?: boolean;
+}
+
+/**
+ * Validate SpawnAgent nodes against their Agent interfaces
+ *
+ * Checks:
+ * 1. If SpawnAgent has inputType, verify the type can be resolved
+ * 2. Verify prompt placeholders cover all required interface properties
+ *
+ * @param doc - Document node containing potential SpawnAgent children
+ * @param sourceFile - Source file for import resolution
+ * @returns Array of validation errors
+ */
+function validateSpawnAgents(
+  doc: DocumentNode | AgentDocumentNode,
+  sourceFile: SourceFile
+): CrossFileError[] {
+  const errors: CrossFileError[] = [];
+
+  for (const child of doc.children) {
+    if (child.kind !== 'spawnAgent' || !child.inputType) {
+      continue;
+    }
+
+    const typeName = child.inputType.name;
+
+    // Try to resolve the type import
+    const resolved = resolveTypeImport(typeName, sourceFile);
+    if (!resolved) {
+      // Type not found - create error at SpawnAgent location
+      // Note: We can't get node location after transformation, so this requires
+      // storing location during transformation or re-parsing
+      // For now, create error without precise location
+      errors.push(
+        new CrossFileError(
+          `Cannot resolve type '${typeName}' for SpawnAgent validation`,
+          { file: sourceFile.getFilePath(), line: 1, column: 1 },
+          undefined,
+          sourceFile.getFullText()
+        )
+      );
+      continue;
+    }
+
+    // Extract interface properties and prompt placeholders
+    const properties = extractInterfaceProperties(resolved.interface);
+    const placeholders = extractPromptPlaceholders(child.prompt);
+
+    // Check for missing required properties
+    const requiredProps = properties.filter(p => p.required);
+    const missing = requiredProps.filter(p => !placeholders.has(p.name));
+
+    if (missing.length > 0) {
+      const missingNames = missing.map(p => `'${p.name}'`).join(', ');
+      const agentLocation = {
+        file: resolved.sourceFile.getFilePath(),
+        line: resolved.interface.getStartLineNumber(),
+        column: 1,
+      };
+
+      errors.push(
+        new CrossFileError(
+          `SpawnAgent prompt missing required properties: ${missingNames}`,
+          { file: sourceFile.getFilePath(), line: 1, column: 1 },
+          agentLocation,
+          sourceFile.getFullText()
+        )
+      );
+    }
+  }
+
+  return errors;
 }
 
 /**
@@ -86,6 +170,15 @@ async function runBuild(
         // Command: emit with standard format, use --out option
         markdown = emit(doc);
         outputPath = path.join(options.out, `${basename}.md`);
+
+        // Run validation pass for documents with SpawnAgent
+        const validationErrors = validateSpawnAgents(doc, sourceFile);
+        for (const valError of validationErrors) {
+          errorCount++;
+          console.error(formatCrossFileError(valError));
+        }
+        // Note: Validation errors are logged but build continues (warning mode)
+        // To make validation blocking, add: if (validationErrors.length > 0) continue;
       }
 
       // Collect result
