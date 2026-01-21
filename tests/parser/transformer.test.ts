@@ -570,4 +570,150 @@ describe('Transformer', () => {
       expect(() => transformTsx(tsx)).toThrow('Expected <li> inside list');
     });
   });
+
+  describe('blockquotes', () => {
+    it('transforms simple blockquote with paragraph', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <blockquote>
+            <p>A wise quote</p>
+          </blockquote>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0]).toEqual({
+        kind: 'blockquote',
+        children: [
+          { kind: 'paragraph', children: [{ kind: 'text', value: 'A wise quote' }] },
+        ],
+      });
+    });
+
+    it('transforms blockquote with multiple paragraphs', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <blockquote>
+            <p>First paragraph</p>
+            <p>Second paragraph</p>
+          </blockquote>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const quote = doc.children[0];
+      expect(quote.kind).toBe('blockquote');
+      if (quote.kind === 'blockquote') {
+        expect(quote.children).toHaveLength(2);
+        expect(quote.children[0].kind).toBe('paragraph');
+        expect(quote.children[1].kind).toBe('paragraph');
+      }
+    });
+
+    it('transforms nested blockquotes', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <blockquote>
+            <p>Outer quote</p>
+            <blockquote>
+              <p>Inner quote</p>
+            </blockquote>
+          </blockquote>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const outer = doc.children[0];
+      expect(outer.kind).toBe('blockquote');
+      if (outer.kind === 'blockquote') {
+        expect(outer.children).toHaveLength(2);
+        expect(outer.children[1].kind).toBe('blockquote');
+      }
+    });
+  });
+
+  describe('code blocks', () => {
+    it('transforms pre/code to CodeBlockNode', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <pre><code>const x = 1;</code></pre>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0]).toEqual({
+        kind: 'codeBlock',
+        language: undefined,
+        content: 'const x = 1;',
+      });
+    });
+
+    it('extracts language from className', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <pre><code className="language-typescript">const x: number = 1;</code></pre>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children[0]).toEqual({
+        kind: 'codeBlock',
+        language: 'typescript',
+        content: 'const x: number = 1;',
+      });
+    });
+
+    it('extracts language from JSX expression className', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <pre><code className={"language-javascript"}>let y = 2;</code></pre>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children[0]).toEqual({
+        kind: 'codeBlock',
+        language: 'javascript',
+        content: 'let y = 2;',
+      });
+    });
+
+    it('preserves whitespace and indentation in code blocks', () => {
+      // Note: Curly braces in JSX are expression delimiters, so code with braces
+      // needs to use JSX expressions: {"{"} or template strings
+      // This test uses code without braces to verify whitespace preservation
+      const tsx = `export default function Doc() {
+        return (
+          <pre><code>line1
+  indented line2
+line3</code></pre>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const codeBlock = doc.children[0];
+      expect(codeBlock.kind).toBe('codeBlock');
+      if (codeBlock.kind === 'codeBlock') {
+        expect(codeBlock.content).toContain('  indented line2');
+        expect(codeBlock.content).toContain('line1');
+        expect(codeBlock.content).toContain('line3');
+      }
+    });
+
+    it('handles pre without code child', () => {
+      const tsx = `export default function Doc() {
+        return (
+          <pre>plain preformatted text</pre>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      expect(doc.children[0]).toEqual({
+        kind: 'codeBlock',
+        content: 'plain preformatted text',
+      });
+    });
+  });
 });

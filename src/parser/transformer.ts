@@ -17,8 +17,10 @@ import type {
   DocumentNode,
   ListNode,
   ListItemNode,
+  BlockquoteNode,
+  CodeBlockNode,
 } from '../ir/index.js';
-import { getElementName, extractText, extractInlineText } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText } from './parser.js';
 
 export class Transformer {
   /**
@@ -100,6 +102,16 @@ export class Transformer {
       return this.transformList(node, true);
     }
 
+    // Blockquote
+    if (name === 'blockquote') {
+      return this.transformBlockquote(node);
+    }
+
+    // Code block (pre containing code)
+    if (name === 'pre') {
+      return this.transformCodeBlock(node);
+    }
+
     throw new Error(`Unsupported block element: <${name}>`);
   }
 
@@ -167,6 +179,57 @@ export class Transformer {
     }
 
     return { kind: 'listItem', children };
+  }
+
+  private transformBlockquote(node: JsxElement | JsxSelfClosingElement): BlockquoteNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { kind: 'blockquote', children: [] };
+    }
+
+    const children: BlockNode[] = [];
+    for (const child of node.getJsxChildren()) {
+      const block = this.transformToBlock(child);
+      if (block) children.push(block);
+    }
+
+    return { kind: 'blockquote', children };
+  }
+
+  private transformCodeBlock(node: JsxElement | JsxSelfClosingElement): CodeBlockNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { kind: 'codeBlock', content: '' };
+    }
+
+    // Look for <code> child with optional language
+    const children = node.getJsxChildren();
+    for (const child of children) {
+      if (Node.isJsxElement(child) && getElementName(child) === 'code') {
+        const language = getAttributeValue(
+          child.getOpeningElement(),
+          'className'
+        )?.replace(/^language-/, '');
+
+        // Extract raw text content preserving whitespace
+        const content = this.extractCodeContent(child);
+        return { kind: 'codeBlock', language, content };
+      }
+    }
+
+    // Pre without code child - extract text directly
+    const content = this.extractCodeContent(node);
+    return { kind: 'codeBlock', content };
+  }
+
+  private extractCodeContent(node: JsxElement): string {
+    // Preserve whitespace in code blocks - don't normalize
+    const parts: string[] = [];
+    for (const child of node.getJsxChildren()) {
+      if (Node.isJsxText(child)) {
+        parts.push(child.getText());
+      }
+    }
+    // Trim only the outermost whitespace (leading/trailing)
+    return parts.join('').trim();
   }
 
   private transformInlineChildren(node: JsxElement): InlineNode[] {
