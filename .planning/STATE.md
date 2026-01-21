@@ -2,60 +2,47 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-20)
+See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 1 - Foundation & IR
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation & IR)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-01-20 — Roadmap created
+Phase: None (between milestones)
+Plan: Not started
+Status: Ready for next milestone
+Last activity: 2026-01-21 — v1.0 milestone shipped
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] v1.0 SHIPPED
 
-## Performance Metrics
+## Milestone History
 
-**Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
-
-**Recent Trend:**
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
+- v1.0 MVP: Shipped 2026-01-21 (7 phases, 17 plans)
+  See: .planning/MILESTONES.md
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Roadmap]: Architecture follows Parse -> Transform -> Emit with IR layer
-- [Roadmap]: Build order: IR types first, then emitter, then transformer, then CLI
-- [Roadmap]: Watch mode uses chokidar with debouncing (research pitfall)
+All v1.0 decisions logged in PROJECT.md Key Decisions table.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
+
+### Roadmap Evolution
+
+- v1.0 roadmap archived to .planning/milestones/v1.0-ROADMAP.md
+- v1.0 requirements archived to .planning/milestones/v1.0-REQUIREMENTS.md
+- Ready for /gsd:new-milestone to define v1.1 or v2.0
 
 ## Session Continuity
 
-Last session: 2026-01-20
-Stopped at: Roadmap creation complete
-Resume file: None
+Last session: 2026-01-21
+Stopped at: v1.0 milestone completion
+Resume with: /gsd:new-milestone
