@@ -46,7 +46,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -290,6 +290,11 @@ export class Transformer {
       return this.transformDiv(node);
     }
 
+    // XmlBlock component
+    if (name === 'XmlBlock') {
+      return this.transformXmlBlock(node);
+    }
+
     // Markdown passthrough
     if (name === 'Markdown') {
       return this.transformMarkdown(node);
@@ -341,6 +346,18 @@ export class Transformer {
             lastChild.children.push(textNode);
           } else {
             children.push({ kind: 'paragraph', children: [textNode] });
+          }
+        }
+      } else if (Node.isJsxExpression(child)) {
+        // Handle JSX expressions like {' '} for explicit spacing in list items
+        const inline = this.transformToInline(child);
+        if (inline) {
+          // Merge into last paragraph if possible
+          const lastChild = children[children.length - 1];
+          if (lastChild?.kind === 'paragraph') {
+            lastChild.children.push(inline);
+          } else {
+            children.push({ kind: 'paragraph', children: [inline] });
           }
         }
       } else if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
@@ -595,6 +612,41 @@ export class Transformer {
       kind: 'xmlBlock',
       name: tagName,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+      children,
+    };
+  }
+
+  private transformXmlBlock(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Get required name attribute
+    const nameAttr = getAttributeValue(openingElement, 'name');
+    if (!nameAttr) {
+      throw this.createError('XmlBlock requires name prop', node);
+    }
+
+    // Validate XML name
+    if (!isValidXmlName(nameAttr)) {
+      throw this.createError(
+        `Invalid XML tag name '${nameAttr}' - must start with letter/underscore, contain only letters, digits, underscores, hyphens, or periods, and not start with 'xml'`,
+        node
+      );
+    }
+
+    // Transform children as blocks
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return {
+      kind: 'xmlBlock',
+      name: nameAttr,
       children,
     };
   }
