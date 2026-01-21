@@ -17,6 +17,7 @@ import type {
   ListItemNode,
   ListNode,
   ParagraphNode,
+  SpawnAgentNode,
   XmlBlockNode,
 } from '../ir/index.js';
 import { assertNever } from './utils.js';
@@ -88,6 +89,9 @@ export class MarkdownEmitter {
         return this.emitXmlBlock(node);
       case 'raw':
         return node.content;
+      case 'spawnAgent':
+        // TODO: Implement in Phase 10 - SpawnAgent emission
+        throw new Error('SpawnAgent emission not yet implemented');
       default:
         return assertNever(node);
     }

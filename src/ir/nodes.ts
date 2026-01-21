@@ -150,6 +150,18 @@ export interface RawMarkdownNode {
 }
 
 /**
+ * SpawnAgent invocation within a Command
+ * Emits as Task() syntax in markdown
+ */
+export interface SpawnAgentNode {
+  kind: 'spawnAgent';
+  agent: string;           // Agent name/reference (e.g., 'gsd-researcher')
+  model: string;           // Model to use (supports {variable} syntax)
+  description: string;     // Human-readable task description
+  prompt: string;          // Task prompt (supports {variable} and template literals)
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -160,7 +172,8 @@ export type BlockNode =
   | BlockquoteNode
   | ThematicBreakNode
   | XmlBlockNode
-  | RawMarkdownNode;
+  | RawMarkdownNode
+  | SpawnAgentNode;
 
 // ============================================================================
 // Special Nodes
@@ -175,12 +188,46 @@ export interface FrontmatterNode {
 }
 
 /**
+ * Agent YAML frontmatter data
+ * Uses GSD format: tools as space-separated string, not array like Command
+ */
+export interface AgentFrontmatterNode {
+  kind: 'agentFrontmatter';
+  name: string;              // Required: agent identifier (e.g., 'researcher')
+  description: string;       // Required: agent purpose
+  tools?: string;            // Optional: space-separated tool names (e.g., 'Read Grep Glob')
+  color?: string;            // Optional: terminal color (e.g., 'cyan')
+}
+
+/**
  * Document root node
  */
 export interface DocumentNode {
   kind: 'document';
   frontmatter?: FrontmatterNode;
   children: BlockNode[];
+}
+
+/**
+ * Agent document root node
+ * Similar to DocumentNode but with required AgentFrontmatterNode
+ */
+export interface AgentDocumentNode {
+  kind: 'agentDocument';
+  frontmatter: AgentFrontmatterNode;  // Required for agents (vs optional for Command)
+  children: BlockNode[];
+}
+
+/**
+ * Reference to a TypeScript type across files
+ * Used for tracking Agent interface imports in SpawnAgent
+ * Actual validation happens in Phase 11
+ */
+export interface TypeReference {
+  kind: 'typeReference';
+  name: string;            // Type/interface name (e.g., 'ResearcherInput')
+  sourceFile?: string;     // Relative path to defining file
+  resolved?: boolean;      // Whether type was successfully resolved
 }
 
 // ============================================================================
@@ -194,8 +241,11 @@ export type IRNode =
   | BlockNode
   | InlineNode
   | FrontmatterNode
+  | AgentFrontmatterNode
   | ListItemNode
-  | DocumentNode;
+  | DocumentNode
+  | AgentDocumentNode
+  | TypeReference;
 
 // ============================================================================
 // Utilities
