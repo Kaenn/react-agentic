@@ -9,3 +9,6 @@ export * from './ir/index.js';
 
 // Markdown emitter
 export * from './emitter/index.js';
+
+// Parser
+export * from './parser/index.js';
