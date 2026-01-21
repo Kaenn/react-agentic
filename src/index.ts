@@ -1,4 +1,11 @@
-// react-agentic main entry point
-// Exports will be added as the library is built
+/**
+ * react-agentic - Compile-time safety for Claude Code commands
+ *
+ * Main entry point - exports IR types and emitter functionality.
+ */
 
-export {};
+// IR types
+export * from './ir/index.js';
+
+// Markdown emitter
+export * from './emitter/index.js';
