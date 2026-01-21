@@ -22,18 +22,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### CLI
 
-- [ ] **CLI-01**: Directory/glob processing: `react-agentic build src/**/*.tsx`
-- [ ] **CLI-02**: Output follows `.claude` convention — commands go to `.claude/commands/` regardless of source location
+- [x] **CLI-01**: Directory/glob processing: `react-agentic build src/**/*.tsx`
+- [x] **CLI-02**: Output follows `.claude` convention — commands go to `.claude/commands/` regardless of source location
 - [ ] **CLI-03**: Watch mode — auto-rebuild on file changes with debouncing
 - [ ] **CLI-04**: Dry run mode — `--dry-run` prints output without writing files
-- [ ] **CLI-05**: Colored terminal output with visual hierarchy (respects NO_COLOR)
+- [x] **CLI-05**: Colored terminal output with visual hierarchy (respects NO_COLOR)
 
 ### Infrastructure
 
 - [ ] **INFRA-01**: Error messages include file path, line number, and column
 - [ ] **INFRA-02**: Non-zero exit code on transpilation errors
-- [ ] **INFRA-03**: `--help` displays usage information
-- [ ] **INFRA-04**: `--version` displays current version
+- [x] **INFRA-03**: `--help` displays usage information
+- [x] **INFRA-04**: `--version` displays current version
 
 ## v2 Requirements
 
@@ -82,15 +82,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-05 | Phase 3 | Complete |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
-| CLI-01 | Phase 4 | Pending |
-| CLI-02 | Phase 4 | Pending |
+| CLI-01 | Phase 4 | Complete |
+| CLI-02 | Phase 4 | Complete |
 | CLI-03 | Phase 6 | Pending |
 | CLI-04 | Phase 6 | Pending |
-| CLI-05 | Phase 4 | Pending |
+| CLI-05 | Phase 4 | Complete |
 | INFRA-01 | Phase 6 | Pending |
 | INFRA-02 | Phase 6 | Pending |
-| INFRA-03 | Phase 4 | Pending |
-| INFRA-04 | Phase 4 | Pending |
+| INFRA-03 | Phase 4 | Complete |
+| INFRA-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 16 total
@@ -99,4 +99,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 3 completion*
+*Last updated: 2026-01-21 after Phase 4 completion*
