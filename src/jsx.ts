@@ -22,6 +22,24 @@ export interface CommandProps {
 }
 
 /**
+ * Props for the Agent component
+ */
+export interface AgentProps {
+  /** Agent name (used in frontmatter and Task() spawning) */
+  name: string;
+  /** Agent description (used in frontmatter) */
+  description: string;
+  /** Space-separated tool names (optional) */
+  tools?: string;
+  /** Terminal color for agent output (optional) */
+  color?: string;
+  /** Subfolder for output path (optional) - determines namespaced agent name */
+  folder?: string;
+  /** Agent body content */
+  children?: ReactNode;
+}
+
+/**
  * Props for the Markdown component
  */
 export interface MarkdownProps {
@@ -51,6 +69,22 @@ export interface XmlBlockProps {
  * </Command>
  */
 export function Command(_props: CommandProps): null {
+  return null;
+}
+
+/**
+ * Agent component - creates a Claude Code agent with frontmatter
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ *
+ * @example
+ * <Agent name="researcher" description="Research topics" tools="Read Grep Glob" color="cyan">
+ *   <h1>Role</h1>
+ *   <p>You are a researcher that finds information using code analysis tools.</p>
+ * </Agent>
+ */
+export function Agent(_props: AgentProps): null {
   return null;
 }
 
