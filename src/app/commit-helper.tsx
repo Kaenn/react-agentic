@@ -1,3 +1,5 @@
+import { Command, Markdown, XmlBlock } from '../jsx.js';
+
 export default function CommitHelperCommand() {
   return (
     <Command
@@ -14,18 +16,18 @@ export default function CommitHelperCommand() {
 
       <h2>Context</h2>
       <ul>
-        <li><b>Working directory:</b> Current git repository</li>
-        <li><b>Staged changes:</b> Available via git diff --cached</li>
+        <li><b>Working directory:</b>{' '}Current git repository</li>
+        <li><b>Staged changes:</b>{' '}Available via git diff --cached</li>
       </ul>
 
-      <div name="instructions">
+      <XmlBlock name="instructions">
         <h3>Process</h3>
         <ol>
           <li>Run <code>git diff --cached</code> to see staged changes</li>
           <li>Analyze the type of changes (feat, fix, docs, etc.)</li>
           <li>Generate a commit message with scope if applicable</li>
         </ol>
-      </div>
+      </XmlBlock>
 
       <h2>Success Criteria</h2>
       <ul>

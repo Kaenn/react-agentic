@@ -436,6 +436,8 @@ describe('Transformer', () => {
     });
 
     it('transforms list item with inline formatting', () => {
+      // Note: JSX whitespace rules strip space between </b> and text
+      // Without explicit {' '}, the space is lost
       const tsx = `export default function Doc() {
         return (
           <ul>
@@ -449,6 +451,7 @@ describe('Transformer', () => {
       expect(list.kind).toBe('list');
       if (list.kind === 'list') {
         // Bold and text should be merged into a single paragraph
+        // Note: no leading space on 'text' due to JSX whitespace collapsing
         expect(list.items[0]).toEqual({
           kind: 'listItem',
           children: [
@@ -457,6 +460,36 @@ describe('Transformer', () => {
               children: [
                 { kind: 'bold', children: [{ kind: 'text', value: 'bold' }] },
                 { kind: 'text', value: 'text' },
+              ],
+            },
+          ],
+        });
+      }
+    });
+
+    it('preserves space between bold and following text with explicit JSX expression', () => {
+      // Use {' '} for explicit whitespace preservation in JSX
+      const tsx = `export default function Doc() {
+        return (
+          <ul>
+            <li><b>Working directory:</b>{' '}Current git repository</li>
+          </ul>
+        );
+      }`;
+      const doc = transformTsx(tsx);
+
+      const list = doc.children[0];
+      expect(list.kind).toBe('list');
+      if (list.kind === 'list') {
+        expect(list.items[0]).toEqual({
+          kind: 'listItem',
+          children: [
+            {
+              kind: 'paragraph',
+              children: [
+                { kind: 'bold', children: [{ kind: 'text', value: 'Working directory:' }] },
+                { kind: 'text', value: ' ' },
+                { kind: 'text', value: 'Current git repository' },
               ],
             },
           ],
