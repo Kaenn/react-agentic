@@ -13,7 +13,7 @@ This roadmap delivers a TSX-to-Markdown transpiler in 6 phases following compile
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & IR** - Project scaffolding and intermediate representation types
-- [ ] **Phase 2: Core Transpilation** - TSX parsing and basic element transformation
+- [x] **Phase 2: Core Transpilation** - TSX parsing and basic element transformation
 - [ ] **Phase 3: Full Element Coverage** - Command frontmatter, XML blocks, and raw markdown
 - [ ] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
 - [ ] **Phase 5: Composition** - Props spreading and component composition support
@@ -48,9 +48,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — ts-morph parser setup and JSX AST traversal
-- [ ] 02-02-PLAN.md — Transformer for basic elements (headings, paragraphs, text formatting)
-- [ ] 02-03-PLAN.md — Transformer for lists, blockquotes, code blocks, and links
+- [x] 02-01-PLAN.md — ts-morph parser setup and JSX AST traversal
+- [x] 02-02-PLAN.md — Transformer for basic elements (headings, paragraphs, text formatting)
+- [x] 02-03-PLAN.md — Transformer for lists, blockquotes, code blocks, and links
 
 ### Phase 3: Full Element Coverage
 **Goal**: Complete element support including Command frontmatter, XML blocks, and raw markdown passthrough
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & IR | 2/2 | ✓ Complete | 2026-01-21 |
-| 2. Core Transpilation | 0/3 | Ready to execute | - |
+| 2. Core Transpilation | 3/3 | ✓ Complete | 2026-01-21 |
 | 3. Full Element Coverage | 0/2 | Not started | - |
 | 4. CLI Interface | 0/3 | Not started | - |
 | 5. Composition | 0/2 | Not started | - |

@@ -75,9 +75,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 2 | Pending |
+| CORE-01 | Phase 2 | Complete |
 | CORE-02 | Phase 3 | Pending |
-| CORE-03 | Phase 2 | Pending |
+| CORE-03 | Phase 2 | Complete |
 | CORE-04 | Phase 3 | Pending |
 | CORE-05 | Phase 3 | Pending |
 | COMP-01 | Phase 5 | Pending |
