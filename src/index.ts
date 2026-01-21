@@ -12,3 +12,6 @@ export * from './emitter/index.js';
 
 // Parser
 export * from './parser/index.js';
+
+// JSX type definitions
+export type * from './jsx.js';
