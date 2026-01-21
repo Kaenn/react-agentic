@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 5 - Composition
+**Current focus:** Phase 5 Complete - Ready for Phase 6
 
 ## Current Position
 
 Phase: 5 of 6 (Composition)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-21 — Completed 05-01-PLAN.md (Static Props Spreading)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-21 — Completed 05-02-PLAN.md (Component Composition)
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 4 min
-- Total execution time: 35 min
+- Total execution time: 39 min
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [███████░░░] 73%
 | 02-core-transpilation | 3 | 18 min | 6 min |
 | 03-full-element-coverage | 2 | 4 min | 2 min |
 | 04-cli-interface | 2 | 5 min | 2.5 min |
-| 05-composition | 1 | 2 min | 2 min |
+| 05-composition | 2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2 min), 04-01 (2 min), 04-02 (3 min), 05-01 (2 min)
+- Last 5 plans: 04-01 (2 min), 04-02 (3 min), 05-01 (2 min), 05-02 (4 min)
 - Trend: excellent velocity maintained
 
 *Updated after each plan completion*
@@ -81,6 +81,10 @@ Recent decisions affecting current work:
 - [05-01]: Only simple identifiers supported for spread (no expressions like getProps())
 - [05-01]: Object literals required for spread source (no computed values)
 - [05-01]: Later props override earlier in order (JSX standard behavior)
+- [05-02]: Only relative imports supported for component composition
+- [05-02]: Component props not supported in v1 (throws if props passed)
+- [05-02]: Fragment returns take first block only (multi-block limitation)
+- [05-02]: Circular imports detected and throw descriptive error
 
 ### Pending Todos
 
@@ -93,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 05-01-PLAN.md (Static Props Spreading)
+Stopped at: Completed Phase 5 (Composition)
 Resume file: None
