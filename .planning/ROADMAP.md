@@ -12,7 +12,7 @@ This roadmap delivers a TSX-to-Markdown transpiler in 6 phases following compile
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & IR** - Project scaffolding and intermediate representation types
+- [x] **Phase 1: Foundation & IR** - Project scaffolding and intermediate representation types
 - [ ] **Phase 2: Core Transpilation** - TSX parsing and basic element transformation
 - [ ] **Phase 3: Full Element Coverage** - Command frontmatter, XML blocks, and raw markdown
 - [ ] **Phase 4: CLI Interface** - Build command with glob processing and output conventions
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project setup (package.json, tsconfig, dependencies)
-- [ ] 01-02-PLAN.md — IR type definitions and Markdown emitter
+- [x] 01-01-PLAN.md — Project setup (package.json, tsconfig, dependencies)
+- [x] 01-02-PLAN.md — IR type definitions and Markdown emitter
 
 ### Phase 2: Core Transpilation
 **Goal**: Parse TSX files and transform basic HTML-like elements to Markdown via IR
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & IR | 0/2 | Planned | - |
+| 1. Foundation & IR | 2/2 | ✓ Complete | 2026-01-21 |
 | 2. Core Transpilation | 0/3 | Not started | - |
 | 3. Full Element Coverage | 0/2 | Not started | - |
 | 4. CLI Interface | 0/3 | Not started | - |

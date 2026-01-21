@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Phase 1 - Foundation & IR (complete)
+**Current focus:** Phase 2 - Core Transpilation
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation & IR)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-21 — Completed 01-02-PLAN.md (IR Types and Markdown Emitter)
+Phase: 2 of 6 (Core Transpilation)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-01-21 — Phase 1 complete, verified
 
 Progress: [██░░░░░░░░] 17%
 
