@@ -50,11 +50,11 @@ Plans:
   3. Agent component requires name and description props (compile error if missing)
   4. Agent component accepts optional tools and color props
   5. Agent body content renders as markdown sections below frontmatter
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 09-01: Agent component parsing and IR transformation
-- [ ] 09-02: Agent emitter and output routing
+- [ ] 09-01-PLAN.md — Agent component parsing and IR transformation
+- [ ] 09-02-PLAN.md — Agent emitter and output routing
 
 ### Phase 10: SpawnAgent Component
 **Goal**: SpawnAgent component emits GSD Task() syntax in command markdown
