@@ -61,11 +61,11 @@ Plans:
   2. User can write `<div name="example">content</div>` and get `<example>content</example>` output
   3. User can write `<Markdown>{raw}</Markdown>` and content passes through unchanged
   4. Complete command TSX files transpile to Claude Code-compatible Markdown with frontmatter
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Command component props to YAML frontmatter
-- [ ] 03-02: Named div blocks and Markdown passthrough component
+- [ ] 03-01-PLAN.md — Command component props to YAML frontmatter
+- [ ] 03-02-PLAN.md — Named div blocks and Markdown passthrough component
 
 ### Phase 4: CLI Interface
 **Goal**: Usable CLI tool with build command, glob processing, and proper output conventions
