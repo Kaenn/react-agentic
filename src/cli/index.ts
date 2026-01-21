@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { buildCommand } from './commands/build.js';
 
 async function main() {
   // Read version from package.json (stays in sync)
@@ -17,8 +18,7 @@ async function main() {
     .description('Compile-time safety for Claude Code commands')
     .version(pkg.version);
 
-  // Build command will be added in 04-02
-  // program.addCommand(buildCommand);
+  program.addCommand(buildCommand);
 
   program.parse();
 }
