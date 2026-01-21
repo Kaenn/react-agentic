@@ -66,11 +66,11 @@ Plans:
   3. SpawnAgent prompt prop supports multi-line template literals
   4. SpawnAgent description prop renders in Task() output
   5. Command with SpawnAgent builds without errors
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 10-01: SpawnAgent component parsing and IR transformation
-- [ ] 10-02: Task() syntax emitter
+- [ ] 10-01-PLAN.md — SpawnAgent component parsing and IR transformation
+- [ ] 10-02-PLAN.md — Task() syntax emitter
 
 ### Phase 11: Type Safety
 **Goal**: Generic typing and cross-file validation ensure type-safe agent spawning
