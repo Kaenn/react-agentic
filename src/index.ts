@@ -13,5 +13,6 @@ export * from './emitter/index.js';
 // Parser
 export * from './parser/index.js';
 
-// JSX type definitions
-export type * from './jsx.js';
+// JSX components and types
+export { Command, Markdown, XmlBlock } from './jsx.js';
+export type { CommandProps, MarkdownProps, XmlBlockProps } from './jsx.js';
