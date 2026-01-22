@@ -25,12 +25,14 @@ import type {
   ListNode,
   OnStatusNode,
   ParagraphNode,
+  ReadStateNode,
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
   SpawnAgentInput,
   SpawnAgentNode,
   TypeReference,
+  WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
 import { resolveTypeImport, extractInterfaceProperties } from '../parser/parser.js';
@@ -228,6 +230,10 @@ export class MarkdownEmitter {
         return this.emitElse(node);
       case 'onStatus':
         return this.emitOnStatus(node);
+      case 'readState':
+        return this.emitReadState(node);
+      case 'writeState':
+        return this.emitWriteState(node);
       default:
         return assertNever(node);
     }
@@ -602,6 +608,25 @@ export class MarkdownEmitter {
     }
 
     return parts.join('\n\n');
+  }
+
+  /**
+   * Emit ReadState node as skill invocation
+   *
+   * Output format varies by whether field is specified:
+   * - Full state: Use /react-agentic:state-read {key} and store in variable
+   * - Field read: Use /react-agentic:state-read {key} --field {path}
+   */
+  private emitReadState(node: ReadStateNode): string {
+    const { stateKey, variableName, field } = node;
+
+    if (field) {
+      // Read specific field
+      return `Use skill \`/react-agentic:state-read ${stateKey} --field "${field}"\` and store result in \`${variableName}\`.`;
+    } else {
+      // Read full state
+      return `Use skill \`/react-agentic:state-read ${stateKey}\` and store result in \`${variableName}\`.`;
+    }
   }
 
   /**
