@@ -44,8 +44,12 @@ import type {
   WriteStateNode,
   MCPServerNode,
   MCPConfigDocumentNode,
+  StateDocumentNode,
+  StateNode,
+  OperationNode,
+  StateSchema,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
+import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, type ExtractedVariable } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -64,7 +68,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -118,12 +122,12 @@ export class Transformer {
   }
 
   /**
-   * Transform a root JSX element/fragment into a DocumentNode, AgentDocumentNode, SkillDocumentNode, or MCPConfigDocumentNode
+   * Transform a root JSX element/fragment into a DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
    *
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
@@ -155,6 +159,9 @@ export class Transformer {
       }
       if (name === 'MCPConfig') {
         return this.transformMCPConfig(node);
+      }
+      if (name === 'State') {
+        return this.transformState(node);
       }
     }
 
@@ -2349,12 +2356,143 @@ export class Transformer {
 
     return parts.join('');
   }
+
+  // ============================================================================
+  // State Document Transformation
+  // ============================================================================
+
+  /**
+   * Transform a State component into StateDocumentNode
+   */
+  private transformState(node: JsxElement | JsxSelfClosingElement): StateDocumentNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Extract required props
+    const name = getAttributeValue(opening, 'name');
+    if (!name) {
+      throw this.createError('State component requires name prop', node);
+    }
+
+    const provider = getAttributeValue(opening, 'provider');
+    if (provider !== 'sqlite') {
+      throw this.createError('State component only supports provider="sqlite"', node);
+    }
+
+    // Extract config prop (object literal)
+    const configAttr = opening.getAttribute('config');
+    let database = '.state/state.db';  // default
+    if (configAttr && Node.isJsxAttribute(configAttr)) {
+      const init = configAttr.getInitializer();
+      if (init && Node.isJsxExpression(init)) {
+        const expr = init.getExpression();
+        if (expr && Node.isObjectLiteralExpression(expr)) {
+          for (const prop of expr.getProperties()) {
+            if (Node.isPropertyAssignment(prop)) {
+              const propName = prop.getName();
+              if (propName === 'database') {
+                const propInit = prop.getInitializer();
+                if (propInit && Node.isStringLiteral(propInit)) {
+                  database = propInit.getLiteralValue();
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Extract schema from generic type parameter
+    // Note: extractTypeArguments is already imported from parser.js
+    let schema: StateSchema = { interfaceName: 'unknown', fields: [] };
+    if (this.sourceFile) {
+      const typeArgs = extractTypeArguments(node);
+      if (typeArgs && typeArgs.length > 0) {
+        const schemaTypeName = typeArgs[0];
+        const extracted = extractStateSchema(this.sourceFile, schemaTypeName);
+        if (extracted) {
+          schema = extracted;
+        } else {
+          console.warn(`Warning: Could not find interface ${schemaTypeName} in source file`);
+        }
+      }
+    }
+
+    // Extract Operation children
+    const operations: OperationNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+          const childName = getElementName(child);
+          if (childName === 'Operation') {
+            operations.push(this.transformOperation(child));
+          }
+        }
+      }
+    }
+
+    const stateNode: StateNode = {
+      kind: 'state',
+      name,
+      provider: 'sqlite',
+      config: { database },
+      schema,
+      operations
+    };
+
+    return {
+      kind: 'stateDocument',
+      state: stateNode
+    };
+  }
+
+  /**
+   * Transform an Operation component into OperationNode
+   */
+  private transformOperation(node: JsxElement | JsxSelfClosingElement): OperationNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Extract required name prop
+    const name = getAttributeValue(opening, 'name');
+    if (!name) {
+      throw this.createError('Operation component requires name prop', node);
+    }
+
+    // Extract SQL template from children (text content)
+    let sqlTemplate = '';
+    if (Node.isJsxElement(node)) {
+      const parts: string[] = [];
+      for (const child of node.getJsxChildren()) {
+        if (Node.isJsxText(child)) {
+          parts.push(child.getText());
+        } else if (Node.isJsxExpression(child)) {
+          // Handle template literals in expressions
+          const expr = child.getExpression();
+          if (expr && Node.isStringLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (expr && Node.isNoSubstitutionTemplateLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          }
+        }
+      }
+      sqlTemplate = parts.join('').trim();
+    }
+
+    // Infer arguments from $variable patterns in SQL
+    const args = extractSqlArguments(sqlTemplate);
+
+    return {
+      kind: 'operation',
+      name,
+      sqlTemplate,
+      args
+    };
+  }
 }
 
 /**
- * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, SkillDocumentNode, or MCPConfigDocumentNode
+ * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
   const transformer = new Transformer();
   return transformer.transform(node, sourceFile);
 }
