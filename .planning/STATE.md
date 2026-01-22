@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.7 MCP Configuration
+**Current focus:** v1.7 MCP Configuration - COMPLETE
 
 ## Current Position
 
-Phase: 18 (MCP Configuration)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-22 - Completed 18-03-PLAN.md (Emitter)
+Phase: 18 (MCP Configuration) - COMPLETE
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 18-04-PLAN.md (Integration)
 
-Progress: [███████░░░] Phase 18: 75%
-Next: Execute 18-04-PLAN.md (Integration)
+Progress: [██████████] Phase 18: 100%
+Next: v1.7 ready for release
 
 ## Milestone History
 
@@ -37,6 +37,8 @@ Next: Execute 18-04-PLAN.md (Integration)
   - Phase 16: Skill Component
 - v1.6 State System: Shipped 2026-01-22 (1 phase, 6 plans)
   - Phase 17: State System
+- v1.7 MCP Configuration: Shipped 2026-01-22 (1 phase, 4 plans)
+  - Phase 18: MCP Configuration
 
 ## Performance Metrics
 
@@ -58,6 +60,7 @@ Next: Execute 18-04-PLAN.md (Integration)
 | 15 | 3/3 | 8m 19s | 2m 46s |
 | 16 | 5/5 | 11m | 2m 12s |
 | 17 | 6/6 | ~12m | ~2m |
+| 18 | 4/4 | ~15m | ~3m 45s |
 
 *Updated after each plan completion*
 
@@ -200,6 +203,11 @@ v1.7 implementation decisions (18-03):
 - mcpserver-throws: MCPServerNode case in emitter throws - uses settings.ts instead
 - tsx-wins-on-conflict: Spread order existing first, then new servers for merge
 
+v1.7 implementation decisions (18-04):
+- example-multi-server: Main example shows multiple servers (sqlite + filesystem) for realistic patterns
+- single-server-example: Separate playwright example for simple single-server use case
+- mcp-file-convention: MCP config files use *.mcp.tsx naming in src/app/mcp/ directory
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -225,5 +233,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 18-03-PLAN.md (Emitter)
-Resume with: Execute 18-04-PLAN.md (Integration)
+Stopped at: Completed 18-04-PLAN.md (Integration) - Phase 18 complete
+Resume with: v1.7 release or next milestone
