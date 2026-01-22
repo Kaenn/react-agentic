@@ -7,10 +7,15 @@ import {
   Else,
   Assign,
   useVariable,
+  useOutput,
+  OnStatus,
 } from '../../jsx.js';
-import type { PhaseResearcherInput } from './gsd-phase-researcher.js';
+import type { PhaseResearcherInput, PhaseResearcherOutput } from './gsd-phase-researcher.js';
 
 export default function PlanPhaseCommand() {
+  // Track researcher agent output for status-based handling
+  const researchOutput = useOutput<PhaseResearcherOutput>("gsd-phase-researcher");
+
   return (
     <Command
       name="gsd:plan-phase"
@@ -157,17 +162,23 @@ PHASE_CONTEXT=$(cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null)`}</code></
         </SpawnAgent>
 
         <h3>Handle Researcher Return</h3>
-        <p><b><code>## RESEARCH COMPLETE</code>:</b></p>
-        <ul>
-          <li>Display: <code>Research complete. Proceeding to planning...</code></li>
-          <li>Continue to step 6</li>
-        </ul>
-        <p><b><code>## RESEARCH BLOCKED</code>:</b></p>
-        <ul>
-          <li>Display blocker information</li>
-          <li>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</li>
-          <li>Wait for user response</li>
-        </ul>
+
+        <OnStatus output={researchOutput} status="SUCCESS">
+          <p>Research complete with {researchOutput.field('confidence')} confidence.</p>
+          <p>Display: <code>Research complete. Proceeding to planning...</code></p>
+          <p>Continue to step 6.</p>
+        </OnStatus>
+
+        <OnStatus output={researchOutput} status="BLOCKED">
+          <p>Research blocked by: {researchOutput.field('blockedBy')}</p>
+          <p>Display blocker information.</p>
+          <p>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</p>
+          <p>Wait for user response.</p>
+        </OnStatus>
+
+        <OnStatus output={researchOutput} status="ERROR">
+          <p>Research failed. Check error details and retry.</p>
+        </OnStatus>
 
         <h2>6. Check Existing Plans</h2>
         <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`}</code></pre>

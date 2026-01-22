@@ -634,16 +634,48 @@ export class Transformer {
       return this.transformInlineElement(name, node);
     }
 
-    // Handle JSX expressions like {' '} for explicit spacing
+    // Handle JSX expressions
     if (Node.isJsxExpression(node)) {
       const expr = node.getExpression();
-      if (expr && Node.isStringLiteral(expr)) {
+      if (!expr) return null;
+
+      // String literals: {' '} or {'text'}
+      if (Node.isStringLiteral(expr)) {
         const value = expr.getLiteralValue();
         if (value) {
           return { kind: 'text', value };
         }
+        return null;
       }
-      // Non-string expressions are ignored for now
+
+      // Call expressions: output.field('key') -> '{output.key}'
+      if (Node.isCallExpression(expr)) {
+        const propAccess = expr.getExpression();
+        // Check if it's a method call like output.field('key')
+        if (Node.isPropertyAccessExpression(propAccess)) {
+          const methodName = propAccess.getName();
+          const objExpr = propAccess.getExpression();
+
+          // Check if it's calling .field() on a useOutput result
+          if (methodName === 'field' && Node.isIdentifier(objExpr)) {
+            const outputName = objExpr.getText();
+            // Verify this is a tracked output
+            if (this.outputs.has(outputName)) {
+              // Get the field key from the argument
+              const args = expr.getArguments();
+              if (args.length >= 1) {
+                const keyArg = args[0];
+                if (Node.isStringLiteral(keyArg)) {
+                  const fieldKey = keyArg.getLiteralValue();
+                  return { kind: 'text', value: `{output.${fieldKey}}` };
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Other expressions are ignored
       return null;
     }
 
@@ -1245,32 +1277,35 @@ export class Transformer {
   /**
    * Extract useOutput declarations from source file
    * Returns map of identifier name -> agent name
+   *
+   * Uses forEachDescendant to find declarations inside function bodies,
+   * following the same pattern as extractVariableDeclarations in parser.ts
    */
   private extractOutputDeclarations(sourceFile: SourceFile): Map<string, string> {
     const outputs = new Map<string, string>();
 
-    // Find all variable declarations
-    for (const varDecl of sourceFile.getVariableDeclarations()) {
-      const init = varDecl.getInitializer();
-      if (!init) continue;
+    // Find all variable declarations (including inside functions)
+    sourceFile.forEachDescendant((node) => {
+      if (!Node.isVariableDeclaration(node)) return;
 
-      // Check if initializer is useOutput call
-      if (Node.isCallExpression(init)) {
-        const expr = init.getExpression();
-        if (Node.isIdentifier(expr) && expr.getText() === 'useOutput') {
-          const args = init.getArguments();
-          if (args.length >= 1) {
-            const agentArg = args[0];
-            // Get the string literal value (agent name)
-            if (Node.isStringLiteral(agentArg)) {
-              const agentName = agentArg.getLiteralValue();
-              const identName = varDecl.getName();
-              outputs.set(identName, agentName);
-            }
-          }
-        }
+      const init = node.getInitializer();
+      if (!init || !Node.isCallExpression(init)) return;
+
+      // Check if it's a useOutput call
+      const expr = init.getExpression();
+      if (!Node.isIdentifier(expr) || expr.getText() !== 'useOutput') return;
+
+      const args = init.getArguments();
+      if (args.length < 1) return;
+
+      const agentArg = args[0];
+      // Get the string literal value (agent name)
+      if (Node.isStringLiteral(agentArg)) {
+        const agentName = agentArg.getLiteralValue();
+        const identName = node.getName();
+        outputs.set(identName, agentName);
       }
-    }
+    });
 
     return outputs;
   }
