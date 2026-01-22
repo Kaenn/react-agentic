@@ -209,4 +209,164 @@ Research: {topic}`;
       expect(missing.length).toBe(0);
     });
   });
+
+  describe('SpawnAgent cross-file input validation', () => {
+    it('throws when input missing required property from local interface', () => {
+      // In-memory projects work with locally defined interfaces
+      // This test simulates the cross-file pattern using local interface
+      const commandSource = `
+        export interface ResearcherInput {
+          topic: string;
+          depth: string;
+          format?: string;
+        }
+
+        export default function Research() {
+          return (
+            <Command name="research" description="Do research">
+              <SpawnAgent<ResearcherInput>
+                agent="researcher"
+                model="opus"
+                description="Research task"
+                input={{ topic: "TypeScript" }}
+              />
+            </Command>
+          );
+        }
+      `;
+
+      const commandFile = parseSource(project, commandSource, 'commands/research.tsx');
+      const root = findRootJsxElement(commandFile);
+
+      // Transformer should throw because 'depth' is required but missing
+      expect(() => {
+        transform(root!, commandFile);
+      }).toThrow(/missing required properties.*depth/i);
+    });
+
+    it('passes when all required properties provided for interface', () => {
+      const commandSource = `
+        export interface TaskInput {
+          name: string;
+          priority: string;
+          notes?: string;
+        }
+
+        export default function RunTask() {
+          return (
+            <Command name="run" description="Run a task">
+              <SpawnAgent<TaskInput>
+                agent="task-runner"
+                model="opus"
+                description="Execute task"
+                input={{ name: "Build", priority: "high" }}
+              />
+            </Command>
+          );
+        }
+      `;
+
+      const commandFile = parseSource(project, commandSource, 'commands/run.tsx');
+      const root = findRootJsxElement(commandFile);
+
+      // Should not throw - 'name' and 'priority' are provided, 'notes' is optional
+      expect(() => {
+        transform(root!, commandFile);
+      }).not.toThrow();
+    });
+
+    it('handles placeholder values in cross-file input validation', () => {
+      const commandSource = `
+        export interface DynamicInput {
+          phase: string;
+          goal: string;
+        }
+
+        export default function Plan() {
+          return (
+            <Command name="plan" description="Plan phase">
+              <SpawnAgent<DynamicInput>
+                agent="planner"
+                model="opus"
+                description="Plan"
+                input={{ phase: "{phase_num}", goal: "{goal_var}" }}
+              />
+            </Command>
+          );
+        }
+      `;
+
+      const commandFile = parseSource(project, commandSource, 'commands/plan.tsx');
+      const root = findRootJsxElement(commandFile);
+
+      // Should pass - both required properties provided (as placeholders)
+      expect(() => {
+        const doc = transform(root!, commandFile);
+        const spawn = doc.children.find(c => c.kind === 'spawnAgent');
+        expect(spawn?.input?.type).toBe('object');
+      }).not.toThrow();
+    });
+
+    it('throws when multiple required properties are missing', () => {
+      const commandSource = `
+        export interface MultiInput {
+          first: string;
+          second: string;
+          third: string;
+          optional?: string;
+        }
+
+        export default function Multi() {
+          return (
+            <Command name="multi" description="Multi">
+              <SpawnAgent<MultiInput>
+                agent="multi"
+                model="opus"
+                description="Multi task"
+                input={{ first: "only first" }}
+              />
+            </Command>
+          );
+        }
+      `;
+
+      const commandFile = parseSource(project, commandSource, 'commands/multi.tsx');
+      const root = findRootJsxElement(commandFile);
+
+      // Should throw with both 'second' and 'third' mentioned
+      expect(() => {
+        transform(root!, commandFile);
+      }).toThrow(/missing required properties.*second.*third/i);
+    });
+
+    it('passes when interface has only optional properties', () => {
+      const commandSource = `
+        export interface OptionalInput {
+          setting1?: string;
+          setting2?: number;
+        }
+
+        export default function Optional() {
+          return (
+            <Command name="optional" description="Optional">
+              <SpawnAgent<OptionalInput>
+                agent="optional"
+                model="opus"
+                description="Optional task"
+                input={{}}
+              />
+            </Command>
+          );
+        }
+      `;
+
+      const commandFile = parseSource(project, commandSource, 'commands/optional.tsx');
+      const root = findRootJsxElement(commandFile);
+
+      // Should not throw - all properties are optional
+      expect(() => {
+        transform(root!, commandFile);
+      }).not.toThrow();
+    });
+  });
 });
