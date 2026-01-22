@@ -79,6 +79,38 @@ The `test` prop accepts any shell-compatible test expression:
 <If test="[ -f $CONFIG_PATH ]">...</If>     // Using variable
 ```
 
+### Test Helper Functions
+
+For type-safe test expressions, use the helper functions instead of raw strings:
+
+```tsx
+import {
+  If, useVariable,
+  fileExists, dirExists, isEmpty, notEmpty, equals, and, or
+} from '../jsx.js';
+
+const config = useVariable("CONFIG", { bash: `echo config.json` });
+const result = useVariable("RESULT", { bash: `cat output.txt` });
+
+// File/directory tests
+<If test={fileExists(config)}>    // [ -f $CONFIG ]
+<If test={dirExists(config)}>     // [ -d $CONFIG ]
+
+// String tests
+<If test={isEmpty(result)}>       // [ -z $RESULT ]
+<If test={notEmpty(result)}>      // [ -n $RESULT ]
+<If test={equals(result, "ok")}>  // [ $RESULT = ok ]
+
+// Composable
+<If test={and(fileExists(config), notEmpty(result))}>
+<If test={or(fileExists(config), dirExists(config))}>
+```
+
+**Benefits:**
+- Type safety: TypeScript ensures valid VariableRef, catches typos
+- Refactoring: Rename variables → tests auto-update
+- Readability: `fileExists(x)` clearer than `"[ -f $X ]"`
+
 ## Else Component
 
 Provides alternative content when the preceding `<If>` condition is false.
@@ -218,12 +250,25 @@ export default function SafeDeployCommand() {
 
 ## Tips
 
-1. **Use descriptive test expressions** — `[ $STATUS = 'ready' ]` is clearer than `[ $S = 'r' ]`
+1. **Prefer test helper functions** — `fileExists(config)` is type-safe, refactor-friendly, and clearer than `"[ -f $CONFIG ]"`
 
-2. **Keep nesting shallow** — More than 2-3 levels becomes hard to follow
+2. **Use raw strings for literals** — Helpers require VariableRef; use raw strings for literal paths like `"[ -d .git ]"`
 
-3. **Combine with variables** — `useVariable` + `<Assign>` + `<If>` is a powerful pattern
+3. **Keep nesting shallow** — More than 2-3 levels becomes hard to follow
 
-4. **Single conditionals are valid** — `<If>` without `<Else>` works when you only need conditional content
+4. **Combine with variables** — `useVariable` + `<Assign>` + `<If>` is a powerful pattern
 
-5. **Prose format is intentional** — The `**If condition:**` / `**Otherwise:**` format is designed for Claude to interpret, not for shell execution
+5. **Single conditionals are valid** — `<If>` without `<Else>` works when you only need conditional content
+
+6. **Prose format is intentional** — The `**If condition:**` / `**Otherwise:**` format is designed for Claude to interpret, not for shell execution
+
+## Related: OnStatus
+
+For status-based conditional rendering after agent execution, see `OnStatus` in [Communication](./communication.md#handling-agent-output).
+
+`OnStatus` follows a similar pattern to `If/Else` but operates on agent output status rather than shell conditions:
+
+| Component | Condition Source | Use Case |
+|-----------|------------------|----------|
+| `<If>/<Else>` | Shell test expressions | File checks, variable values |
+| `<OnStatus>` | Agent return status | Handle SUCCESS/BLOCKED/ERROR |
