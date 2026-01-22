@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.3 Conditional Logic COMPLETE
+**Current focus:** v1.4 Agent Output Schema IN PROGRESS
 
 ## Current Position
 
-Phase: 13 of 15 (Conditional Logic)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed quick task 001: Docs conditionals feature
+Phase: 14 of 15 (Agent Output Schema)
+Plan: 2 of 3 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 14-02-PLAN.md (IR & Transformer)
 
-Progress: [███░░░░░░░] Phase 13: 100%
-Next: Phase 14 or milestone completion
+Progress: [██████░░░░] Phase 14: 66%
+Next: 14-03-PLAN.md (Emitter)
 
 ## Milestone History
 
@@ -47,6 +47,7 @@ Next: Phase 14 or milestone completion
 | 10 | 2/2 | 4m 50s | 2m 25s |
 | 11 | 2/2 | 7m 30s | 3m 45s |
 | 12 | 4/4 | 12m | 3m |
+| 14 | 1/3 | 3m | 3m |
 
 *Updated after each plan completion*
 
@@ -109,6 +110,9 @@ v1.3 implementation decisions (13-03):
 - double-newline-separation: Both emitters use parts.join('\n\n') for proper markdown spacing
 - recursive-children: Nested If within Else handled automatically via recursive emitBlock calls
 
+v1.4 implementation decisions (14-02):
+- dual-type-extraction: Separate if blocks for TInput and TOutput extraction
+
 ### Pending Todos
 
 None.
@@ -126,5 +130,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 13-03-PLAN.md (Emitter for If/Else)
-Resume with: Phase 14 or milestone completion
+Stopped at: Completed 14-02-PLAN.md (IR & Transformer)
+Resume with: 14-03-PLAN.md (Emitter)
