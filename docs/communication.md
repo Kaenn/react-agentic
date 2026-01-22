@@ -22,8 +22,14 @@ Command ──── SpawnAgent ────► Agent
 | `agent` | string | ✓ | Agent name to spawn |
 | `model` | string | ✓ | Model to use (supports `{variable}`) |
 | `description` | string | ✓ | Task description |
-| `prompt` | string | ✓ | Prompt sent to agent |
+| `input` | object/VariableRef | ✓* | Typed input data (recommended) |
+| `prompt` | string | ✓* | Manual prompt (deprecated) |
 | `TInput` | generic | | Type interface for validation |
+
+*One of `input` or `prompt` is required. Use `input` for type-safe communication.
+
+> **Note:** The `prompt` prop is deprecated. Use `input` for type-safe communication.
+> The `prompt` prop remains functional for backward compatibility.
 
 ## Example: Deploy Pipeline
 
@@ -339,6 +345,127 @@ Use `{variable}` syntax for runtime substitution:
 ```
 
 Claude fills these in at runtime based on context.
+
+## Typed Input (Recommended)
+
+Instead of writing prompts manually, use the `input` prop for type-safe communication.
+
+### Object Literal Input
+
+Pass structured data that matches the Agent's interface:
+
+```tsx
+// Agent defines its input contract
+export interface ResearcherInput {
+  phase: string;
+  goal: string;
+  requirements?: string;
+}
+
+export function Researcher() {
+  return (
+    <Agent<ResearcherInput> name="researcher" description="Research topics">
+      ...
+    </Agent>
+  );
+}
+
+// Command uses typed input
+export default function PlanPhase() {
+  return (
+    <Command name="plan" description="Plan a phase">
+      <SpawnAgent<ResearcherInput>
+        input={{ phase: "{phase}", goal: "Complete research" }}
+        agent="researcher"
+        model="{model}"
+        description="Research phase"
+      />
+    </Command>
+  );
+}
+```
+
+Generated prompt:
+```
+<phase>
+{phase}
+</phase>
+
+<goal>
+Complete research
+</goal>
+```
+
+### VariableRef Input
+
+For dynamic data computed at runtime, use `useVariable`:
+
+```tsx
+const context = useVariable("CONTEXT", {
+  bash: `cat \${PHASE_DIR}/context.json`
+});
+
+<SpawnAgent<ResearcherInput>
+  input={context}
+  agent="researcher"
+  model="{model}"
+  description="Research with context"
+/>
+```
+
+Generated prompt:
+```
+<input>
+{context}
+</input>
+```
+
+### Extra Instructions
+
+Children become additional instructions appended to the auto-generated prompt:
+
+```tsx
+<SpawnAgent<ResearcherInput>
+  input={{ phase: "{phase}", goal: "Research" }}
+  agent="researcher"
+  model="{model}"
+  description="Research phase"
+>
+  Focus on technical requirements.
+  Ignore marketing considerations.
+</SpawnAgent>
+```
+
+### Compile-Time Validation
+
+When using the `input` prop with an object literal, the compiler validates that:
+- All required interface properties are provided
+- Property names match the interface definition
+
+Missing required properties cause a **compile-time error**, not a runtime failure:
+
+```tsx
+// Agent interface requires 'goal' and 'context'
+export interface TaskInput {
+  goal: string;
+  context: string;
+  priority?: number;  // optional
+}
+
+// This FAILS at compile time:
+<SpawnAgent<TaskInput>
+  input={{ goal: "Do something" }}  // ERROR: missing required property 'context'
+  ...
+/>
+
+// This succeeds:
+<SpawnAgent<TaskInput>
+  input={{ goal: "Do something", context: "Project X" }}  // OK
+  ...
+/>
+```
+
+This ensures type mismatches are caught before your command runs, not during execution.
 
 ## Data Flow Summary
 
