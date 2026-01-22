@@ -30,10 +30,11 @@ import type {
   FrontmatterNode,
   XmlBlockNode,
   SpawnAgentNode,
+  SpawnAgentInput,
   TypeReference,
   AssignNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, type ExtractedVariable } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, type ExtractedVariable } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -954,6 +955,10 @@ export class Transformer {
   /**
    * Transform a SpawnAgent element to SpawnAgentNode
    * SpawnAgent is a block-level element that emits Task() syntax
+   *
+   * Supports two modes:
+   * 1. prompt prop (deprecated): Manual prompt string
+   * 2. input prop (preferred): Typed input - VariableRef or object literal
    */
   private transformSpawnAgent(node: JsxElement | JsxSelfClosingElement): SpawnAgentNode {
     const openingElement = Node.isJsxElement(node)
@@ -964,9 +969,17 @@ export class Transformer {
     const agent = getAttributeValue(openingElement, 'agent');
     const model = getAttributeValue(openingElement, 'model');
     const description = getAttributeValue(openingElement, 'description');
-    const prompt = this.extractPromptProp(openingElement);
 
-    // Validate all required props
+    // Extract prompt and input props
+    const prompt = this.extractPromptProp(openingElement);
+    const input = this.extractInputProp(openingElement);
+
+    // Extract extra instructions from children (when using input prop)
+    const extraInstructions = Node.isJsxElement(node)
+      ? this.extractExtraInstructions(node)
+      : undefined;
+
+    // Validate required props
     if (!agent) {
       throw this.createError('SpawnAgent requires agent prop', openingElement);
     }
@@ -976,8 +989,21 @@ export class Transformer {
     if (!description) {
       throw this.createError('SpawnAgent requires description prop', openingElement);
     }
-    if (!prompt) {
-      throw this.createError('SpawnAgent requires prompt prop', openingElement);
+
+    // Validate mutual exclusivity of prompt and input
+    if (prompt && input) {
+      throw this.createError(
+        'Cannot use both prompt and input props on SpawnAgent. Use input for typed input or prompt for manual prompts.',
+        openingElement
+      );
+    }
+
+    // Require one of prompt or input
+    if (!prompt && !input) {
+      throw this.createError(
+        'SpawnAgent requires either prompt or input prop',
+        openingElement
+      );
     }
 
     // Extract generic type argument if present
@@ -996,9 +1022,86 @@ export class Transformer {
       agent,
       model,
       description,
-      prompt,
+      ...(prompt && { prompt }),
+      ...(input && { input }),
+      ...(extraInstructions && { extraInstructions }),
       ...(inputType && { inputType }),
     };
+  }
+
+  /**
+   * Extract input prop - handles VariableRef identifier or object literal
+   *
+   * Supports:
+   * - input={varRef} - Reference to useVariable result
+   * - input={{ key: "value" }} - Object literal with properties
+   */
+  private extractInputProp(
+    element: JsxOpeningElement | JsxSelfClosingElement
+  ): SpawnAgentInput | undefined {
+    const attr = element.getAttribute('input');
+    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+    const init = attr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) return undefined;
+
+    const expr = init.getExpression();
+    if (!expr) return undefined;
+
+    // Case 1: Identifier referencing useVariable result
+    if (Node.isIdentifier(expr)) {
+      const variable = this.variables.get(expr.getText());
+      if (variable) {
+        return { type: 'variable', variableName: variable.envName };
+      }
+      // Not a known variable - error
+      throw this.createError(
+        `Input '${expr.getText()}' not found. Use useVariable() or object literal.`,
+        element
+      );
+    }
+
+    // Case 2: Object literal
+    if (Node.isObjectLiteralExpression(expr)) {
+      const properties = extractInputObjectLiteral(expr, this.variables);
+      return { type: 'object', properties };
+    }
+
+    throw this.createError('Input must be a VariableRef or object literal', element);
+  }
+
+  /**
+   * Extract extra instructions from SpawnAgent children
+   *
+   * Treats children as raw text content (like Markdown component).
+   * Returns undefined if no children or only whitespace.
+   */
+  private extractExtraInstructions(node: JsxElement): string | undefined {
+    const parts: string[] = [];
+
+    for (const child of node.getJsxChildren()) {
+      if (Node.isJsxText(child)) {
+        const text = child.getText();
+        if (text.trim()) {
+          parts.push(text);
+        }
+      } else if (Node.isJsxExpression(child)) {
+        // Handle {`template`} and {"string"} expressions
+        const expr = child.getExpression();
+        if (expr) {
+          if (Node.isStringLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isTemplateExpression(expr)) {
+            parts.push(this.extractTemplateText(expr));
+          }
+        }
+      }
+    }
+
+    const content = parts.join('').trim();
+    return content || undefined;
   }
 
   /**

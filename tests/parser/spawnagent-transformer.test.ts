@@ -239,7 +239,7 @@ Goal: \${goal}
       expect(() => transformTsx(tsx)).toThrow(/SpawnAgent requires description prop/);
     });
 
-    it('throws for missing prompt prop', () => {
+    it('throws for missing prompt or input prop', () => {
       const tsx = `export default function MyCommand() {
         return (
           <Command name="test" description="Test">
@@ -247,7 +247,7 @@ Goal: \${goal}
           </Command>
         );
       }`;
-      expect(() => transformTsx(tsx)).toThrow(/SpawnAgent requires prompt prop/);
+      expect(() => transformTsx(tsx)).toThrow(/SpawnAgent requires either prompt or input prop/);
     });
   });
 
