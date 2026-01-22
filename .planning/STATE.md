@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.3 Conditional Logic IN PROGRESS
+**Current focus:** v1.3 Conditional Logic COMPLETE
 
 ## Current Position
 
 Phase: 13 of 15 (Conditional Logic)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-22 - Completed 13-02-PLAN.md
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 13-03-PLAN.md
 
-Progress: [██░░░░░░░░] Phase 13: 67%
-Next: 13-03-PLAN.md (Emitter for If/Else)
+Progress: [███░░░░░░░] Phase 13: 100%
+Next: Phase 14 or milestone completion
 
 ## Milestone History
 
@@ -28,6 +28,8 @@ Next: 13-03-PLAN.md (Emitter for If/Else)
   - Phase 11: Type Safety
 - v1.2 Type-Safe Communication: Shipped 2026-01-22 (1 phase, 4 plans)
   - Phase 12: Typed SpawnAgent Input
+- v1.3 Conditional Logic: Shipped 2026-01-22 (1 phase, 3 plans)
+  - Phase 13: If/Else Components
 
 ## Performance Metrics
 
@@ -102,6 +104,11 @@ v1.3 implementation decisions (13-02):
 - whitespace-skipping: Whitespace-only text between If and Else is skipped during sibling detection
 - helper-method-reuse: transformBlockChildren helper used in 6 places for consistent behavior
 
+v1.3 implementation decisions (13-03):
+- prose-format: If emits as **If {test}:** and Else emits as **Otherwise:**
+- double-newline-separation: Both emitters use parts.join('\n\n') for proper markdown spacing
+- recursive-children: Nested If within Else handled automatically via recursive emitBlock calls
+
 ### Pending Todos
 
 None.
@@ -113,5 +120,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 13-02-PLAN.md (Transformer parsing for If/Else)
-Resume with: 13-03-PLAN.md (Emitter for If/Else)
+Stopped at: Completed 13-03-PLAN.md (Emitter for If/Else)
+Resume with: Phase 14 or milestone completion

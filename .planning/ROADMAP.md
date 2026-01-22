@@ -5,6 +5,7 @@
 - **v1.0 MVP** - Phases 1-7 (shipped 2026-01-21)
 - **v1.1 Agent Framework** - Phases 8-11 (shipped 2026-01-21)
 - **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
+- **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
 
 ## Phases
 
@@ -30,11 +31,11 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [x] **Phase 12: Typed SpawnAgent Input** - Input prop with VariableRef/object literal, auto-generated prompts, children as extra instructions
 
-### v1.3 Conditional Logic (In Progress)
+### v1.3 Conditional Logic (Complete)
 
 **Milestone Goal:** Enable conditional execution in commands and agents using `<If>` component with variable-based test expressions — matching the prose-based conditional pattern from GSD commands.
 
-- [ ] **Phase 13: Conditional Logic** - If/Else components for shell test expressions, variable interpolation, compile-time syntax validation
+- [x] **Phase 13: Conditional Logic** - If/Else components for shell test expressions, variable interpolation, compile-time syntax validation
 
 ### v1.4 Agent Output Management (Planned)
 
@@ -141,8 +142,8 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — IR and JSX type extensions for If/Else
-- [ ] 13-02-PLAN.md — Transformer parsing for If/Else with sibling detection
-- [ ] 13-03-PLAN.md — Emitter and test command
+- [x] 13-02-PLAN.md — Transformer parsing for If/Else with sibling detection
+- [x] 13-03-PLAN.md — Emitter and test command
 
 ### Phase 14: Agent Output Schema
 **Goal**: Define standard agent output types and auto-generate structured returns section in agent markdown
@@ -190,7 +191,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 | 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
-| 13. Conditional Logic | v1.3 | 1/3 | In Progress | — |
+| 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
 | 14. Agent Output Schema | v1.4 | 0/3 | Not Started | — |
 | 15. Command Output Handling | v1.4 | 0/3 | Not Started | — |
 
