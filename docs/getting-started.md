@@ -88,6 +88,8 @@ src/
 
 Conditionals emit as prose-based `**If condition:**` / `**Otherwise:**` patterns.
 
+See [Conditionals](./conditionals.md) for detailed usage including nested conditionals and variable integration.
+
 ## Next Steps
 
 - [Command Documentation](./command.md) - Learn to build commands

@@ -352,7 +352,9 @@ Instead of writing prompts manually, use the `input` prop for type-safe communic
 
 ### Object Literal Input
 
-Pass structured data that matches the Agent's interface:
+Pass structured data that matches the Agent's interface. Property values can be:
+- **String literals**: `"value"` or `"{placeholder}"`
+- **VariableRefs**: Variables from `useVariable()`
 
 ```tsx
 // Agent defines its input contract
@@ -370,12 +372,18 @@ export function Researcher() {
   );
 }
 
-// Command uses typed input
+// Command uses typed input with VariableRefs
+const phaseVar = useVariable<string>("PHASE", { bash: `echo "$1"` });
+
 export default function PlanPhase() {
   return (
     <Command name="plan" description="Plan a phase">
+      <Assign var={phaseVar} />
       <SpawnAgent<ResearcherInput>
-        input={{ phase: "{phase}", goal: "Complete research" }}
+        input={{
+          phase: phaseVar,           // VariableRef - emits {phase}
+          goal: "Complete research"  // String literal
+        }}
         agent="researcher"
         model="{model}"
         description="Research phase"
@@ -395,6 +403,11 @@ Generated prompt:
 Complete research
 </goal>
 ```
+
+Using VariableRefs is preferred over string placeholders like `"{phase}"` because:
+1. **Type-safe** — TypeScript validates the variable exists
+2. **No typos** — Reference the actual variable, not a string
+3. **Refactor-friendly** — Renaming variables updates all references
 
 ### VariableRef Input
 
@@ -496,6 +509,47 @@ This ensures type mismatches are caught before your command runs, not during exe
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Combining with Conditionals
+
+SpawnAgent pairs well with `<If>/<Else>` for conditional agent spawning:
+
+```tsx
+import { Command, XmlBlock, SpawnAgent, If, Else, Assign, useVariable } from '../jsx.js';
+import type { BuildAgentInput } from './build-agent.js';
+
+const testsPass = useVariable("TESTS_PASS", {
+  bash: `npm test --silent && echo "true" || echo "false"`
+});
+
+export default function ConditionalDeployCommand() {
+  return (
+    <Command name="conditional-deploy" description="Deploy only if tests pass">
+      <XmlBlock name="process">
+        <h2>1. Run Tests</h2>
+        <Assign var={testsPass} />
+
+        <If test="[ $TESTS_PASS = 'true' ]">
+          <p>Tests passed. Proceeding with deployment.</p>
+
+          <SpawnAgent<BuildAgentInput>
+            agent="build-agent"
+            model="haiku"
+            description="Build for deployment"
+            input={{ environment: "production" }}
+          />
+        </If>
+        <Else>
+          <p>Tests failed. Deployment aborted.</p>
+          <pre><code className="language-bash">npm test</code></pre>
+        </Else>
+      </XmlBlock>
+    </Command>
+  );
+}
+```
+
+This pattern emits conditional blocks that guide Claude's execution flow, spawning agents only when conditions are met.
+
 ## Tips
 
 1. **Export interfaces from agents** — Enables type-safe spawning
@@ -503,3 +557,4 @@ This ensures type mismatches are caught before your command runs, not during exe
 3. **Keep prompts focused** — One clear objective per spawn
 4. **Handle both success/failure** — Agents can fail, plan for it
 5. **Use appropriate models** — `haiku` for simple tasks, `sonnet`/`opus` for complex
+6. **Combine with conditionals** — Use `<If>/<Else>` for conditional agent spawning

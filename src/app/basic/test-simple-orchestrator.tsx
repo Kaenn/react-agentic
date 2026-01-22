@@ -1,4 +1,4 @@
-import { Command, XmlBlock, SpawnAgent, Assign, useVariable } from '../../jsx.js';
+import { Command, XmlBlock, SpawnAgent, Assign, useVariable, If, Else } from '../../jsx.js';
 import type { SimpleOrchestratorInput } from './simple-orchestrator-agent.js';
 
 // Declare shell variables with useVariable
@@ -43,21 +43,24 @@ mkdir -p /tmp/gsd-test
           agent="basic/simple-orchestrator-agent"
           model="haiku"
           description="Verify timestamp"
-          prompt={`<input>
-**Command Timestamp:** {command_timestamp}
-</input>
-
-<output>
-Write your result to: {output_file}
-</output>`}
+          input={{
+            commandTimestamp: commandTimestamp,
+            outputFile: outputFile,
+          }}
         />
 
         <h2>Step 3: Validate Result</h2>
-        <p>After agent returns, read and validate the output file:</p>
-        <pre><code className="language-bash">
-cat "$OUTPUT_FILE"
-        </code></pre>
-        <p>Verify the file contains all required fields.</p>
+        <p>After agent returns, check if the output file exists and validate:</p>
+
+        <If test="[ -f $OUTPUT_FILE ]">
+          <p>Output file found. Reading contents:</p>
+          <pre><code className="language-bash">cat "$OUTPUT_FILE"</code></pre>
+          <p>Verify the file contains all required fields (Input Timestamp, Agent Timestamp, Success).</p>
+        </If>
+        <Else>
+          <p>Output file not found at expected location. Agent may have failed.</p>
+          <pre><code className="language-bash">ls -la /tmp/gsd-test/</code></pre>
+        </Else>
       </XmlBlock>
 
       <XmlBlock name="success_criteria">

@@ -3,6 +3,10 @@ import {
   XmlBlock,
   Markdown,
   SpawnAgent,
+  If,
+  Else,
+  Assign,
+  useVariable,
 } from '../../jsx.js';
 import type { PhaseResearcherInput } from './gsd-phase-researcher.js';
 
@@ -138,30 +142,19 @@ PHASE_CONTEXT=$(cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null)`}</code></
           agent="gsd-phase-researcher"
           model="{researcher_model}"
           description="Research Phase {phase}"
-          prompt={`<objective>
-Research how to implement Phase {phase_number}: {phase_name}
-
-Answer: "What do I need to know to PLAN this phase well?"
-</objective>
-
-<context>
-**Phase description:**
-{phase_description}
-
-**Requirements (if any):**
-{requirements}
-
-**Prior decisions:**
-{decisions}
-
-**Phase context (if any):**
-{phase_context}
-</context>
-
-<output>
-Write research findings to: {phase_dir}/{phase}-RESEARCH.md
-</output>`}
-        />
+          input={{
+            phase: "{phase}",
+            phaseName: "{phase_name}",
+            phaseDescription: "{phase_description}",
+            requirements: "{requirements}",
+            decisions: "{decisions}",
+            phaseContext: "{phase_context}",
+            outputDir: "{phase_dir}",
+          }}
+        >
+          Research how to implement this phase well.
+          Answer: "What do I need to know to PLAN this phase well?"
+        </SpawnAgent>
 
         <h3>Handle Researcher Return</h3>
         <p><b><code>## RESEARCH COMPLETE</code>:</b></p>

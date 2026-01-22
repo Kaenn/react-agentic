@@ -11,6 +11,7 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Agent](./agent.md) | How to build spawnable agents with input contracts |
 | [Communication](./communication.md) | SpawnAgent pattern for Command ↔ Agent communication |
 | [Variables](./variables.md) | Shell variables with `useVariable` and `<Assign>` |
+| [Conditionals](./conditionals.md) | Decision logic with `<If>` and `<Else>` components |
 
 ## Technical Reference
 

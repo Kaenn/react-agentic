@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 Phase: 13 of 15 (Conditional Logic)
 Plan: 3 of 3 complete
 Status: Phase complete
-Last activity: 2026-01-22 - Completed 13-03-PLAN.md
+Last activity: 2026-01-22 - Completed quick task 001: Docs conditionals feature
 
 Progress: [███░░░░░░░] Phase 13: 100%
 Next: Phase 14 or milestone completion
@@ -116,6 +116,12 @@ None.
 ### Blockers/Concerns
 
 None.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Docs conditionals feature | 2026-01-22 | fa2d9fd | [001-docs-conditionals-feature](./quick/001-docs-conditionals-feature/) |
 
 ## Session Continuity
 
