@@ -41,7 +41,7 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 **Milestone Goal:** Enable typed agent-to-command communication with standard status protocols — agents return structured outputs, commands handle them with type-safe status-based conditional blocks.
 
-- [ ] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
+- [x] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
 - [ ] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
 
 ## Phase Details
@@ -158,9 +158,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — AgentStatus and BaseOutput type definitions
-- [ ] 14-02-PLAN.md — TOutput extraction and IR representation
-- [ ] 14-03-PLAN.md — Emitter for structured_returns section
+- [x] 14-01-PLAN.md — AgentStatus and BaseOutput type definitions
+- [x] 14-02-PLAN.md — TOutput extraction and IR representation
+- [x] 14-03-PLAN.md — Emitter for structured_returns section
 
 ### Phase 15: Command Output Handling
 **Goal**: Enable commands to handle agent outputs with type-safe status-based conditional blocks
@@ -192,7 +192,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 | 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
 | 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
-| 14. Agent Output Schema | v1.4 | 0/3 | Not Started | — |
+| 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 0/3 | Not Started | — |
 
 ---

@@ -58,11 +58,11 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 
 ### Agent Output Management
 
-- [ ] **OUTPUT-01**: Standard `AgentStatus` type with HTTP-like codes (SUCCESS, BLOCKED, NOT_FOUND, ERROR, CHECKPOINT)
-- [ ] **OUTPUT-02**: `BaseOutput` interface with `status: AgentStatus` and optional `message: string`
-- [ ] **OUTPUT-03**: Agent output types extend `BaseOutput` with status-specific extra fields
-- [ ] **OUTPUT-04**: `<Agent<TInput, TOutput>>` infers output schema from TOutput type parameter
-- [ ] **OUTPUT-05**: Emitter auto-generates `<structured_returns>` section from output type
+- [x] **OUTPUT-01**: Standard `AgentStatus` type with HTTP-like codes (SUCCESS, BLOCKED, NOT_FOUND, ERROR, CHECKPOINT)
+- [x] **OUTPUT-02**: `BaseOutput` interface with `status: AgentStatus` and optional `message: string`
+- [x] **OUTPUT-03**: Agent output types extend `BaseOutput` with status-specific extra fields
+- [x] **OUTPUT-04**: `<Agent<TInput, TOutput>>` infers output schema from TOutput type parameter
+- [x] **OUTPUT-05**: Emitter auto-generates `<structured_returns>` section from output type
 - [ ] **OUTPUT-06**: `useOutput(AgentRef)` hook returns typed accessor for spawned agent's output
 - [ ] **OUTPUT-07**: `<OnStatus>` component accepts `output` prop (from useOutput) and `status` prop
 - [ ] **OUTPUT-08**: `<OnStatus>` children render conditionally based on agent return status
@@ -138,11 +138,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COND-04 | Phase 13 | Complete |
 | COND-05 | Phase 13 | Complete |
 | COND-06 | Phase 13 | Complete |
-| OUTPUT-01 | Phase 14 | Not Started |
-| OUTPUT-02 | Phase 14 | Not Started |
-| OUTPUT-03 | Phase 14 | Not Started |
-| OUTPUT-04 | Phase 14 | Not Started |
-| OUTPUT-05 | Phase 14 | Not Started |
+| OUTPUT-01 | Phase 14 | Complete |
+| OUTPUT-02 | Phase 14 | Complete |
+| OUTPUT-03 | Phase 14 | Complete |
+| OUTPUT-04 | Phase 14 | Complete |
+| OUTPUT-05 | Phase 14 | Complete |
 | OUTPUT-06 | Phase 15 | Not Started |
 | OUTPUT-07 | Phase 15 | Not Started |
 | OUTPUT-08 | Phase 15 | Not Started |
@@ -158,4 +158,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 13 completion (v1.3 conditional logic)*
+*Last updated: 2026-01-22 after Phase 14 completion (v1.4 agent output schema)*
