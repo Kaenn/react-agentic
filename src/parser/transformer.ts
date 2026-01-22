@@ -42,6 +42,8 @@ import type {
   SkillStaticNode,
   ReadStateNode,
   WriteStateNode,
+  MCPServerNode,
+  MCPConfigDocumentNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
@@ -62,7 +64,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -116,12 +118,12 @@ export class Transformer {
   }
 
   /**
-   * Transform a root JSX element/fragment into a DocumentNode or AgentDocumentNode
+   * Transform a root JSX element/fragment into a DocumentNode, AgentDocumentNode, SkillDocumentNode, or MCPConfigDocumentNode
    *
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
@@ -139,7 +141,7 @@ export class Transformer {
       this.stateRefs = this.extractStateRefDeclarations(sourceFile);
     }
 
-    // Check for Command, Agent, or Skill wrapper at root level
+    // Check for Command, Agent, Skill, or MCPConfig wrapper at root level
     if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
       const name = getElementName(node);
       if (name === 'Command') {
@@ -150,6 +152,9 @@ export class Transformer {
       }
       if (name === 'Skill') {
         return this.transformSkill(node);
+      }
+      if (name === 'MCPConfig') {
+        return this.transformMCPConfig(node);
       }
     }
 
@@ -1831,6 +1836,250 @@ export class Transformer {
     };
   }
 
+  // ============================================================================
+  // MCP Configuration Transformation
+  // ============================================================================
+
+  /**
+   * Transform an MCPConfig element to MCPConfigDocumentNode
+   * MCPConfig wraps multiple MCPServer elements into a single document
+   */
+  private transformMCPConfig(node: JsxElement | JsxSelfClosingElement): MCPConfigDocumentNode {
+    const servers: MCPServerNode[] = [];
+
+    // Process children - expect MCPServer elements
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        // Skip whitespace-only text
+        if (Node.isJsxText(child)) {
+          const text = extractText(child);
+          if (!text) continue;
+        }
+
+        if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+          const tagName = getElementName(child);
+
+          if (tagName === 'MCPServer' || tagName === 'MCPStdioServer' || tagName === 'MCPHTTPServer') {
+            servers.push(this.transformMCPServer(child));
+          } else {
+            throw this.createError(
+              `MCPConfig can only contain MCPServer, MCPStdioServer, or MCPHTTPServer elements. Got: <${tagName}>`,
+              child
+            );
+          }
+        }
+      }
+    }
+
+    if (servers.length === 0) {
+      throw this.createError('MCPConfig must contain at least one MCP server', node);
+    }
+
+    return {
+      kind: 'mcpConfigDocument',
+      servers,
+    };
+  }
+
+  /**
+   * Transform an MCPServer, MCPStdioServer, or MCPHTTPServer element to MCPServerNode
+   * Validates prop combinations at compile time based on transport type
+   */
+  private transformMCPServer(node: JsxElement | JsxSelfClosingElement): MCPServerNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    const tagName = getElementName(node);
+
+    // Get name (required for all)
+    const name = getAttributeValue(openingElement, 'name');
+    if (!name) {
+      throw this.createError(`${tagName} requires name prop`, openingElement);
+    }
+
+    // Determine type based on tag name or explicit prop
+    let type: 'stdio' | 'http' | 'sse';
+    if (tagName === 'MCPStdioServer') {
+      type = 'stdio';
+    } else if (tagName === 'MCPHTTPServer') {
+      type = 'http';
+    } else {
+      const typeProp = getAttributeValue(openingElement, 'type') as 'stdio' | 'http' | 'sse' | undefined;
+      if (!typeProp) {
+        throw this.createError('MCPServer requires type prop', openingElement);
+      }
+      if (!['stdio', 'http', 'sse'].includes(typeProp)) {
+        throw this.createError(
+          `MCPServer type must be 'stdio', 'http', or 'sse'. Got: '${typeProp}'`,
+          openingElement
+        );
+      }
+      type = typeProp;
+    }
+
+    // Type-specific validation and extraction
+    if (type === 'stdio') {
+      const command = getAttributeValue(openingElement, 'command');
+      if (!command) {
+        throw this.createError(
+          `${tagName} type="stdio" requires command prop`,
+          openingElement
+        );
+      }
+      if (getAttributeValue(openingElement, 'url')) {
+        throw this.createError(
+          `${tagName} type="stdio" cannot have url prop`,
+          openingElement
+        );
+      }
+      if (this.hasAttribute(openingElement, 'headers')) {
+        throw this.createError(
+          `${tagName} type="stdio" cannot have headers prop`,
+          openingElement
+        );
+      }
+
+      // Extract stdio-specific props
+      const args = this.extractArrayAttribute(openingElement, 'args');
+      const env = this.extractObjectAttribute(openingElement, 'env');
+
+      const result: MCPServerNode = {
+        kind: 'mcpServer',
+        name,
+        type,
+        command,
+      };
+      if (args) result.args = args;
+      if (env) result.env = env;
+      return result;
+    } else {
+      // http or sse
+      const url = getAttributeValue(openingElement, 'url');
+      if (!url) {
+        throw this.createError(
+          `${tagName} type="${type}" requires url prop`,
+          openingElement
+        );
+      }
+      if (getAttributeValue(openingElement, 'command')) {
+        throw this.createError(
+          `${tagName} type="${type}" cannot have command prop`,
+          openingElement
+        );
+      }
+      if (this.hasAttribute(openingElement, 'args')) {
+        throw this.createError(
+          `${tagName} type="${type}" cannot have args prop`,
+          openingElement
+        );
+      }
+
+      // Extract http/sse-specific props
+      const headers = this.extractObjectAttribute(openingElement, 'headers');
+
+      const result: MCPServerNode = {
+        kind: 'mcpServer',
+        name,
+        type,
+        url,
+      };
+      if (headers) result.headers = headers;
+      return result;
+    }
+  }
+
+  /**
+   * Check if an attribute exists on an element (regardless of value)
+   */
+  private hasAttribute(
+    element: JsxOpeningElement | JsxSelfClosingElement,
+    name: string
+  ): boolean {
+    const attr = element.getAttribute(name);
+    return attr !== undefined;
+  }
+
+  /**
+   * Extract array attribute value (e.g., args={["a", "b"]})
+   */
+  private extractArrayAttribute(
+    openingElement: JsxOpeningElement | JsxSelfClosingElement,
+    name: string
+  ): string[] | undefined {
+    const attr = openingElement.getAttribute(name);
+    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+    const initializer = attr.getInitializer();
+    if (!initializer || !Node.isJsxExpression(initializer)) return undefined;
+
+    const expr = initializer.getExpression();
+    if (!expr || !Node.isArrayLiteralExpression(expr)) return undefined;
+
+    return expr.getElements().map(el => {
+      if (Node.isStringLiteral(el)) {
+        return el.getLiteralText();
+      }
+      // Handle template literals or other expressions - preserve as-is
+      return el.getText();
+    });
+  }
+
+  /**
+   * Extract object attribute value (e.g., env={{ KEY: "value" }})
+   * Resolves process.env.X references at build time
+   */
+  private extractObjectAttribute(
+    openingElement: JsxOpeningElement | JsxSelfClosingElement,
+    name: string
+  ): Record<string, string> | undefined {
+    const attr = openingElement.getAttribute(name);
+    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+    const initializer = attr.getInitializer();
+    if (!initializer || !Node.isJsxExpression(initializer)) return undefined;
+
+    const expr = initializer.getExpression();
+    if (!expr || !Node.isObjectLiteralExpression(expr)) return undefined;
+
+    const result: Record<string, string> = {};
+
+    for (const prop of expr.getProperties()) {
+      if (!Node.isPropertyAssignment(prop)) continue;
+
+      const key = prop.getName();
+      const valueExpr = prop.getInitializer();
+      if (!valueExpr) continue;
+
+      // Handle process.env.X
+      if (Node.isPropertyAccessExpression(valueExpr)) {
+        const text = valueExpr.getText();
+        if (text.startsWith('process.env.')) {
+          const envVar = text.replace('process.env.', '');
+          const envValue = process.env[envVar];
+          if (envValue === undefined) {
+            throw this.createError(
+              `Environment variable '${envVar}' is not defined`,
+              openingElement
+            );
+          }
+          result[key] = envValue;
+          continue;
+        }
+      }
+
+      if (Node.isStringLiteral(valueExpr)) {
+        result[key] = valueExpr.getLiteralText();
+      } else {
+        // Preserve expressions as-is (e.g., template literals)
+        // Strip surrounding quotes if present
+        result[key] = valueExpr.getText().replace(/^["']|["']$/g, '');
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
   /**
    * Transform JSX children to BlockNodes, handling If/Else sibling pairs
    */
@@ -2103,9 +2352,9 @@ export class Transformer {
 }
 
 /**
- * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, or SkillDocumentNode
+ * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, SkillDocumentNode, or MCPConfigDocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode {
   const transformer = new Transformer();
   return transformer.transform(node, sourceFile);
 }

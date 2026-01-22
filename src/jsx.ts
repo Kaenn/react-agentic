@@ -920,3 +920,34 @@ export function MCPStdioServer(_props: MCPStdioServerProps): null {
 export function MCPHTTPServer(_props: MCPHTTPServerProps): null {
   return null;
 }
+
+/**
+ * Props for the MCPConfig component
+ */
+export interface MCPConfigProps {
+  /** MCP server definitions */
+  children?: ReactNode;
+}
+
+/**
+ * MCPConfig component - wraps multiple MCP server definitions
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime. Produces settings.json mcpServers section.
+ *
+ * @example
+ * <MCPConfig>
+ *   <MCPStdioServer
+ *     name="sqlite"
+ *     command="npx"
+ *     args={["-y", "mcp-server-sqlite", "--db-path", "./data/state.db"]}
+ *   />
+ *   <MCPHTTPServer
+ *     name="remote-api"
+ *     url="https://api.example.com/mcp"
+ *   />
+ * </MCPConfig>
+ */
+export function MCPConfig(_props: MCPConfigProps): null {
+  return null;
+}
