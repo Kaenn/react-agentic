@@ -5,16 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.5 Skill System
+**Current focus:** v1.6 State System
 
 ## Current Position
 
-Phase: 16 (Skill Component)
-Plan: 5 of 5 in current phase
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 16-05-PLAN.md
+Phase: 17 (State System)
+Plan: 0 of ? (not planned yet)
+Status: Not started
+Last activity: 2026-01-22 - Shipped v1.5 Skill System
 
-Progress: [██████████] Phase 16: 100%
+Progress: [░░░░░░░░░░] Phase 17: 0%
+Next: `/gsd:plan-phase 17` to break down into plans
 
 ## Milestone History
 
@@ -32,6 +33,8 @@ Progress: [██████████] Phase 16: 100%
 - v1.4 Agent Output Management: Shipped 2026-01-22 (2 phases, 6 plans)
   - Phase 14: Agent Output Schema
   - Phase 15: Command Output Handling
+- v1.5 Skill System: Shipped 2026-01-22 (1 phase, 5 plans)
+  - Phase 16: Skill Component
 
 ## Performance Metrics
 

@@ -7,7 +7,7 @@
 - **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
 - **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
 - **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
-- **v1.5 Skill System** - Phase 16 (current)
+- **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
 - **v1.6 State System** - Phase 17 (planned)
 
 ## Phases
@@ -47,11 +47,11 @@ See: .planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
 - [x] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
 
-### v1.5 Skill System (Current)
+### v1.5 Skill System (Complete)
 
 **Milestone Goal:** Enable TSX-authored Claude Code skills with hybrid static/generated file support — SKILL.md generated from TSX, with support for static scripts and templates.
 
-- [ ] **Phase 16: Skill Component** - Skill/SkillFile/SkillStatic components, multi-file output to .claude/skills/{name}/
+- [x] **Phase 16: Skill Component** - Skill/SkillFile/SkillStatic components, multi-file output to .claude/skills/{name}/
 
 ## Phase Details
 
@@ -271,9 +271,9 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 16. Skill Component | v1.5 | 1/5 | In Progress | - |
+| 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
 | 17. State System | v1.6 | 0/? | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*Milestone: v1.5 Skill System — Phase 16 planned*
+*v1.5 Skill System shipped 2026-01-22*
