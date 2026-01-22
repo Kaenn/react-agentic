@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 13 of 15 (Conditional Logic)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 13-01-PLAN.md
+Last activity: 2026-01-22 - Completed 13-02-PLAN.md
 
-Progress: [█░░░░░░░░░] Phase 13: 33%
-Next: 13-02-PLAN.md (Transformer parsing for If/Else)
+Progress: [██░░░░░░░░] Phase 13: 67%
+Next: 13-03-PLAN.md (Emitter for If/Else)
 
 ## Milestone History
 
@@ -97,6 +97,11 @@ v1.2 implementation decisions (12-03):
 - lowercase-variables: Variable names in output are lowercase for consistency
 - prompt-precedence: If both prompt and input exist (shouldn't happen), prompt takes precedence
 
+v1.3 implementation decisions (13-02):
+- sibling-detection-at-parent: If/Else sibling detection happens in parent context (transformBlockChildren)
+- whitespace-skipping: Whitespace-only text between If and Else is skipped during sibling detection
+- helper-method-reuse: transformBlockChildren helper used in 6 places for consistent behavior
+
 ### Pending Todos
 
 None.
@@ -108,5 +113,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 13-01-PLAN.md (IR and JSX stubs for If/Else)
-Resume with: 13-02-PLAN.md (Transformer parsing for If/Else)
+Stopped at: Completed 13-02-PLAN.md (Transformer parsing for If/Else)
+Resume with: 13-03-PLAN.md (Emitter for If/Else)
