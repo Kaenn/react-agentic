@@ -377,6 +377,82 @@ export interface MCPConfigDocumentNode {
 }
 
 // ============================================================================
+// State Document Nodes
+// ============================================================================
+
+/**
+ * Flattened state schema field
+ * Represents a single column in the generated SQLite table
+ */
+export interface StateSchemaField {
+  /** Column name (flattened path, e.g., "config_debug") */
+  name: string;
+  /** TypeScript type (string, number, boolean, Date) */
+  tsType: string;
+  /** SQL type (TEXT, INTEGER) */
+  sqlType: 'TEXT' | 'INTEGER';
+  /** Default value for init SQL */
+  defaultValue: string;
+  /** Optional: enum values for CHECK constraint */
+  enumValues?: string[];
+}
+
+/**
+ * Parsed state schema from TypeScript interface
+ * Fields are flattened (nested objects become underscore-separated)
+ */
+export interface StateSchema {
+  /** Interface name (e.g., "ReleasesState") */
+  interfaceName: string;
+  /** Flattened fields for SQL columns */
+  fields: StateSchemaField[];
+}
+
+/**
+ * Custom operation node
+ * Represents an Operation child of State component
+ */
+export interface OperationNode {
+  kind: 'operation';
+  /** Operation name (e.g., "record") - becomes skill suffix */
+  name: string;
+  /** SQL template body with $variable placeholders */
+  sqlTemplate: string;
+  /** Inferred argument names from $variable references */
+  args: string[];
+}
+
+/**
+ * State node representing parsed State component
+ */
+export interface StateNode {
+  kind: 'state';
+  /** State name (e.g., "releases") - becomes skill prefix */
+  name: string;
+  /** Provider type (only "sqlite" for now) */
+  provider: 'sqlite';
+  /** Provider-specific configuration */
+  config: {
+    /** Database file path */
+    database: string;
+  };
+  /** Parsed schema from generic type parameter */
+  schema: StateSchema;
+  /** Custom operations defined as children */
+  operations: OperationNode[];
+}
+
+/**
+ * State document root node
+ * Produces multiple skill files in .claude/skills/
+ */
+export interface StateDocumentNode {
+  kind: 'stateDocument';
+  /** The State definition */
+  state: StateNode;
+}
+
+// ============================================================================
 // Skill Nodes
 // ============================================================================
 
@@ -461,6 +537,7 @@ export type IRNode =
   | AgentDocumentNode
   | SkillDocumentNode
   | MCPConfigDocumentNode
+  | StateDocumentNode
   | TypeReference;
 
 // ============================================================================
