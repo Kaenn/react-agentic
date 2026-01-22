@@ -150,6 +150,7 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 | 001 | Docs conditionals feature | 2026-01-22 | fa2d9fd | [001-docs-conditionals-feature](./quick/001-docs-conditionals-feature/) |
 | 002 | Docs + TSX updates for Phase 14 Output Schema | 2026-01-22 | aa096ba | [002-docs-phase-14-output-schema](./quick/002-docs-phase-14-output-schema/) |
 | 003 | Add type-safe shell test builder functions | 2026-01-22 | 1fe764b | [003-add-type-safe-shell-test-builder-functio](./quick/003-add-type-safe-shell-test-builder-functio/) |
+| 004 | Docs + TSX updates for Phase 15 output handling | 2026-01-22 | 4d5be1a | [004-update-docs-and-tsx-files-for-plan-15-co](./quick/004-update-docs-and-tsx-files-for-plan-15-co/) |
 
 ## Session Continuity
 
