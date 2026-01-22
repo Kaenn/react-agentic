@@ -630,6 +630,29 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Emit WriteState node as skill invocation
+   *
+   * Output format varies by mode:
+   * - Field mode: /react-agentic:state-write {key} --field {path} --value {val}
+   * - Merge mode: /react-agentic:state-write {key} --merge '{json}'
+   */
+  private emitWriteState(node: WriteStateNode): string {
+    const { stateKey, mode, field, value } = node;
+
+    if (mode === 'field') {
+      // Field write mode
+      const valueStr = value.type === 'variable'
+        ? `$${value.content}`
+        : `"${value.content}"`;
+      return `Use skill \`/react-agentic:state-write ${stateKey} --field "${field}" --value ${valueStr}\`.`;
+    } else {
+      // Merge mode
+      const mergeJson = value.content;
+      return `Use skill \`/react-agentic:state-write ${stateKey} --merge '${mergeJson}'\`.`;
+    }
+  }
+
+  /**
    * Generate <structured_returns> section from output type interface
    *
    * Resolves the TypeReference to its interface definition, extracts properties,
