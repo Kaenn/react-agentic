@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.7 MCP Configuration - COMPLETE
+**Current focus:** v1.8 Scoped State Skills - IN PROGRESS
 
 ## Current Position
 
-Phase: 18 (MCP Configuration) - COMPLETE
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 18-04-PLAN.md (Integration)
+Phase: 19 (Scoped State Skills)
+Plan: 1 of 5 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 19-01-PLAN.md (IR and JSX Foundation)
 
-Progress: [██████████] Phase 18: 100%
-Next: v1.7 ready for release
+Progress: [██--------] Phase 19: 20%
+Next: 19-02-PLAN.md (Transformer)
 
 ## Milestone History
 
@@ -61,6 +61,7 @@ Next: v1.7 ready for release
 | 16 | 5/5 | 11m | 2m 12s |
 | 17 | 6/6 | ~12m | ~2m |
 | 18 | 4/4 | ~15m | ~3m 45s |
+| 19 | 1/5 | 1m 25s | 1m 25s |
 
 *Updated after each plan completion*
 
@@ -208,6 +209,11 @@ v1.7 implementation decisions (18-04):
 - single-server-example: Separate playwright example for simple single-server use case
 - mcp-file-convention: MCP config files use *.mcp.tsx naming in src/app/mcp/ directory
 
+v1.8 implementation decisions (19-01):
+- phantom-type-generic: TSchema phantom type for compile-time type checking (matches StateRef pattern)
+- state-provider-config: Separate config object for SQLite-specific configuration (extensible)
+- operation-not-in-blocknode: OperationNode internal to StateDocumentNode only
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -233,5 +239,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 18-04-PLAN.md (Integration) - Phase 18 complete
-Resume with: v1.7 release or next milestone
+Stopped at: Completed 19-01-PLAN.md (IR and JSX Foundation)
+Resume with: 19-02-PLAN.md (Transformer)
