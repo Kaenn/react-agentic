@@ -9,7 +9,7 @@
 - **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
 - **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
 - **v1.6 State System** - Phase 17 (shipped 2026-01-22)
-- **v1.7 MCP Configuration** - Phase 18 (planned)
+- **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
 
 ## Phases
 
@@ -280,10 +280,10 @@ src/state/
 **Plans:** 4 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — IR and JSX type extensions for MCPServer
-- [ ] 18-02-PLAN.md — Transformer parsing for MCPServer component
-- [ ] 18-03-PLAN.md — Settings.json emitter with merge logic
-- [ ] 18-04-PLAN.md — Integration test and documentation
+- [x] 18-01-PLAN.md — IR and JSX type extensions for MCPServer
+- [x] 18-02-PLAN.md — Transformer parsing for MCPServer component
+- [x] 18-03-PLAN.md — Settings.json emitter with merge logic
+- [x] 18-04-PLAN.md — Integration test and documentation
 
 **Details:**
 Component API:
@@ -351,8 +351,8 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
 | 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
-| 18. MCP Configuration | v1.7 | 0/4 | Not Started | - |
+| 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
 
 ---
 *Roadmap created: 2026-01-21*
-*v1.6 State System shipped 2026-01-22*
+*v1.7 MCP Configuration shipped 2026-01-22*
