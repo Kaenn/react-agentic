@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 18 (MCP Configuration)
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 18-02-PLAN.md (Transformer)
+Last activity: 2026-01-22 - Completed 18-03-PLAN.md (Emitter)
 
-Progress: [█████░░░░░] Phase 18: 50%
-Next: Execute 18-03-PLAN.md (Emitter)
+Progress: [███████░░░] Phase 18: 75%
+Next: Execute 18-04-PLAN.md (Integration)
 
 ## Milestone History
 
@@ -195,6 +195,11 @@ v1.7 implementation decisions (18-02):
 - type-specific-validation: Validate prop combinations based on transport type at compile time (fail-fast)
 - process-env-resolution: Resolve process.env.X at build time with error on undefined
 
+v1.7 implementation decisions (18-03):
+- skipWrite-pattern: BuildResult with skipWrite flag for files already written (settings.json)
+- mcpserver-throws: MCPServerNode case in emitter throws - uses settings.ts instead
+- tsx-wins-on-conflict: Spread order existing first, then new servers for merge
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -220,5 +225,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 18-02-PLAN.md (Transformer)
-Resume with: Execute 18-03-PLAN.md (Emitter)
+Stopped at: Completed 18-03-PLAN.md (Emitter)
+Resume with: Execute 18-04-PLAN.md (Integration)
