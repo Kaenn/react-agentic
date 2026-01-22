@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 16 (Skill Component)
-Plan: 2 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-22 - Completed 16-02-PLAN.md
+Last activity: 2026-01-22 - Completed 16-03-PLAN.md
 
-Progress: [████░░░░░░] Phase 16: 40%
+Progress: [██████░░░░] Phase 16: 60%
 
 ## Milestone History
 
@@ -51,7 +51,7 @@ Progress: [████░░░░░░] Phase 16: 40%
 | 12 | 4/4 | 12m | 3m |
 | 14 | 3/3 | 9m | 3m |
 | 15 | 3/3 | 8m 19s | 2m 46s |
-| 16 | 2/5 | 4m | 2m |
+| 16 | 3/5 | 7m | 2m 20s |
 
 *Updated after each plan completion*
 
@@ -144,6 +144,10 @@ v1.5 implementation decisions (16-02):
 - boolean-attr-valueless: getBooleanAttribute supports valueless `prop` syntax (means true)
 - skill-child-separation: processSkillChildren routes SkillFile/SkillStatic to handlers, body uses transformToBlock
 
+v1.5 implementation decisions (16-03):
+- statics-on-first-result: Static file array attached to SKILL.md result for processing
+- buildresult-extension: Existing BuildResult extended with optional statics rather than new interface
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -169,5 +173,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 16-02-PLAN.md
+Stopped at: Completed 16-03-PLAN.md
 Resume with: `/gsd:execute-phase 16`
