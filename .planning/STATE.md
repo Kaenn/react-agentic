@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 15 of 15 (Command Output Handling)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 15-01-PLAN.md (JSX Types)
+Last activity: 2026-01-22 - Completed 15-02-PLAN.md (Transformer)
 
-Progress: [███░░░░░░░] Phase 15: 33%
-Next: 15-02-PLAN.md (Transformer)
+Progress: [██████░░░░] Phase 15: 67%
+Next: 15-03-PLAN.md (Emitter)
 
 ## Milestone History
 
@@ -121,6 +121,11 @@ v1.5 implementation decisions (15-01):
 - field-returns-placeholder: field('key') returns '{output.key}' string for runtime interpolation
 - baseoutput-constraint: useOutput<T extends BaseOutput> ensures type safety
 
+v1.5 implementation decisions (15-02):
+- outputs-map-tracking: Track useOutput declarations in Map<string, string> mirroring variables pattern
+- agent-name-from-useoutput: Agent name resolved from useOutput first argument (string literal)
+- emitter-stub-pattern: OnStatus case in emitter throws 'not yet implemented' following v1.1 pattern
+
 ### Pending Todos
 
 None.
@@ -139,5 +144,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 15-01-PLAN.md (JSX Types)
-Resume with: 15-02-PLAN.md (Transformer)
+Stopped at: Completed 15-02-PLAN.md (Transformer)
+Resume with: 15-03-PLAN.md (Emitter)
