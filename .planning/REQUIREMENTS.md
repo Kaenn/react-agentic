@@ -1,7 +1,18 @@
-# Requirements: React Agentic v1.1
+# Requirements: React Agentic v1.3
 
 **Defined:** 2026-01-21
 **Core Value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
+
+## v1.3 Requirements
+
+### Conditional Logic
+
+- [x] **COND-01**: `<If>` component accepts `test` prop (string shell expression)
+- [x] **COND-02**: `<If>` component accepts `test` prop as VariableRef comparison (`${varRef.ref}`)
+- [x] **COND-03**: `<If>` children render as "then" block content after **If condition:**
+- [x] **COND-04**: `<Else>` component (sibling to `<If>`) provides **Otherwise:** content
+- [x] **COND-05**: Nested `<If>` components produce readable conditional chains
+- [x] **COND-06**: Variable interpolation in test props preserved at emit time (no compile-time evaluation)
 
 ## v1.1 Requirements
 
@@ -43,15 +54,28 @@ Requirements for Agent Framework milestone. Each maps to roadmap phases.
 - [x] **IR-04**: Add `TypeReference` type for cross-file type tracking
 - [x] **IR-05**: Update discriminated union and assertNever handling
 
+## v1.4 Requirements
+
+### Agent Output Management
+
+- [ ] **OUTPUT-01**: Standard `AgentStatus` type with HTTP-like codes (SUCCESS, BLOCKED, NOT_FOUND, ERROR, CHECKPOINT)
+- [ ] **OUTPUT-02**: `BaseOutput` interface with `status: AgentStatus` and optional `message: string`
+- [ ] **OUTPUT-03**: Agent output types extend `BaseOutput` with status-specific extra fields
+- [ ] **OUTPUT-04**: `<Agent<TInput, TOutput>>` infers output schema from TOutput type parameter
+- [ ] **OUTPUT-05**: Emitter auto-generates `<structured_returns>` section from output type
+- [ ] **OUTPUT-06**: `useOutput(AgentRef)` hook returns typed accessor for spawned agent's output
+- [ ] **OUTPUT-07**: `<OnStatus>` component accepts `output` prop (from useOutput) and `status` prop
+- [ ] **OUTPUT-08**: `<OnStatus>` children render conditionally based on agent return status
+- [ ] **OUTPUT-09**: Output field interpolation in OnStatus children: `{output.confidence}`, `{output.findings}`
+- [ ] **OUTPUT-10**: Emitter generates status-based conditional prose blocks from OnStatus components
+
 ## Future Requirements
 
-Deferred to v1.2+. Tracked but not in current roadmap.
+Deferred to v1.5+. Tracked but not in current roadmap.
 
 ### Agent Enhancements
 
 - **AGENT-F01**: Agent section components (`<Role>`, `<Methodology>`, `<Output>`)
-- **AGENT-F02**: Structured return type definition in Agent
-- **AGENT-F03**: Return signal type exports (`RESEARCH_COMPLETE`, etc.)
 
 ### SpawnAgent Enhancements
 
@@ -108,12 +132,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VALID-01 | Phase 11 | Complete |
 | VALID-02 | Phase 11 | Complete |
 | VALID-03 | Phase 11 | Complete |
+| COND-01 | Phase 13 | Complete |
+| COND-02 | Phase 13 | Complete |
+| COND-03 | Phase 13 | Complete |
+| COND-04 | Phase 13 | Complete |
+| COND-05 | Phase 13 | Complete |
+| COND-06 | Phase 13 | Complete |
+| OUTPUT-01 | Phase 14 | Not Started |
+| OUTPUT-02 | Phase 14 | Not Started |
+| OUTPUT-03 | Phase 14 | Not Started |
+| OUTPUT-04 | Phase 14 | Not Started |
+| OUTPUT-05 | Phase 14 | Not Started |
+| OUTPUT-06 | Phase 15 | Not Started |
+| OUTPUT-07 | Phase 15 | Not Started |
+| OUTPUT-08 | Phase 15 | Not Started |
+| OUTPUT-09 | Phase 15 | Not Started |
+| OUTPUT-10 | Phase 15 | Not Started |
 
 **Coverage:**
-- v1.1 requirements: 21 total
-- Mapped to phases: 21
+- v1.1 requirements: 21 total (complete)
+- v1.3 requirements: 6 total (complete)
+- v1.4 requirements: 10 total (agent output management)
+- Mapped to phases: 37
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-21*
-*Last updated: 2026-01-21 after Phase 11 completion (v1.1 complete)*
+*Last updated: 2026-01-22 after Phase 13 completion (v1.3 conditional logic)*
