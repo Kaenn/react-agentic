@@ -25,6 +25,9 @@ import type {
   ListNode,
   OnStatusNode,
   ParagraphNode,
+  SkillDocumentNode,
+  SkillFileNode,
+  SkillFrontmatterNode,
   SpawnAgentInput,
   SpawnAgentNode,
   TypeReference,
@@ -97,6 +100,41 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Emit Skill frontmatter (Claude Code format: kebab-case keys)
+   */
+  private emitSkillFrontmatter(node: SkillFrontmatterNode): string {
+    const data: Record<string, unknown> = {
+      name: node.name,
+      description: node.description,
+    };
+
+    // Map camelCase props to kebab-case YAML keys
+    if (node.disableModelInvocation !== undefined) {
+      data['disable-model-invocation'] = node.disableModelInvocation;
+    }
+    if (node.userInvocable !== undefined) {
+      data['user-invocable'] = node.userInvocable;
+    }
+    if (node.allowedTools && node.allowedTools.length > 0) {
+      data['allowed-tools'] = node.allowedTools;
+    }
+    if (node.argumentHint) {
+      data['argument-hint'] = node.argumentHint;
+    }
+    if (node.model) {
+      data['model'] = node.model;
+    }
+    if (node.context) {
+      data['context'] = node.context;
+    }
+    if (node.agent) {
+      data['agent'] = node.agent;
+    }
+
+    return matter.stringify('', data).trimEnd();
+  }
+
+  /**
    * Emit an AgentDocumentNode to markdown
    * @param doc - The agent document node
    * @param sourceFile - Optional source file for type resolution (needed for structured_returns)
@@ -121,6 +159,40 @@ export class MarkdownEmitter {
     }
 
     // Join with double newlines for block separation, then ensure single trailing newline
+    const result = parts.join('\n\n');
+    return result ? result + '\n' : '';
+  }
+
+  /**
+   * Emit a SkillDocumentNode to markdown (SKILL.md content)
+   */
+  emitSkill(doc: SkillDocumentNode): string {
+    const parts: string[] = [];
+
+    // Skill frontmatter
+    parts.push(this.emitSkillFrontmatter(doc.frontmatter));
+
+    // Body content
+    for (const child of doc.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    // Join with double newlines for block separation, then ensure single trailing newline
+    const result = parts.join('\n\n');
+    return result ? result + '\n' : '';
+  }
+
+  /**
+   * Emit a SkillFileNode to markdown (supporting file content)
+   */
+  emitSkillFile(node: SkillFileNode): string {
+    const parts: string[] = [];
+
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    // Join with double newlines, ensure trailing newline
     const result = parts.join('\n\n');
     return result ? result + '\n' : '';
   }
@@ -645,4 +717,20 @@ export function emit(doc: DocumentNode): string {
 export function emitAgent(doc: AgentDocumentNode, sourceFile?: SourceFile): string {
   const emitter = new MarkdownEmitter();
   return emitter.emitAgent(doc, sourceFile);
+}
+
+/**
+ * Convenience function for emitting a skill document
+ */
+export function emitSkill(doc: SkillDocumentNode): string {
+  const emitter = new MarkdownEmitter();
+  return emitter.emitSkill(doc);
+}
+
+/**
+ * Convenience function for emitting a skill file
+ */
+export function emitSkillFile(node: SkillFileNode): string {
+  const emitter = new MarkdownEmitter();
+  return emitter.emitSkillFile(node);
 }
