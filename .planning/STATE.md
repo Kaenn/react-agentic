@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.8 Scoped State Skills - IN PROGRESS
+**Current focus:** v1.8 Scoped State Skills - COMPLETE
 
 ## Current Position
 
 Phase: 19 (Scoped State Skills)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-22 - Completed 19-03-PLAN.md (State Transformer)
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 19-04-PLAN.md (State Emitter)
 
-Progress: [███████---] Phase 19: 75%
-Next: 19-04-PLAN.md (State Emitter)
+Progress: [##########] Phase 19: 100%
+Next: Phase 19 complete. Ready for documentation and user testing.
 
 ## Milestone History
 
@@ -61,7 +61,7 @@ Next: 19-04-PLAN.md (State Emitter)
 | 16 | 5/5 | 11m | 2m 12s |
 | 17 | 6/6 | ~12m | ~2m |
 | 18 | 4/4 | ~15m | ~3m 45s |
-| 19 | 3/4 | 7m 12s | 2m 24s |
+| 19 | 4/4 | 11m 19s | 2m 50s |
 
 *Updated after each plan completion*
 
@@ -223,6 +223,12 @@ v1.8 implementation decisions (19-03):
 - sql-text-extraction: Extract SQL template from Operation children using JsxText and template literals
 - interface-property-type: Use InterfaceDeclaration['getProperties'] to avoid closure scope issues
 
+v1.8 implementation decisions (19-04):
+- async-provider-loading: getProviderAsync with dynamic import avoids circular dependency
+- emitstate-async: emitState returns Promise<StateEmitResult> for lazy provider init
+- multi-file-output: State generates 4+ skill files to .claude/skills/{state}.{op}.md
+- main-init-orchestration: generateMainInitSkill creates init.all.md listing all state inits
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -248,5 +254,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 19-03-PLAN.md (State Transformer)
-Resume with: 19-04-PLAN.md (State Emitter)
+Stopped at: Completed 19-04-PLAN.md (State Emitter) - Phase 19 complete
+Resume with: Documentation updates and user testing for v1.8 Scoped State Skills
