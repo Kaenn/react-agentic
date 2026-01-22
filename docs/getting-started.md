@@ -79,6 +79,15 @@ src/
 | `<Markdown>` | Inline markdown content | Raw markdown |
 | `<XmlBlock>` | XML-wrapped section | `<name>...</name>` |
 
+### Conditional Components
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `<If>` | Conditional block | `<If test="[ -f file ]">content</If>` |
+| `<Else>` | Optional else block | Must follow `</If>` |
+
+Conditionals emit as prose-based `**If condition:**` / `**Otherwise:**` patterns.
+
 ## Next Steps
 
 - [Command Documentation](./command.md) - Learn to build commands
