@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 12 (Typed SpawnAgent Input)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: v1.2 In Progress
-Last activity: 2026-01-21 - Completed 12-01-PLAN.md
+Last activity: 2026-01-22 - Completed 12-02-PLAN.md
 
-Progress: [███░░░░░░░] v1.2 33%
-Next: /gsd:execute-plan 12-02
+Progress: [██████░░░░] v1.2 67%
+Next: /gsd:execute-plan 12-03
 
 ## Milestone History
 
@@ -32,9 +32,9 @@ Next: /gsd:execute-plan 12-02
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v1.1)
-- Average duration: 3m 17s
-- Total execution time: 22m 27s
+- Total plans completed: 9 (v1.1 + v1.2)
+- Average duration: 3m 16s
+- Total execution time: 29m 27s
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Next: /gsd:execute-plan 12-02
 | 9 | 2/2 | 7m 32s | 3m 46s |
 | 10 | 2/2 | 4m 50s | 2m 25s |
 | 11 | 2/2 | 7m 30s | 3m 45s |
-| 12 | 1/3 | 3m | 3m |
+| 12 | 2/3 | 7m | 3m 30s |
 
 *Updated after each plan completion*
 
@@ -86,6 +86,12 @@ v1.2 design decisions:
 v1.2 implementation decisions (12-01):
 - prompt-optional-fallback: Emitter uses `node.prompt ?? ''` to handle optional prompt
 
+v1.2 implementation decisions (12-02):
+- mutual-exclusivity-error: Transformer throws if both prompt and input provided
+- variable-ref-no-validation: VariableRef inputs skip interface validation (runtime-checked)
+- no-type-param-no-validation: Missing type parameter = no validation (backward compat)
+- placeholder-detection: {varname} pattern in strings detected as placeholder type
+
 ### Pending Todos
 
 None.
@@ -96,6 +102,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-21
-Stopped at: Completed 12-01-PLAN.md
-Resume with: /gsd:execute-plan 12-02
+Last session: 2026-01-22
+Stopped at: Completed 12-02-PLAN.md
+Resume with: /gsd:execute-plan 12-03
