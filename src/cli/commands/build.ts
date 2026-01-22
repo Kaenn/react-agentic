@@ -149,8 +149,8 @@ async function runBuild(
       const basename = path.basename(inputFile, '.tsx');
 
       if (doc.kind === 'agentDocument') {
-        // Agent: emit with GSD format
-        markdown = emitAgent(doc);
+        // Agent: emit with GSD format (pass sourceFile for structured_returns)
+        markdown = emitAgent(doc, sourceFile);
 
         // Get folder prop for output path (need to re-parse for this)
         // The folder prop affects output path but is not in frontmatter
