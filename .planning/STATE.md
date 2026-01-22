@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.2 Type-Safe Communication
+**Current focus:** v1.2 Type-Safe Communication COMPLETE
 
 ## Current Position
 
 Phase: 12 (Typed SpawnAgent Input)
-Plan: 2 of 3 complete
-Status: v1.2 In Progress
-Last activity: 2026-01-22 - Completed 12-02-PLAN.md
+Plan: 3 of 3 complete
+Status: v1.2 COMPLETE
+Last activity: 2026-01-22 - Completed 12-03-PLAN.md
 
-Progress: [██████░░░░] v1.2 67%
-Next: /gsd:execute-plan 12-03
+Progress: [██████████] v1.2 100%
+Next: Define v1.3 milestone or documentation update
 
 ## Milestone History
 
@@ -26,15 +26,15 @@ Next: /gsd:execute-plan 12-03
   - Phase 9: Agent Transpilation
   - Phase 10: SpawnAgent Component
   - Phase 11: Type Safety
-- v1.2 Type-Safe Communication: Started 2026-01-21
+- v1.2 Type-Safe Communication: Shipped 2026-01-22 (1 phase, 3 plans)
   - Phase 12: Typed SpawnAgent Input
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9 (v1.1 + v1.2)
-- Average duration: 3m 16s
-- Total execution time: 29m 27s
+- Total plans completed: 10 (v1.1 + v1.2)
+- Average duration: 3m 15s
+- Total execution time: 32m 27s
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Next: /gsd:execute-plan 12-03
 | 9 | 2/2 | 7m 32s | 3m 46s |
 | 10 | 2/2 | 4m 50s | 2m 25s |
 | 11 | 2/2 | 7m 30s | 3m 45s |
-| 12 | 2/3 | 7m | 3m 30s |
+| 12 | 3/3 | 10m | 3m 20s |
 
 *Updated after each plan completion*
 
@@ -92,6 +92,11 @@ v1.2 implementation decisions (12-02):
 - no-type-param-no-validation: Missing type parameter = no validation (backward compat)
 - placeholder-detection: {varname} pattern in strings detected as placeholder type
 
+v1.2 implementation decisions (12-03):
+- xml-input-format: VariableRef wraps in <input> block, object literal creates per-property XML tags
+- lowercase-variables: Variable names in output are lowercase for consistency
+- prompt-precedence: If both prompt and input exist (shouldn't happen), prompt takes precedence
+
 ### Pending Todos
 
 None.
@@ -103,5 +108,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12-02-PLAN.md
-Resume with: /gsd:execute-plan 12-03
+Stopped at: Completed 12-03-PLAN.md (Phase 12 COMPLETE, v1.2 COMPLETE)
+Resume with: Define next milestone or update documentation
