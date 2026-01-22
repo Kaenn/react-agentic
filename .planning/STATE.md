@@ -39,6 +39,8 @@ Next: Phase 19 complete. Ready for documentation and user testing.
   - Phase 17: State System
 - v1.7 MCP Configuration: Shipped 2026-01-22 (1 phase, 4 plans)
   - Phase 18: MCP Configuration
+- v1.8 Scoped State Skills: Shipped 2026-01-22 (1 phase, 4 plans)
+  - Phase 19: Scoped State Skills
 
 ## Performance Metrics
 

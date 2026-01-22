@@ -10,7 +10,7 @@
 - **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
 - **v1.6 State System** - Phase 17 (shipped 2026-01-22)
 - **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
-- **v1.8 Scoped State Skills** - Phase 19 (planned)
+- **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-22)
 
 ## Phases
 
@@ -353,13 +353,13 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
 | 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
 | 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
-| 19. Scoped State Skills | v1.8 | 0/4 | Planned | - |
+| 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-22 |
 
-### v1.8 Scoped State Skills (Planned)
+### v1.8 Scoped State Skills (Complete)
 
 **Milestone Goal:** Refactor state system to use provider-agnostic, scoped skills — each State definition generates namespaced CRUD skills with code-driven execution.
 
-- [ ] **Phase 19: Scoped State Skills** - State/Operation components, provider templates, auto-generated scoped skills
+- [x] **Phase 19: Scoped State Skills** - State/Operation components, provider templates, auto-generated scoped skills
 
 ### Phase 19: Scoped State Skills
 **Goal**: Refactor state to use scoped skills per state definition with provider-agnostic code templates
@@ -377,10 +377,10 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 **Plans:** 4 plans
 
 Plans:
-- [ ] 19-01-PLAN.md — IR and JSX type extensions for State/Operation
-- [ ] 19-02-PLAN.md — Provider templates (SQLite only for this phase)
-- [ ] 19-03-PLAN.md — State parser and transformer
-- [ ] 19-04-PLAN.md — Emitter and CLI multi-skill output
+- [x] 19-01-PLAN.md — IR and JSX type extensions for State/Operation
+- [x] 19-02-PLAN.md — Provider templates (SQLite only for this phase)
+- [x] 19-03-PLAN.md — State parser and transformer
+- [x] 19-04-PLAN.md — Emitter and CLI multi-skill output
 
 **Details:**
 Core objectives:
@@ -442,4 +442,4 @@ src/
 
 ---
 *Roadmap created: 2026-01-21*
-*v1.7 MCP Configuration shipped 2026-01-22*
+*v1.8 Scoped State Skills shipped 2026-01-22*
