@@ -14,5 +14,14 @@ export * from './emitter/index.js';
 export * from './parser/index.js';
 
 // JSX components and types
-export { Agent, Assign, Command, If, Else, Markdown, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, useOutput, useVariable, XmlBlock } from './jsx.js';
-export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, OnStatusProps, OutputRef, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, VariableRef, XmlBlockProps } from './jsx.js';
+export { Agent, Assign, Command, If, Else, Markdown, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, useOutput, useVariable, useStateRef, ReadState, WriteState, XmlBlock } from './jsx.js';
+export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, VariableRef, WriteStateProps, XmlBlockProps } from './jsx.js';
+
+// State System
+export {
+  StateAdapter,
+  StateConfig,
+  FileAdapter,
+  getNestedValue,
+  setNestedValue,
+} from './state/index.js';
