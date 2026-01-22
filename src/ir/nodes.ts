@@ -262,6 +262,7 @@ export interface AgentFrontmatterNode {
   tools?: string;            // Optional: space-separated tool names (e.g., 'Read Grep Glob')
   color?: string;            // Optional: terminal color (e.g., 'cyan')
   inputType?: TypeReference; // Optional: generic type parameter if provided (e.g., 'ResearcherInput')
+  outputType?: TypeReference; // Optional: second generic type parameter (e.g., 'ResearcherOutput')
 }
 
 /**
