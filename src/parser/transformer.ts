@@ -31,8 +31,9 @@ import type {
   XmlBlockNode,
   SpawnAgentNode,
   TypeReference,
+  AssignNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, type ExtractedVariable } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -51,7 +52,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -88,6 +89,8 @@ export class Transformer {
   private sourceFile: SourceFile | undefined;
   /** Visited paths for circular import detection */
   private visitedPaths: Set<string> = new Set();
+  /** Extracted useVariable declarations from source file */
+  private variables: Map<string, ExtractedVariable> = new Map();
 
   /**
    * Create a TranspileError with source location context from a node
@@ -108,8 +111,12 @@ export class Transformer {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
+    this.variables = new Map();
+
     if (sourceFile) {
       this.visitedPaths.add(sourceFile.getFilePath());
+      // Extract useVariable declarations before JSX processing
+      this.variables = extractVariableDeclarations(sourceFile);
     }
 
     // Check for Command or Agent wrapper at root level
@@ -373,6 +380,11 @@ export class Transformer {
     // SpawnAgent block element (inside Command)
     if (name === 'SpawnAgent') {
       return this.transformSpawnAgent(node);
+    }
+
+    // Assign block element (variable assignment)
+    if (name === 'Assign') {
+      return this.transformAssign(node);
     }
 
     // Markdown passthrough
@@ -986,6 +998,49 @@ export class Transformer {
       description,
       prompt,
       ...(inputType && { inputType }),
+    };
+  }
+
+  /**
+   * Transform an Assign element to AssignNode
+   * Assign emits a bash code block with variable assignment
+   */
+  private transformAssign(node: JsxElement | JsxSelfClosingElement): AssignNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Get the var prop - must be a JSX expression referencing an identifier
+    const varAttr = openingElement.getAttribute('var');
+    if (!varAttr || !Node.isJsxAttribute(varAttr)) {
+      throw this.createError('Assign requires var prop', openingElement);
+    }
+
+    const init = varAttr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) {
+      throw this.createError('Assign var must be a JSX expression: var={variableName}', openingElement);
+    }
+
+    const expr = init.getExpression();
+    if (!expr || !Node.isIdentifier(expr)) {
+      throw this.createError('Assign var must reference a useVariable result', openingElement);
+    }
+
+    const localName = expr.getText();
+
+    // Look up in extracted variables
+    const variable = this.variables.get(localName);
+    if (!variable) {
+      throw this.createError(
+        `Variable '${localName}' not found. Did you declare it with useVariable()?`,
+        openingElement
+      );
+    }
+
+    return {
+      kind: 'assign',
+      variableName: variable.envName,
+      assignment: variable.assignment,
     };
   }
 

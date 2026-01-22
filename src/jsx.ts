@@ -174,3 +174,83 @@ export function XmlBlock(_props: XmlBlockProps): null {
 export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput>): null {
   return null;
 }
+
+// ============================================================================
+// Variable Assignment (useVariable hook + Assign component)
+// ============================================================================
+
+/**
+ * Reference to a shell variable created by useVariable
+ * @typeParam T - Phantom type for value (compile-time only)
+ */
+export interface VariableRef<T = string> {
+  /** Shell variable name (e.g., "PHASE_DIR") */
+  name: string;
+  /** Same as name - for interpolation in bash strings */
+  ref: string;
+  /** Phantom type marker (compile-time only) */
+  _type?: T;
+}
+
+/**
+ * Assignment specification for useVariable
+ * Either a bash command or a static value
+ */
+export type Assignment<T> =
+  | { bash: string }
+  | { value: T };
+
+/**
+ * Declare a shell variable with bash command or static value
+ *
+ * This is a compile-time hook. The actual variable assignment is emitted
+ * when <Assign var={...} /> is used in the JSX.
+ *
+ * @param name - Shell variable name (e.g., "PHASE_DIR")
+ * @param assignment - Bash command or static value
+ * @returns VariableRef for use in Assign and string interpolation
+ *
+ * @example
+ * const phaseDir = useVariable<string>("PHASE_DIR", {
+ *   bash: `ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`
+ * });
+ *
+ * // In JSX:
+ * <Assign var={phaseDir} />
+ *
+ * // For interpolation:
+ * <Condition test={`[ -z ${phaseDir.ref} ]`}>
+ */
+export function useVariable<T = string>(
+  name: string,
+  _assignment: Assignment<T>
+): VariableRef<T> {
+  return { name, ref: name };
+}
+
+/**
+ * Props for the Assign component
+ */
+export interface AssignProps {
+  /** Variable reference from useVariable */
+  var: VariableRef;
+}
+
+/**
+ * Assign component - emits shell variable assignment
+ *
+ * This is a compile-time component. It's never executed at runtime.
+ * It emits a bash code block with the variable assignment.
+ *
+ * @example
+ * const phaseDir = useVariable("PHASE_DIR", { bash: `ls -d test` });
+ * <Assign var={phaseDir} />
+ *
+ * Outputs:
+ * ```bash
+ * PHASE_DIR=$(ls -d test)
+ * ```
+ */
+export function Assign(_props: AssignProps): null {
+  return null;
+}

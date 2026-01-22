@@ -163,6 +163,19 @@ export interface SpawnAgentNode {
 }
 
 /**
+ * Shell variable assignment from useVariable/Assign
+ * Emits as bash code block with variable assignment
+ */
+export interface AssignNode {
+  kind: 'assign';
+  variableName: string;    // Shell variable name (e.g., 'PHASE_DIR')
+  assignment: {
+    type: 'bash' | 'value';  // bash: VAR=$(...), value: VAR=...
+    content: string;         // The bash command or static value
+  };
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -174,7 +187,8 @@ export type BlockNode =
   | ThematicBreakNode
   | XmlBlockNode
   | RawMarkdownNode
-  | SpawnAgentNode;
+  | SpawnAgentNode
+  | AssignNode;
 
 // ============================================================================
 // Special Nodes

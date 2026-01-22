@@ -9,6 +9,7 @@ import matter from 'gray-matter';
 import type {
   AgentDocumentNode,
   AgentFrontmatterNode,
+  AssignNode,
   BlockNode,
   BlockquoteNode,
   CodeBlockNode,
@@ -129,6 +130,8 @@ export class MarkdownEmitter {
         return node.content;
       case 'spawnAgent':
         return this.emitSpawnAgent(node);
+      case 'assign':
+        return this.emitAssign(node);
       default:
         return assertNever(node);
     }
@@ -341,6 +344,38 @@ export class MarkdownEmitter {
   model="${escapeQuotes(node.model)}",
   description="${escapeQuotes(node.description)}"
 )`;
+  }
+
+  /**
+   * Emit Assign node as bash code block with variable assignment
+   *
+   * Output format for bash:
+   * ```bash
+   * VAR_NAME=$(command)
+   * ```
+   *
+   * Output format for value:
+   * ```bash
+   * VAR_NAME=value
+   * ```
+   * (with quotes if value contains spaces)
+   */
+  private emitAssign(node: AssignNode): string {
+    const { variableName, assignment } = node;
+
+    let line: string;
+    if (assignment.type === 'bash') {
+      // Bash command: VAR=$(command)
+      line = `${variableName}=$(${assignment.content})`;
+    } else {
+      // Static value: quote if contains spaces
+      const val = assignment.content;
+      line = /\s/.test(val)
+        ? `${variableName}="${val}"`
+        : `${variableName}=${val}`;
+    }
+
+    return `\`\`\`bash\n${line}\n\`\`\``;
   }
 
   /**

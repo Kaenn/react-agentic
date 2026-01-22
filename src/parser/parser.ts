@@ -23,6 +23,7 @@ import {
   ObjectLiteralExpression,
   SyntaxKind,
   InterfaceDeclaration,
+  TemplateExpression,
 } from 'ts-morph';
 
 export interface CreateProjectOptions {
@@ -709,4 +710,144 @@ export function extractInterfaceProperties(
 export function extractPromptPlaceholders(prompt: string): Set<string> {
   const matches = prompt.matchAll(/\{(\w+)\}/g);
   return new Set([...matches].map(m => m[1]));
+}
+
+// ============================================================================
+// Variable Declaration Extraction (useVariable hook)
+// ============================================================================
+
+/**
+ * Extracted variable information from useVariable() call
+ */
+export interface ExtractedVariable {
+  /** Local const name (e.g., "phaseDir") */
+  localName: string;
+  /** Shell variable name (e.g., "PHASE_DIR") */
+  envName: string;
+  /** Assignment specification */
+  assignment: {
+    type: 'bash' | 'value';
+    content: string;
+  };
+}
+
+/**
+ * Extract all useVariable() declarations from a source file
+ *
+ * Finds patterns like:
+ *   const phaseDir = useVariable("PHASE_DIR", { bash: `...` });
+ *   const version = useVariable("VERSION", { value: "1.0" });
+ *
+ * @param sourceFile - Source file to extract from
+ * @returns Map from local variable name to ExtractedVariable info
+ */
+export function extractVariableDeclarations(
+  sourceFile: SourceFile
+): Map<string, ExtractedVariable> {
+  const result = new Map<string, ExtractedVariable>();
+
+  // Find all variable declarations
+  sourceFile.forEachDescendant((node) => {
+    if (!Node.isVariableDeclaration(node)) return;
+
+    const initializer = node.getInitializer();
+    if (!initializer || !Node.isCallExpression(initializer)) return;
+
+    // Check if it's a useVariable call
+    const callExpr = initializer.getExpression();
+    if (!Node.isIdentifier(callExpr) || callExpr.getText() !== 'useVariable') return;
+
+    const args = initializer.getArguments();
+    if (args.length < 2) return;
+
+    // First arg: string literal for env name
+    const firstArg = args[0];
+    if (!Node.isStringLiteral(firstArg)) return;
+    const envName = firstArg.getLiteralValue();
+
+    // Second arg: object literal with bash or value
+    const secondArg = args[1];
+    if (!Node.isObjectLiteralExpression(secondArg)) return;
+
+    // Extract assignment from object literal
+    const assignment = extractAssignment(secondArg);
+    if (!assignment) return;
+
+    // Get local variable name
+    const localName = node.getName();
+
+    result.set(localName, {
+      localName,
+      envName,
+      assignment,
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Extract assignment specification from object literal
+ * Handles: { bash: `...` } or { value: "..." }
+ */
+function extractAssignment(
+  objLiteral: ObjectLiteralExpression
+): { type: 'bash' | 'value'; content: string } | undefined {
+  for (const prop of objLiteral.getProperties()) {
+    if (!Node.isPropertyAssignment(prop)) continue;
+
+    const name = prop.getName();
+    const init = prop.getInitializer();
+    if (!init) continue;
+
+    if (name === 'bash') {
+      // Handle string literal or template literal
+      if (Node.isStringLiteral(init)) {
+        return { type: 'bash', content: init.getLiteralValue() };
+      }
+      if (Node.isNoSubstitutionTemplateLiteral(init)) {
+        return { type: 'bash', content: init.getLiteralValue() };
+      }
+      if (Node.isTemplateExpression(init)) {
+        // Template with substitutions - reconstruct preserving ${VAR} syntax
+        return { type: 'bash', content: extractTemplateWithVars(init) };
+      }
+    }
+
+    if (name === 'value') {
+      // Handle string literal, number, or template literal
+      if (Node.isStringLiteral(init)) {
+        return { type: 'value', content: init.getLiteralValue() };
+      }
+      if (Node.isNoSubstitutionTemplateLiteral(init)) {
+        return { type: 'value', content: init.getLiteralValue() };
+      }
+      if (Node.isNumericLiteral(init)) {
+        return { type: 'value', content: init.getLiteralValue().toString() };
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract template literal content preserving ${VAR} syntax for bash
+ * Unlike Markdown where ${var} becomes {var}, bash needs ${VAR} preserved
+ */
+function extractTemplateWithVars(expr: TemplateExpression): string {
+  const parts: string[] = [];
+
+  // Head: text before first ${...}
+  parts.push(expr.getHead().getLiteralText());
+
+  // Spans: each has expression + literal text after
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    // Preserve ${...} syntax for bash
+    parts.push(`\${${spanExpr.getText()}}`);
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
 }

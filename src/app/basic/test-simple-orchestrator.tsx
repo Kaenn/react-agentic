@@ -1,5 +1,14 @@
-import { Command, XmlBlock, SpawnAgent } from '../../jsx.js';
+import { Command, XmlBlock, SpawnAgent, Assign, useVariable } from '../../jsx.js';
 import type { SimpleOrchestratorInput } from './simple-orchestrator-agent.js';
+
+// Declare shell variables with useVariable
+const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP", {
+  bash: `date -u +"%Y-%m-%dT%H:%M:%SZ"`
+});
+
+const outputFile = useVariable<string>("OUTPUT_FILE", {
+  value: "/tmp/gsd-test/agent-result.md"
+});
 
 export default function TestSimpleOrchestratorCommand() {
   return (
@@ -24,9 +33,10 @@ export default function TestSimpleOrchestratorCommand() {
         <p>Create output directory and generate command timestamp:</p>
         <pre><code className="language-bash">
 mkdir -p /tmp/gsd-test
-COMMAND_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-OUTPUT_FILE="/tmp/gsd-test/agent-result.md"
         </code></pre>
+
+        <Assign var={commandTimestamp} />
+        <Assign var={outputFile} />
 
         <h2>Step 2: Spawn Agent</h2>
         <SpawnAgent<SimpleOrchestratorInput>
