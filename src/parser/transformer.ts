@@ -200,6 +200,17 @@ export class Transformer {
       description,
     };
 
+    // Optional string props
+    const argumentHint = props.argumentHint as string | undefined;
+    if (argumentHint) {
+      data['argument-hint'] = argumentHint;
+    }
+
+    const agent = props.agent as string | undefined;
+    if (agent) {
+      data['agent'] = agent;
+    }
+
     // Optional array prop (check for allowedTools, map to allowed-tools)
     const allowedTools = props.allowedTools as string[] | undefined;
     if (allowedTools) {
@@ -797,12 +808,40 @@ export class Transformer {
 
         parts.push(text);
       } else if (Node.isJsxExpression(child)) {
-        // Handle {variable} or {"literal"} expressions
+        // Handle {variable} or {"literal"} or {`template`} expressions
         const expr = child.getExpression();
         if (expr) {
           if (Node.isStringLiteral(expr)) {
             // String literal: {"text"} -> text
             parts.push(expr.getLiteralValue());
+          } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+            // Template literal without substitutions: {`text`} -> text
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isTemplateExpression(expr)) {
+            // Template expression with substitutions: {`text ${var} more`}
+            // Reconstruct the template by joining head, spans, and tail
+            let result = expr.getHead().getLiteralText();
+            for (const span of expr.getTemplateSpans()) {
+              // Get the expression between ${...}
+              const spanExpr = span.getExpression();
+              // Try to get static value, otherwise use ${expr}
+              if (Node.isIdentifier(spanExpr)) {
+                result += `\${${spanExpr.getText()}}`;
+              } else if (Node.isStringLiteral(spanExpr)) {
+                result += spanExpr.getLiteralValue();
+              } else {
+                // For complex expressions, preserve the ${...} syntax
+                result += `\${${spanExpr.getText()}}`;
+              }
+              // Add the literal text after the expression
+              const literal = span.getLiteral();
+              if (Node.isTemplateMiddle(literal)) {
+                result += literal.getLiteralText();
+              } else if (Node.isTemplateTail(literal)) {
+                result += literal.getLiteralText();
+              }
+            }
+            parts.push(result);
           } else if (Node.isIdentifier(expr)) {
             // Identifier expression: {var} was likely ${var} in bash
             // JSX splits ${var} into "$" + {var}, so reconstruct as {var}

@@ -15,6 +15,10 @@ export interface CommandProps {
   name: string;
   /** Command description (used in frontmatter) */
   description: string;
+  /** Optional argument hint (maps to argument-hint in frontmatter) */
+  argumentHint?: string;
+  /** Optional agent name (maps to agent in frontmatter) */
+  agent?: string;
   /** Optional list of allowed tools (maps to allowed-tools in frontmatter) */
   allowedTools?: string[];
   /** Command body content */

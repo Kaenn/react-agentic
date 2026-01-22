@@ -1,61 +1,60 @@
-import {
-  Command,
-  XmlBlock,
-  Markdown,
-  SpawnAgent,
-} from '../../jsx.js';
-import type { PhaseResearcherInput } from './gsd-phase-researcher.js';
+---
+name: gsd:plan-phase
+description: Create detailed execution plan for a phase (PLAN.md) with verification loop
+argument-hint: "[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
+agent: gsd-planner
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Task
+  - WebFetch
+  - mcp__context7__*
+---
 
-export default function PlanPhaseCommand() {
-  return (
-    <Command
-      name="gsd:plan-phase"
-      description="Create detailed execution plan for a phase (PLAN.md) with verification loop"
-      argumentHint="[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
-      agent="gsd-planner"
-      allowedTools={['Read', 'Write', 'Bash', 'Glob', 'Grep', 'Task', 'WebFetch', 'mcp__context7__*']}
-    >
-      <XmlBlock name="execution_context">
-        <Markdown>
+<execution_context>
 @~/.claude/get-shit-done/references/ui-brand.md
-        </Markdown>
-      </XmlBlock>
+</execution_context>
 
-      <XmlBlock name="objective">
-        <p>Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification.</p>
-        <p><b>Default flow:</b> Research (if needed) → Plan → Verify → Done</p>
-        <p><b>Orchestrator role:</b> Parse arguments, validate phase, research domain (unless skipped or exists), spawn gsd-planner agent, verify plans with gsd-plan-checker, iterate until plans pass or max iterations reached, present results.</p>
-        <p><b>Why subagents:</b> Research and planning burn context fast. Verification uses fresh context. User sees the flow between agents in main context.</p>
-      </XmlBlock>
+<objective>
+Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification.
 
-      <XmlBlock name="context">
-        <p>Phase number: $ARGUMENTS (optional - auto-detects next unplanned phase if not provided)</p>
-        <p><b>Flags:</b></p>
-        <ul>
-          <li><code>--research</code> — Force re-research even if RESEARCH.md exists</li>
-          <li><code>--skip-research</code> — Skip research entirely, go straight to planning</li>
-          <li><code>--gaps</code> — Gap closure mode (reads VERIFICATION.md, skips research)</li>
-          <li><code>--skip-verify</code> — Skip planner → checker verification loop</li>
-        </ul>
-        <p>Normalize phase input in step 2 before any directory lookups.</p>
-      </XmlBlock>
+**Default flow:** Research (if needed) → Plan → Verify → Done
 
-      <XmlBlock name="process">
-        <Markdown>
-{`
+**Orchestrator role:** Parse arguments, validate phase, research domain (unless skipped or exists), spawn gsd-planner agent, verify plans with gsd-plan-checker, iterate until plans pass or max iterations reached, present results.
+
+**Why subagents:** Research and planning burn context fast. Verification uses fresh context. User sees the flow between agents in main context.
+</objective>
+
+<context>
+Phase number: $ARGUMENTS (optional - auto-detects next unplanned phase if not provided)
+
+**Flags:**
+- `--research` — Force re-research even if RESEARCH.md exists
+- `--skip-research` — Skip research entirely, go straight to planning
+- `--gaps` — Gap closure mode (reads VERIFICATION.md, skips research)
+- `--skip-verify` — Skip planner → checker verification loop
+
+Normalize phase input in step 2 before any directory lookups.
+</context>
+
+<process>
+
 ## 1. Validate Environment and Resolve Model Profile
 
-\`\`\`bash
+```bash
 ls .planning/ 2>/dev/null
-\`\`\`
+```
 
-**If not found:** Error - user should run \`/gsd:new-project\` first.
+**If not found:** Error - user should run `/gsd:new-project` first.
 
 **Resolve model profile for agent spawning:**
 
-\`\`\`bash
+```bash
 MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
-\`\`\`
+```
 
 Default to "balanced" if not set.
 
@@ -73,89 +72,89 @@ Store resolved models for use in Task calls below.
 
 Extract from $ARGUMENTS:
 
-- Phase number (integer or decimal like \`2.1\`)
-- \`--research\` flag to force re-research
-- \`--skip-research\` flag to skip research
-- \`--gaps\` flag for gap closure mode
-- \`--skip-verify\` flag to bypass verification loop
+- Phase number (integer or decimal like `2.1`)
+- `--research` flag to force re-research
+- `--skip-research` flag to skip research
+- `--gaps` flag for gap closure mode
+- `--skip-verify` flag to bypass verification loop
 
 **If no phase number:** Detect next unplanned phase from roadmap.
 
 **Normalize phase to zero-padded format:**
 
-\`\`\`bash
+```bash
 # Normalize phase number (8 → 08, but preserve decimals like 2.1 → 02.1)
 if [[ "$PHASE" =~ ^[0-9]+$ ]]; then
   PHASE=$(printf "%02d" "$PHASE")
-elif [[ "$PHASE" =~ ^([0-9]+)\\.([0-9]+)$ ]]; then
-  PHASE=$(printf "%02d.%s" "\${BASH_REMATCH[1]}" "\${BASH_REMATCH[2]}")
+elif [[ "$PHASE" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+  PHASE=$(printf "%02d.%s" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
 fi
-\`\`\`
+```
 
 **Check for existing research and plans:**
 
-\`\`\`bash
-ls .planning/phases/\${PHASE}-*/*-RESEARCH.md 2>/dev/null
-ls .planning/phases/\${PHASE}-*/*-PLAN.md 2>/dev/null
-\`\`\`
+```bash
+ls .planning/phases/${PHASE}-*/*-RESEARCH.md 2>/dev/null
+ls .planning/phases/${PHASE}-*/*-PLAN.md 2>/dev/null
+```
 
 ## 3. Validate Phase
 
-\`\`\`bash
-grep -A5 "Phase \${PHASE}:" .planning/ROADMAP.md 2>/dev/null
-\`\`\`
+```bash
+grep -A5 "Phase ${PHASE}:" .planning/ROADMAP.md 2>/dev/null
+```
 
 **If not found:** Error with available phases. **If found:** Extract phase number, name, description.
 
 ## 4. Ensure Phase Directory Exists
 
-\`\`\`bash
+```bash
 # PHASE is already normalized (08, 02.1, etc.) from step 2
-PHASE_DIR=$(ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1)
+PHASE_DIR=$(ls -d .planning/phases/${PHASE}-* 2>/dev/null | head -1)
 if [ -z "$PHASE_DIR" ]; then
   # Create phase directory from roadmap name
-  PHASE_NAME=$(grep "Phase \${PHASE}:" .planning/ROADMAP.md | sed 's/.*Phase [0-9]*: //' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-  mkdir -p ".planning/phases/\${PHASE}-\${PHASE_NAME}"
-  PHASE_DIR=".planning/phases/\${PHASE}-\${PHASE_NAME}"
+  PHASE_NAME=$(grep "Phase ${PHASE}:" .planning/ROADMAP.md | sed 's/.*Phase [0-9]*: //' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+  mkdir -p ".planning/phases/${PHASE}-${PHASE_NAME}"
+  PHASE_DIR=".planning/phases/${PHASE}-${PHASE_NAME}"
 fi
-\`\`\`
+```
 
 ## 5. Handle Research
 
-**If \`--gaps\` flag:** Skip research (gap closure uses VERIFICATION.md instead).
+**If `--gaps` flag:** Skip research (gap closure uses VERIFICATION.md instead).
 
-**If \`--skip-research\` flag:** Skip to step 6.
+**If `--skip-research` flag:** Skip to step 6.
 
 **Check config for research setting:**
 
-\`\`\`bash
-WORKFLOW_RESEARCH=$(cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true")
-\`\`\`
+```bash
+WORKFLOW_RESEARCH=$(cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
 
-**If \`workflow.research\` is \`false\` AND \`--research\` flag NOT set:** Skip to step 6.
+**If `workflow.research` is `false` AND `--research` flag NOT set:** Skip to step 6.
 
 **Otherwise:**
 
 Check for existing research:
 
-\`\`\`bash
-ls "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null
-\`\`\`
+```bash
+ls "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null
+```
 
-**If RESEARCH.md exists AND \`--research\` flag NOT set:**
-- Display: \`Using existing research: \${PHASE_DIR}/\${PHASE}-RESEARCH.md\`
+**If RESEARCH.md exists AND `--research` flag NOT set:**
+- Display: `Using existing research: ${PHASE_DIR}/${PHASE}-RESEARCH.md`
 - Skip to step 6
 
-**If RESEARCH.md missing OR \`--research\` flag set:**
+**If RESEARCH.md missing OR `--research` flag set:**
 
 Display stage banner:
-\`\`\`
+```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► RESEARCHING PHASE {X}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning researcher...
-\`\`\`
+```
 
 Proceed to spawn researcher
 
@@ -163,9 +162,9 @@ Proceed to spawn researcher
 
 Gather context for research prompt:
 
-\`\`\`bash
+```bash
 # Get phase description from roadmap
-PHASE_DESC=$(grep -A3 "Phase \${PHASE}:" .planning/ROADMAP.md)
+PHASE_DESC=$(grep -A3 "Phase ${PHASE}:" .planning/ROADMAP.md)
 
 # Get requirements if they exist
 REQUIREMENTS=$(cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50)
@@ -174,18 +173,13 @@ REQUIREMENTS=$(cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requir
 DECISIONS=$(grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null)
 
 # Get phase context if exists
-PHASE_CONTEXT=$(cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null)
-\`\`\`
+PHASE_CONTEXT=$(cat "${PHASE_DIR}/${PHASE}-CONTEXT.md" 2>/dev/null)
+```
 
 Fill research prompt and spawn:
-`}
-        </Markdown>
 
-        <SpawnAgent<PhaseResearcherInput>
-          agent="gsd-phase-researcher"
-          model="{researcher_model}"
-          description="Research Phase {phase}"
-          prompt={`<objective>
+```markdown
+<objective>
 Research how to implement Phase {phase_number}: {phase_name}
 
 Answer: "What do I need to know to PLAN this phase well?"
@@ -207,63 +201,70 @@ Answer: "What do I need to know to PLAN this phase well?"
 
 <output>
 Write research findings to: {phase_dir}/{phase}-RESEARCH.md
-</output>`}
-        />
+</output>
+```
 
-        <Markdown>
-{`
+```
+Task(
+  prompt=research_prompt,
+  subagent_type="gsd-phase-researcher",
+  model="{researcher_model}",
+  description="Research Phase {phase}"
+)
+```
+
 ### Handle Researcher Return
 
-**\`## RESEARCH COMPLETE\`:**
-- Display: \`Research complete. Proceeding to planning...\`
+**`## RESEARCH COMPLETE`:**
+- Display: `Research complete. Proceeding to planning...`
 - Continue to step 6
 
-**\`## RESEARCH BLOCKED\`:**
+**`## RESEARCH BLOCKED`:**
 - Display blocker information
 - Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort
 - Wait for user response
 
 ## 6. Check Existing Plans
 
-\`\`\`bash
-ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null
-\`\`\`
+```bash
+ls "${PHASE_DIR}"/*-PLAN.md 2>/dev/null
+```
 
 **If exists:** Offer: 1) Continue planning (add more plans), 2) View existing, 3) Replan from scratch. Wait for response.
 
 ## 7. Read Context Files
 
-Read and store context file contents for the planner agent. The \`@\` syntax does not work across Task() boundaries - content must be inlined.
+Read and store context file contents for the planner agent. The `@` syntax does not work across Task() boundaries - content must be inlined.
 
-\`\`\`bash
+```bash
 # Read required files
 STATE_CONTENT=$(cat .planning/STATE.md)
 ROADMAP_CONTENT=$(cat .planning/ROADMAP.md)
 
 # Read optional files (empty string if missing)
 REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
-CONTEXT_CONTENT=$(cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null)
-RESEARCH_CONTENT=$(cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)
+CONTEXT_CONTENT=$(cat "${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null)
+RESEARCH_CONTENT=$(cat "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)
 
 # Gap closure files (only if --gaps mode)
-VERIFICATION_CONTENT=$(cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null)
-UAT_CONTENT=$(cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null)
-\`\`\`
+VERIFICATION_CONTENT=$(cat "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null)
+UAT_CONTENT=$(cat "${PHASE_DIR}"/*-UAT.md 2>/dev/null)
+```
 
 ## 8. Spawn gsd-planner Agent
 
 Display stage banner:
-\`\`\`
+```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► PLANNING PHASE {X}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning planner...
-\`\`\`
+```
 
 Fill prompt with inlined content and spawn:
 
-\`\`\`markdown
+```markdown
 <planning_context>
 
 **Phase:** {phase_number}
@@ -310,32 +311,32 @@ Before returning PLANNING COMPLETE:
 - [ ] Waves assigned for parallel execution
 - [ ] must_haves derived from phase goal
 </quality_gate>
-\`\`\`
+```
 
-\`\`\`
+```
 Task(
   prompt=filled_prompt,
   subagent_type="gsd-planner",
   model="{planner_model}",
   description="Plan Phase {phase}"
 )
-\`\`\`
+```
 
 ## 9. Handle Planner Return
 
 Parse planner output:
 
-**\`## PLANNING COMPLETE\`:**
-- Display: \`Planner created {N} plan(s). Files on disk.\`
-- If \`--skip-verify\`: Skip to step 13
-- Check config: \`WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true")\`
-- If \`workflow.plan_check\` is \`false\`: Skip to step 13
+**`## PLANNING COMPLETE`:**
+- Display: `Planner created {N} plan(s). Files on disk.`
+- If `--skip-verify`: Skip to step 13
+- Check config: `WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")`
+- If `workflow.plan_check` is `false`: Skip to step 13
 - Otherwise: Proceed to step 10
 
-**\`## CHECKPOINT REACHED\`:**
+**`## CHECKPOINT REACHED`:**
 - Present to user, get response, spawn continuation (see step 12)
 
-**\`## PLANNING INCONCLUSIVE\`:**
+**`## PLANNING INCONCLUSIVE`:**
 - Show what was attempted
 - Offer: Add context, Retry, Manual
 - Wait for user response
@@ -343,27 +344,27 @@ Parse planner output:
 ## 10. Spawn gsd-plan-checker Agent
 
 Display:
-\`\`\`
+```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► VERIFYING PLANS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning plan checker...
-\`\`\`
+```
 
 Read plans and requirements for the checker:
 
-\`\`\`bash
+```bash
 # Read all plans in phase directory
-PLANS_CONTENT=$(cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
+PLANS_CONTENT=$(cat "${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
 
 # Read requirements (reuse from step 7 if available)
 REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
-\`\`\`
+```
 
 Fill checker prompt with inlined content and spawn:
 
-\`\`\`markdown
+```markdown
 <verification_context>
 
 **Phase:** {phase_number}
@@ -382,46 +383,46 @@ Return one of:
 - ## VERIFICATION PASSED — all checks pass
 - ## ISSUES FOUND — structured issue list
 </expected_output>
-\`\`\`
+```
 
-\`\`\`
+```
 Task(
   prompt=checker_prompt,
   subagent_type="gsd-plan-checker",
   model="{checker_model}",
   description="Verify Phase {phase} plans"
 )
-\`\`\`
+```
 
 ## 11. Handle Checker Return
 
-**If \`## VERIFICATION PASSED\`:**
-- Display: \`Plans verified. Ready for execution.\`
+**If `## VERIFICATION PASSED`:**
+- Display: `Plans verified. Ready for execution.`
 - Proceed to step 13
 
-**If \`## ISSUES FOUND\`:**
-- Display: \`Checker found issues:\`
+**If `## ISSUES FOUND`:**
+- Display: `Checker found issues:`
 - List issues from checker output
 - Check iteration count
 - Proceed to step 12
 
 ## 12. Revision Loop (Max 3 Iterations)
 
-Track: \`iteration_count\` (starts at 1 after initial plan + check)
+Track: `iteration_count` (starts at 1 after initial plan + check)
 
 **If iteration_count < 3:**
 
-Display: \`Sending back to planner for revision... (iteration {N}/3)\`
+Display: `Sending back to planner for revision... (iteration {N}/3)`
 
 Read current plans for revision context:
 
-\`\`\`bash
-PLANS_CONTENT=$(cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
-\`\`\`
+```bash
+PLANS_CONTENT=$(cat "${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
+```
 
 Spawn gsd-planner with revision prompt:
 
-\`\`\`markdown
+```markdown
 <revision_context>
 
 **Phase:** {phase_number}
@@ -440,23 +441,23 @@ Make targeted updates to address checker issues.
 Do NOT replan from scratch unless issues are fundamental.
 Return what changed.
 </instructions>
-\`\`\`
+```
 
-\`\`\`
+```
 Task(
   prompt=revision_prompt,
   subagent_type="gsd-planner",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
 )
-\`\`\`
+```
 
 - After planner returns → spawn checker again (step 10)
 - Increment iteration_count
 
 **If iteration_count >= 3:**
 
-Display: \`Max iterations reached. {N} issues remain:\`
+Display: `Max iterations reached. {N} issues remain:`
 - List remaining issues
 
 Offer options:
@@ -468,14 +469,12 @@ Wait for user response.
 
 ## 13. Present Final Status
 
-Route to \`<offer_next>\`.
-`}
-        </Markdown>
-      </XmlBlock>
+Route to `<offer_next>`.
 
-      <XmlBlock name="offer_next">
-        <Markdown>
-{`Output this markdown directly (not as a code block):
+</process>
+
+<offer_next>
+Output this markdown directly (not as a code block):
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► PHASE {X} PLANNED ✓
@@ -507,12 +506,11 @@ Verification: {Passed | Passed with override | Skipped}
 - cat .planning/phases/{phase-dir}/*-PLAN.md — review plans
 - /gsd:plan-phase {X} --research — re-research first
 
-───────────────────────────────────────────────────────────────`}
-        </Markdown>
-      </XmlBlock>
+───────────────────────────────────────────────────────────────
+</offer_next>
 
-      <XmlBlock name="success_criteria">
-        <Markdown>{`- [ ] .planning/ directory validated
+<success_criteria>
+- [ ] .planning/ directory validated
 - [ ] Phase validated against roadmap
 - [ ] Phase directory created if needed
 - [ ] Research completed (unless --skip-research or --gaps or exists)
@@ -523,8 +521,5 @@ Verification: {Passed | Passed with override | Skipped}
 - [ ] gsd-plan-checker spawned (unless --skip-verify)
 - [ ] Verification passed OR user override OR max iterations with user decision
 - [ ] User sees status between agent spawns
-- [ ] User knows next steps (execute or review)`}</Markdown>
-      </XmlBlock>
-    </Command>
-  );
-}
+- [ ] User knows next steps (execute or review)
+</success_criteria>
