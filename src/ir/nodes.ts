@@ -150,6 +150,29 @@ export interface RawMarkdownNode {
 }
 
 /**
+ * Input value for SpawnAgent typed input
+ */
+export type InputPropertyValue =
+  | { type: 'string'; value: string }
+  | { type: 'variable'; name: string }
+  | { type: 'placeholder'; name: string };  // {varname} syntax
+
+/**
+ * Property in SpawnAgent object literal input
+ */
+export interface InputProperty {
+  name: string;
+  value: InputPropertyValue;
+}
+
+/**
+ * SpawnAgent input - either a variable reference or object literal
+ */
+export type SpawnAgentInput =
+  | { type: 'variable'; variableName: string }  // useVariable ref
+  | { type: 'object'; properties: InputProperty[] };  // object literal
+
+/**
  * SpawnAgent invocation within a Command
  * Emits as Task() syntax in markdown
  */
@@ -158,7 +181,9 @@ export interface SpawnAgentNode {
   agent: string;           // Agent name/reference (e.g., 'gsd-researcher')
   model: string;           // Model to use (supports {variable} syntax)
   description: string;     // Human-readable task description
-  prompt: string;          // Task prompt (supports {variable} and template literals)
+  prompt?: string;         // Task prompt (supports {variable} and template literals) - optional, deprecated in favor of input
+  input?: SpawnAgentInput; // Typed input - either variable ref or object literal
+  extraInstructions?: string; // Optional extra instructions from children (when using input prop)
   inputType?: TypeReference; // Optional: generic type parameter if provided (for validation)
 }
 

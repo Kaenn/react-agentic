@@ -338,8 +338,11 @@ export class MarkdownEmitter {
 
     // Build Task() with proper formatting
     // Note: prompt can be multi-line, preserve actual newlines
+    // Prompt is optional in IR (for typed input), but emitter requires it for now
+    // Future: generate prompt from input when input prop is used
+    const prompt = node.prompt ?? '';
     return `Task(
-  prompt="${escapeQuotes(node.prompt)}",
+  prompt="${escapeQuotes(prompt)}",
   subagent_type="${escapeQuotes(node.agent)}",
   model="${escapeQuotes(node.model)}",
   description="${escapeQuotes(node.description)}"
