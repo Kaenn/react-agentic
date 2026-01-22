@@ -931,7 +931,7 @@ export function extractVariableDeclarations(
 // SpawnAgent Input Utilities
 // ============================================================================
 
-import type { InputProperty, InputPropertyValue } from '../ir/nodes.js';
+import type { InputProperty, InputPropertyValue, StateSchema, StateSchemaField } from '../ir/nodes.js';
 
 /**
  * Check if an identifier references a useVariable result
@@ -1011,4 +1011,143 @@ export function extractInputObjectLiteral(
   }
 
   return properties;
+}
+
+// ============================================================================
+// State Schema Extraction
+// ============================================================================
+
+/**
+ * Map TypeScript type to SQL type
+ */
+function mapTsTypeToSql(tsType: string): 'TEXT' | 'INTEGER' {
+  switch (tsType) {
+    case 'number':
+      return 'INTEGER';
+    case 'boolean':
+      return 'INTEGER';  // 0/1
+    default:
+      return 'TEXT';  // string, Date, enums, etc.
+  }
+}
+
+/**
+ * Get default value for a type
+ */
+function getDefaultValue(tsType: string, sqlType: 'TEXT' | 'INTEGER'): string {
+  if (sqlType === 'INTEGER') {
+    return '0';
+  }
+  return '';  // Empty string for TEXT
+}
+
+/**
+ * Extract enum values from union type
+ * 'major' | 'minor' | 'patch' -> ['major', 'minor', 'patch']
+ */
+function extractEnumValues(typeText: string): string[] | undefined {
+  // Match pattern like "'value1' | 'value2' | 'value3'"
+  const matches = typeText.match(/'([^']+)'/g);
+  if (matches && matches.length > 1) {
+    return matches.map(m => m.replace(/'/g, ''));
+  }
+  return undefined;
+}
+
+/**
+ * Flatten interface properties into schema fields
+ * Handles nested objects with underscore separation
+ *
+ * @param sourceFile - Source file containing the interface
+ * @param interfaceName - Name of the interface to extract
+ */
+export function extractStateSchema(
+  sourceFile: SourceFile,
+  interfaceName: string
+): StateSchema | undefined {
+  const fields: StateSchemaField[] = [];
+
+  // Find the interface declaration
+  const interfaceDecl = sourceFile.getInterface(interfaceName);
+  if (!interfaceDecl) {
+    return undefined;
+  }
+
+  // Recursive helper to flatten nested properties
+  function processProperties(
+    properties: ReturnType<InterfaceDeclaration['getProperties']>,
+    prefix: string = ''
+  ): void {
+    for (const prop of properties) {
+      const propName = prop.getName();
+      const typeNode = prop.getTypeNode();
+      const fullName = prefix ? `${prefix}_${propName}` : propName;
+
+      if (!typeNode) continue;
+
+      const typeText = typeNode.getText();
+
+      // Check if this is a nested object type (TypeLiteral or interface reference)
+      if (Node.isTypeLiteral(typeNode)) {
+        // Inline object type: { debug: boolean; timeout: number; }
+        const nestedProps = typeNode.getProperties();
+        // Process nested properties with updated prefix
+        for (const nestedProp of nestedProps) {
+          const nestedName = nestedProp.getName();
+          const nestedType = nestedProp.getTypeNode();
+          if (!nestedType) continue;
+
+          const nestedTypeText = nestedType.getText();
+          const nestedFullName = `${fullName}_${nestedName}`;
+
+          // For now, only go one level deep (can extend later)
+          const tsType = nestedTypeText.includes('|') ? 'string' : nestedTypeText;
+          const sqlType = mapTsTypeToSql(tsType);
+          const enumValues = extractEnumValues(nestedTypeText);
+
+          fields.push({
+            name: nestedFullName,
+            tsType,
+            sqlType,
+            defaultValue: getDefaultValue(tsType, sqlType),
+            enumValues
+          });
+        }
+      } else {
+        // Simple type
+        const tsType = typeText.includes('|') ? 'string' : typeText;
+        const sqlType = mapTsTypeToSql(tsType);
+        const enumValues = extractEnumValues(typeText);
+
+        fields.push({
+          name: fullName,
+          tsType,
+          sqlType,
+          defaultValue: getDefaultValue(tsType, sqlType),
+          enumValues
+        });
+      }
+    }
+  }
+
+  processProperties(interfaceDecl.getProperties());
+
+  return {
+    interfaceName,
+    fields
+  };
+}
+
+/**
+ * Extract $variable arguments from SQL template
+ * Returns unique argument names without the $ prefix
+ */
+export function extractSqlArguments(sqlTemplate: string): string[] {
+  const regex = /\$([a-z_][a-z0-9_]*)/gi;
+  const args = new Set<string>();
+  let match;
+  while ((match = regex.exec(sqlTemplate)) !== null) {
+    args.add(match[1].toLowerCase());
+  }
+  return Array.from(args);
 }
