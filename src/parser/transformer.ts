@@ -40,6 +40,8 @@ import type {
   SkillFrontmatterNode,
   SkillFileNode,
   SkillStaticNode,
+  ReadStateNode,
+  WriteStateNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
@@ -60,7 +62,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -101,6 +103,8 @@ export class Transformer {
   private variables: Map<string, ExtractedVariable> = new Map();
   /** Extracted useOutput declarations: identifier name -> agent name */
   private outputs: Map<string, string> = new Map();
+  /** Extracted useStateRef declarations: identifier name -> state key */
+  private stateRefs: Map<string, string> = new Map();
 
   /**
    * Create a TranspileError with source location context from a node
@@ -123,6 +127,7 @@ export class Transformer {
     this.visitedPaths = new Set();
     this.variables = new Map();
     this.outputs = new Map();
+    this.stateRefs = new Map();
 
     if (sourceFile) {
       this.visitedPaths.add(sourceFile.getFilePath());
@@ -130,6 +135,8 @@ export class Transformer {
       this.variables = extractVariableDeclarations(sourceFile);
       // Extract useOutput declarations for OnStatus tracking
       this.outputs = this.extractOutputDeclarations(sourceFile);
+      // Extract useStateRef declarations for ReadState/WriteState tracking
+      this.stateRefs = this.extractStateRefDeclarations(sourceFile);
     }
 
     // Check for Command, Agent, or Skill wrapper at root level
@@ -592,6 +599,16 @@ export class Transformer {
     // OnStatus component - status-based conditional block
     if (name === 'OnStatus') {
       return this.transformOnStatus(node);
+    }
+
+    // ReadState component - read state from registry
+    if (name === 'ReadState') {
+      return this.transformReadState(node);
+    }
+
+    // WriteState component - write state to registry
+    if (name === 'WriteState') {
+      return this.transformWriteState(node);
     }
 
     // Markdown passthrough
@@ -1497,6 +1514,145 @@ export class Transformer {
     });
 
     return outputs;
+  }
+
+  /**
+   * Extract useStateRef declarations from source file
+   * Returns map of identifier name -> state key
+   *
+   * Uses forEachDescendant to find declarations inside function bodies,
+   * following the same pattern as extractOutputDeclarations
+   */
+  private extractStateRefDeclarations(sourceFile: SourceFile): Map<string, string> {
+    const stateRefs = new Map<string, string>();
+
+    // Find all variable declarations (including inside functions)
+    sourceFile.forEachDescendant((node) => {
+      if (!Node.isVariableDeclaration(node)) return;
+
+      const init = node.getInitializer();
+      if (!init || !Node.isCallExpression(init)) return;
+
+      // Check if it's a useStateRef call
+      const expr = init.getExpression();
+      if (!Node.isIdentifier(expr) || expr.getText() !== 'useStateRef') return;
+
+      const args = init.getArguments();
+      if (args.length < 1) return;
+
+      const keyArg = args[0];
+      // Get the string literal value (state key)
+      if (Node.isStringLiteral(keyArg)) {
+        const stateKey = keyArg.getLiteralValue();
+        const identName = node.getName();
+        stateRefs.set(identName, stateKey);
+      }
+    });
+
+    return stateRefs;
+  }
+
+  /**
+   * Transform ReadState JSX element into IR node
+   *
+   * Extracts:
+   * - state: StateRef with key property
+   * - into: VariableRef with name property
+   * - field: optional nested path string
+   */
+  private transformReadState(node: JsxElement | JsxSelfClosingElement): ReadStateNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract state prop (StateRef object with key property)
+    const stateAttr = openingElement.getAttribute('state');
+    if (!stateAttr || !Node.isJsxAttribute(stateAttr)) {
+      throw this.createError('ReadState requires state prop', openingElement);
+    }
+    const stateInit = stateAttr.getInitializer();
+    if (!stateInit || !Node.isJsxExpression(stateInit)) {
+      throw this.createError('ReadState state prop must be JSX expression', openingElement);
+    }
+    // Extract key from StateRef: { key: "..." }
+    const stateExpr = stateInit.getExpression();
+    if (!stateExpr) {
+      throw this.createError('ReadState state prop expression is empty', openingElement);
+    }
+    // Get the identifier name, then resolve to find the key
+    const stateKey = this.extractStateKey(stateExpr, openingElement);
+
+    // Extract into prop (VariableRef)
+    const intoAttr = openingElement.getAttribute('into');
+    if (!intoAttr || !Node.isJsxAttribute(intoAttr)) {
+      throw this.createError('ReadState requires into prop', openingElement);
+    }
+    const intoInit = intoAttr.getInitializer();
+    if (!intoInit || !Node.isJsxExpression(intoInit)) {
+      throw this.createError('ReadState into prop must be JSX expression', openingElement);
+    }
+    const intoExpr = intoInit.getExpression();
+    if (!intoExpr) {
+      throw this.createError('ReadState into prop expression is empty', openingElement);
+    }
+    const variableName = this.extractVariableName(intoExpr, openingElement);
+
+    // Extract optional field prop (string)
+    const fieldAttr = openingElement.getAttribute('field');
+    let field: string | undefined;
+    if (fieldAttr && Node.isJsxAttribute(fieldAttr)) {
+      const fieldInit = fieldAttr.getInitializer();
+      if (fieldInit && Node.isStringLiteral(fieldInit)) {
+        field = fieldInit.getLiteralText();
+      }
+    }
+
+    return {
+      kind: 'readState',
+      stateKey,
+      variableName,
+      field,
+    };
+  }
+
+  /**
+   * Extract state key from StateRef expression
+   * Handles: identifier pointing to useStateRef result
+   */
+  private extractStateKey(expr: Node, element: JsxOpeningElement | JsxSelfClosingElement): string {
+    // Handle identifier (e.g., projectState from useStateRef)
+    if (Node.isIdentifier(expr)) {
+      const name = expr.getText();
+      // Look up in tracked state refs (similar to variables tracking)
+      const tracked = this.stateRefs.get(name);
+      if (tracked) return tracked;
+      // Not found - error
+      throw this.createError(
+        `State reference '${name}' not found. Did you declare it with useStateRef()?`,
+        element
+      );
+    }
+    throw this.createError(`Cannot extract state key from: ${expr.getText()}`, element);
+  }
+
+  /**
+   * Extract variable name from VariableRef expression
+   * Handles: identifier pointing to useVariable result
+   */
+  private extractVariableName(expr: Node, element: JsxOpeningElement | JsxSelfClosingElement): string {
+    // Handle identifier (e.g., nameVar from useVariable)
+    if (Node.isIdentifier(expr)) {
+      const name = expr.getText();
+      // Look up in tracked variables
+      const tracked = this.variables.get(name);
+      if (tracked) return tracked.envName;
+      // Not found - error
+      throw this.createError(
+        `Variable '${name}' not found. Did you declare it with useVariable()?`,
+        element
+      );
+    }
+    throw this.createError(`Cannot extract variable name from: ${expr.getText()}`, element);
   }
 
   /**
