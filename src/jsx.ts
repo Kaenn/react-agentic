@@ -56,8 +56,22 @@ export interface SpawnAgentProps<TInput = unknown> {
   model: string;
   /** Human-readable description of the task */
   description: string;
-  /** Prompt content - supports multi-line and {variable} placeholders */
-  prompt: string;
+  /**
+   * @deprecated Use `input` prop with typed object or VariableRef instead.
+   * Prompt content - supports multi-line and {variable} placeholders
+   */
+  prompt?: string;
+  /**
+   * Typed input - either a VariableRef from useVariable() or an object literal.
+   * Auto-generates structured prompt from Agent's interface contract.
+   * Mutually exclusive with prompt prop.
+   */
+  input?: VariableRef<TInput> | Partial<TInput>;
+  /**
+   * Optional extra instructions appended to the auto-generated prompt.
+   * Only used when input prop is provided.
+   */
+  children?: ReactNode;
   // TInput enables compile-time validation against Agent's interface
 }
 
