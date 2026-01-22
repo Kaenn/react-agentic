@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 16 (Skill Component)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-22 - Completed 16-01-PLAN.md
+Last activity: 2026-01-22 - Completed 16-02-PLAN.md
 
-Progress: [██░░░░░░░░] Phase 16: 20%
+Progress: [████░░░░░░] Phase 16: 40%
 
 ## Milestone History
 
@@ -51,7 +51,7 @@ Progress: [██░░░░░░░░] Phase 16: 20%
 | 12 | 4/4 | 12m | 3m |
 | 14 | 3/3 | 9m | 3m |
 | 15 | 3/3 | 8m 19s | 2m 46s |
-| 16 | 1/5 | 2m | 2m |
+| 16 | 2/5 | 4m | 2m |
 
 *Updated after each plan completion*
 
@@ -139,6 +139,11 @@ v1.5 implementation decisions (16-01):
 - skill-document-arrays: SkillDocumentNode uses separate files[] and statics[] arrays (not mixed children)
 - skill-camelcase-props: SkillFrontmatterNode uses camelCase, emitter maps to kebab-case YAML
 
+v1.5 implementation decisions (16-02):
+- skill-name-validation-transform: Skill name validated at transform time (fail-fast)
+- boolean-attr-valueless: getBooleanAttribute supports valueless `prop` syntax (means true)
+- skill-child-separation: processSkillChildren routes SkillFile/SkillStatic to handlers, body uses transformToBlock
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -164,5 +169,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 16-01-PLAN.md
+Stopped at: Completed 16-02-PLAN.md
 Resume with: `/gsd:execute-phase 16`
