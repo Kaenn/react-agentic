@@ -297,7 +297,8 @@ export type BlockNode =
   | ElseNode
   | OnStatusNode
   | ReadStateNode
-  | WriteStateNode;
+  | WriteStateNode
+  | MCPServerNode;
 
 // ============================================================================
 // Special Nodes
@@ -342,6 +343,37 @@ export interface AgentDocumentNode {
   kind: 'agentDocument';
   frontmatter: AgentFrontmatterNode;  // Required for agents (vs optional for Command)
   children: BlockNode[];
+}
+
+// ============================================================================
+// MCP Configuration Nodes
+// ============================================================================
+
+/**
+ * MCP Server configuration node
+ * Represents a single MCP server definition
+ */
+export interface MCPServerNode {
+  kind: 'mcpServer';
+  name: string;                        // Server name (key in mcpServers object)
+  type: 'stdio' | 'http' | 'sse';      // Transport type
+  // Stdio-specific
+  command?: string;                    // Executable command
+  args?: string[];                     // Command arguments
+  // HTTP/SSE-specific
+  url?: string;                        // Remote URL
+  headers?: Record<string, string>;    // Request headers
+  // Common
+  env?: Record<string, string>;        // Environment variables
+}
+
+/**
+ * MCP configuration document root node
+ * Contains one or more MCP server definitions
+ */
+export interface MCPConfigDocumentNode {
+  kind: 'mcpConfigDocument';
+  servers: MCPServerNode[];
 }
 
 // ============================================================================
@@ -428,6 +460,7 @@ export type IRNode =
   | DocumentNode
   | AgentDocumentNode
   | SkillDocumentNode
+  | MCPConfigDocumentNode
   | TypeReference;
 
 // ============================================================================
