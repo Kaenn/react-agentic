@@ -46,6 +46,14 @@ export interface AgentProps<TInput = unknown> {
 }
 
 /**
+ * Utility type that allows each property to be either the original type or a VariableRef
+ * Enables: { key: "string" } OR { key: variableRef }
+ */
+type AllowVariableRefs<T> = {
+  [K in keyof T]: T[K] | VariableRef<T[K]>;
+};
+
+/**
  * Props for the SpawnAgent component
  * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
  */
@@ -63,10 +71,11 @@ export interface SpawnAgentProps<TInput = unknown> {
   prompt?: string;
   /**
    * Typed input - either a VariableRef from useVariable() or an object literal.
+   * Object literal values can be strings or VariableRefs.
    * Auto-generates structured prompt from Agent's interface contract.
    * Mutually exclusive with prompt prop.
    */
-  input?: VariableRef<TInput> | Partial<TInput>;
+  input?: VariableRef<TInput> | Partial<AllowVariableRefs<TInput>>;
   /**
    * Optional extra instructions appended to the auto-generated prompt.
    * Only used when input prop is provided.
@@ -266,5 +275,66 @@ export interface AssignProps {
  * ```
  */
 export function Assign(_props: AssignProps): null {
+  return null;
+}
+
+// ============================================================================
+// Conditional Logic (If/Else components)
+// ============================================================================
+
+/**
+ * Props for the If component
+ */
+export interface IfProps {
+  /** Shell test expression (e.g., "[ -f config.json ]") */
+  test: string;
+  /** "then" block content */
+  children?: ReactNode;
+}
+
+/**
+ * Props for the Else component
+ */
+export interface ElseProps {
+  /** "otherwise" block content */
+  children?: ReactNode;
+}
+
+/**
+ * If component - conditional block for prose-based conditionals
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime. Emits as **If {test}:** pattern.
+ *
+ * @example
+ * <If test="[ -f config.json ]">
+ *   <p>Config found, loading...</p>
+ * </If>
+ *
+ * @example with VariableRef interpolation
+ * const phaseDir = useVariable("PHASE_DIR", { bash: `ls -d test` });
+ * <If test={`[ -z ${phaseDir.ref} ]`}>
+ *   <p>No phase directory found.</p>
+ * </If>
+ */
+export function If(_props: IfProps): null {
+  return null;
+}
+
+/**
+ * Else component - optional sibling to If
+ *
+ * Must appear immediately after a closing </If> tag.
+ * It's never executed at runtime. Emits as **Otherwise:** pattern.
+ *
+ * @example
+ * <If test="[ -f config.json ]">
+ *   <p>Config found.</p>
+ * </If>
+ * <Else>
+ *   <p>Config missing.</p>
+ * </Else>
+ */
+export function Else(_props: ElseProps): null {
   return null;
 }
