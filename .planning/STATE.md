@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.5 Command Output Handling IN PROGRESS
+**Current focus:** v1.5 Command Output Handling COMPLETE
 
 ## Current Position
 
 Phase: 15 of 15 (Command Output Handling)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-22 - Completed quick task 003: Add type-safe shell test builder functions
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 15-03-PLAN.md (Emitter)
 
-Progress: [██████░░░░] Phase 15: 67%
-Next: 15-03-PLAN.md (Emitter)
+Progress: [██████████] Phase 15: 100%
+Next: v1.5 release
 
 ## Milestone History
 
@@ -48,6 +48,7 @@ Next: 15-03-PLAN.md (Emitter)
 | 11 | 2/2 | 7m 30s | 3m 45s |
 | 12 | 4/4 | 12m | 3m |
 | 14 | 3/3 | 9m | 3m |
+| 15 | 3/3 | 8m 19s | 2m 46s |
 
 *Updated after each plan completion*
 
@@ -126,6 +127,11 @@ v1.5 implementation decisions (15-02):
 - agent-name-from-useoutput: Agent name resolved from useOutput first argument (string literal)
 - emitter-stub-pattern: OnStatus case in emitter throws 'not yet implemented' following v1.1 pattern
 
+v1.5 implementation decisions (15-03):
+- prose-status-format: OnStatus emits as **On STATUS:** following If/Else pattern
+- forEachDescendant-outputs: extractOutputDeclarations uses forEachDescendant to find declarations inside function bodies
+- field-expression-compile-time: output.field('key') expressions evaluated at compile time to '{output.key}'
+
 ### Pending Todos
 
 None.
@@ -145,5 +151,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 15-02-PLAN.md (Transformer)
-Resume with: 15-03-PLAN.md (Emitter)
+Stopped at: Completed 15-03-PLAN.md (Emitter) - Phase 15 complete
+Resume with: v1.5 release or next development cycle
