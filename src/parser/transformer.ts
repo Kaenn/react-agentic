@@ -35,6 +35,7 @@ import type {
   AssignNode,
   IfNode,
   ElseNode,
+  OnStatusNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
@@ -55,7 +56,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -94,6 +95,8 @@ export class Transformer {
   private visitedPaths: Set<string> = new Set();
   /** Extracted useVariable declarations from source file */
   private variables: Map<string, ExtractedVariable> = new Map();
+  /** Extracted useOutput declarations: identifier name -> agent name */
+  private outputs: Map<string, string> = new Map();
 
   /**
    * Create a TranspileError with source location context from a node
@@ -115,11 +118,14 @@ export class Transformer {
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
     this.variables = new Map();
+    this.outputs = new Map();
 
     if (sourceFile) {
       this.visitedPaths.add(sourceFile.getFilePath());
       // Extract useVariable declarations before JSX processing
       this.variables = extractVariableDeclarations(sourceFile);
+      // Extract useOutput declarations for OnStatus tracking
+      this.outputs = this.extractOutputDeclarations(sourceFile);
     }
 
     // Check for Command or Agent wrapper at root level
@@ -393,6 +399,11 @@ export class Transformer {
     // Else component - standalone is an error (must follow If as sibling)
     if (name === 'Else') {
       throw this.createError('<Else> must follow <If> as sibling', node);
+    }
+
+    // OnStatus component - status-based conditional block
+    if (name === 'OnStatus') {
+      return this.transformOnStatus(node);
     }
 
     // Markdown passthrough
@@ -1227,6 +1238,107 @@ export class Transformer {
 
     return {
       kind: 'else',
+      children,
+    };
+  }
+
+  /**
+   * Extract useOutput declarations from source file
+   * Returns map of identifier name -> agent name
+   */
+  private extractOutputDeclarations(sourceFile: SourceFile): Map<string, string> {
+    const outputs = new Map<string, string>();
+
+    // Find all variable declarations
+    for (const varDecl of sourceFile.getVariableDeclarations()) {
+      const init = varDecl.getInitializer();
+      if (!init) continue;
+
+      // Check if initializer is useOutput call
+      if (Node.isCallExpression(init)) {
+        const expr = init.getExpression();
+        if (Node.isIdentifier(expr) && expr.getText() === 'useOutput') {
+          const args = init.getArguments();
+          if (args.length >= 1) {
+            const agentArg = args[0];
+            // Get the string literal value (agent name)
+            if (Node.isStringLiteral(agentArg)) {
+              const agentName = agentArg.getLiteralValue();
+              const identName = varDecl.getName();
+              outputs.set(identName, agentName);
+            }
+          }
+        }
+      }
+    }
+
+    return outputs;
+  }
+
+  /**
+   * Transform an OnStatus element to OnStatusNode
+   * OnStatus is a block-level element that emits status-based conditionals
+   */
+  private transformOnStatus(node: JsxElement | JsxSelfClosingElement): OnStatusNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract output prop (required) - must be a JSX expression referencing an identifier
+    const outputAttr = openingElement.getAttribute('output');
+    if (!outputAttr || !Node.isJsxAttribute(outputAttr)) {
+      throw this.createError('OnStatus requires output prop', openingElement);
+    }
+
+    const outputInit = outputAttr.getInitializer();
+    if (!outputInit || !Node.isJsxExpression(outputInit)) {
+      throw this.createError('OnStatus output must be a JSX expression: output={outputRef}', openingElement);
+    }
+
+    const outputExpr = outputInit.getExpression();
+    if (!outputExpr || !Node.isIdentifier(outputExpr)) {
+      throw this.createError('OnStatus output must reference a useOutput result', openingElement);
+    }
+
+    // Get the identifier text
+    const outputIdentifier = outputExpr.getText();
+
+    // Look up agent name from outputs map
+    const agentName = this.outputs.get(outputIdentifier);
+    if (!agentName) {
+      throw this.createError(
+        `Output '${outputIdentifier}' not found. Did you declare it with useOutput()?`,
+        openingElement
+      );
+    }
+
+    // Extract status prop (required)
+    const status = getAttributeValue(openingElement, 'status');
+    if (!status) {
+      throw this.createError('OnStatus requires status prop', openingElement);
+    }
+
+    // Validate status is one of the allowed values
+    const validStatuses = ['SUCCESS', 'BLOCKED', 'NOT_FOUND', 'ERROR', 'CHECKPOINT'];
+    if (!validStatuses.includes(status)) {
+      throw this.createError(
+        `OnStatus status must be one of: ${validStatuses.join(', ')}. Got: ${status}`,
+        openingElement
+      );
+    }
+
+    // Transform children as block content
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'onStatus',
+      outputRef: {
+        kind: 'outputReference',
+        agent: agentName,
+      },
+      status: status as OnStatusNode['status'],
       children,
     };
   }
