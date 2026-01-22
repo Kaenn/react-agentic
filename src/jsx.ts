@@ -28,8 +28,9 @@ export interface CommandProps {
 /**
  * Props for the Agent component
  * @typeParam TInput - Type interface for agent input contract (compile-time only)
+ * @typeParam TOutput - Type interface for agent output contract (compile-time only)
  */
-export interface AgentProps<TInput = unknown> {
+export interface AgentProps<TInput = unknown, TOutput = unknown> {
   /** Agent name (used in frontmatter and Task() spawning) */
   name: string;
   /** Agent description (used in frontmatter) */
@@ -42,7 +43,7 @@ export interface AgentProps<TInput = unknown> {
   folder?: string;
   /** Agent body content */
   children?: ReactNode;
-  // TInput is compile-time only - used for cross-file type validation
+  // TInput and TOutput are compile-time only - used for cross-file type validation
 }
 
 /**
@@ -124,17 +125,22 @@ export function Command(_props: CommandProps): null {
  * It's never executed at runtime.
  *
  * @typeParam TInput - Type interface for agent input contract (compile-time only)
+ * @typeParam TOutput - Type interface for agent output contract (compile-time only, must extend BaseOutput)
  * @example
- * // Define input contract
+ * // Define input and output contracts
  * export interface ResearcherInput { phase: string; description: string; }
+ * export interface ResearcherOutput extends BaseOutput {
+ *   confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+ *   findings?: string[];
+ * }
  *
- * // Use generic to declare contract
- * <Agent<ResearcherInput> name="researcher" description="Research topics" tools="Read Grep Glob">
+ * // Use generics to declare contracts
+ * <Agent<ResearcherInput, ResearcherOutput> name="researcher" description="Research topics" tools="Read Grep Glob">
  *   <h1>Role</h1>
  *   <p>You are a researcher that finds information using code analysis tools.</p>
  * </Agent>
  */
-export function Agent<TInput = unknown>(_props: AgentProps<TInput>): null {
+export function Agent<TInput = unknown, TOutput = unknown>(_props: AgentProps<TInput, TOutput>): null {
   return null;
 }
 
@@ -276,6 +282,48 @@ export interface AssignProps {
  */
 export function Assign(_props: AssignProps): null {
   return null;
+}
+
+// ============================================================================
+// Agent Output Types
+// ============================================================================
+
+/**
+ * Standard agent return status codes (HTTP-like semantics)
+ *
+ * - SUCCESS: Agent completed task successfully
+ * - BLOCKED: Agent cannot proceed, needs external input/action
+ * - NOT_FOUND: Requested resource or information not found
+ * - ERROR: Agent encountered an error during execution
+ * - CHECKPOINT: Agent reached milestone, pausing for verification
+ */
+export type AgentStatus =
+  | 'SUCCESS'
+  | 'BLOCKED'
+  | 'NOT_FOUND'
+  | 'ERROR'
+  | 'CHECKPOINT';
+
+/**
+ * Base interface all agent outputs must extend
+ *
+ * Provides standard structure for agent return values with required
+ * status code and optional human-readable message.
+ *
+ * @example
+ * export interface ResearcherOutput extends BaseOutput {
+ *   // SUCCESS-specific fields
+ *   confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+ *   findings?: string[];
+ *   // BLOCKED-specific fields
+ *   blockedBy?: string;
+ * }
+ */
+export interface BaseOutput {
+  /** Required: Agent completion status */
+  status: AgentStatus;
+  /** Optional: Human-readable status message */
+  message?: string;
 }
 
 // ============================================================================
