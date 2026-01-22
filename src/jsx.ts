@@ -466,3 +466,114 @@ export function If(_props: IfProps): null {
 export function Else(_props: ElseProps): null {
   return null;
 }
+
+// ============================================================================
+// Shell Test Builders (type-safe test expressions for conditionals)
+// ============================================================================
+
+/**
+ * Generate shell test for file existence
+ *
+ * @param varRef - Variable reference from useVariable
+ * @returns Shell test expression: [ -f $VAR_NAME ]
+ *
+ * @example
+ * const configFile = useVariable("CONFIG", { bash: `echo config.json` });
+ * <If test={fileExists(configFile)}>
+ */
+export function fileExists(varRef: VariableRef): string {
+  return `[ -f $${varRef.name} ]`;
+}
+
+/**
+ * Generate shell test for directory existence
+ *
+ * @param varRef - Variable reference from useVariable
+ * @returns Shell test expression: [ -d $VAR_NAME ]
+ *
+ * @example
+ * const outputDir = useVariable("OUT_DIR", { bash: `echo dist` });
+ * <If test={dirExists(outputDir)}>
+ */
+export function dirExists(varRef: VariableRef): string {
+  return `[ -d $${varRef.name} ]`;
+}
+
+/**
+ * Generate shell test for empty string
+ *
+ * @param varRef - Variable reference from useVariable
+ * @returns Shell test expression: [ -z $VAR_NAME ]
+ *
+ * @example
+ * const result = useVariable("RESULT", { bash: `grep pattern file` });
+ * <If test={isEmpty(result)}>
+ *   <p>No matches found.</p>
+ * </If>
+ */
+export function isEmpty(varRef: VariableRef): string {
+  return `[ -z $${varRef.name} ]`;
+}
+
+/**
+ * Generate shell test for non-empty string
+ *
+ * @param varRef - Variable reference from useVariable
+ * @returns Shell test expression: [ -n $VAR_NAME ]
+ *
+ * @example
+ * const result = useVariable("RESULT", { bash: `grep pattern file` });
+ * <If test={notEmpty(result)}>
+ *   <p>Found matches!</p>
+ * </If>
+ */
+export function notEmpty(varRef: VariableRef): string {
+  return `[ -n $${varRef.name} ]`;
+}
+
+/**
+ * Generate shell test for string equality
+ *
+ * @param varRef - Variable reference from useVariable
+ * @param value - Value to compare against (string literal)
+ * @returns Shell test expression: [ $VAR_NAME = value ]
+ *
+ * @example
+ * const status = useVariable("STATUS", { bash: `echo $?` });
+ * <If test={equals(status, "0")}>
+ *   <p>Success!</p>
+ * </If>
+ */
+export function equals(varRef: VariableRef, value: string): string {
+  return `[ $${varRef.name} = ${value} ]`;
+}
+
+/**
+ * Compose multiple tests with AND (&&)
+ *
+ * @param tests - Test expressions to combine
+ * @returns Combined test: test1 && test2 && ...
+ *
+ * @example
+ * <If test={and(fileExists(config), notEmpty(result))}>
+ *   <p>Config exists AND result is not empty.</p>
+ * </If>
+ */
+export function and(...tests: string[]): string {
+  return tests.join(' && ');
+}
+
+/**
+ * Compose multiple tests with OR (||)
+ *
+ * @param tests - Test expressions to combine
+ * @returns Combined test: test1 || test2 || ...
+ *
+ * @example
+ * <If test={or(fileExists(jsonConfig), fileExists(yamlConfig))}>
+ *   <p>Found either JSON or YAML config.</p>
+ * </If>
+ */
+export function or(...tests: string[]): string {
+  return tests.join(' || ');
+}
