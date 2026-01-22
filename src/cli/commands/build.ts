@@ -22,7 +22,8 @@ import {
   extractInterfaceProperties,
   extractPromptPlaceholders,
 } from '../../index.js';
-import type { DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode } from '../../index.js';
+import type { DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, StateDocumentNode } from '../../index.js';
+import { emitState, generateMainInitSkill } from '../../emitter/state-emitter.js';
 import type { SourceFile } from 'ts-morph';
 import {
   logSuccess,
@@ -177,6 +178,7 @@ async function runBuild(
 
   const results: BuildResult[] = [];
   const mcpConfigs: { inputFile: string; doc: MCPConfigDocumentNode }[] = [];
+  const allStateNames: string[] = [];
   let errorCount = 0;
 
   // Phase 1: Process all files and collect results
@@ -253,6 +255,24 @@ async function runBuild(
           content: markdown,
           size: Buffer.byteLength(markdown, 'utf8'),
         });
+      } else if (doc.kind === 'stateDocument') {
+        // State: multi-file output to .claude/skills/
+        const stateDoc = doc as StateDocumentNode;
+        const result = emitState(stateDoc);
+
+        // Track state name for main init generation
+        allStateNames.push(result.stateName);
+
+        // Write all skill files
+        for (const skill of result.skills) {
+          const skillPath = `.claude/skills/${skill.filename}`;
+          results.push({
+            inputFile,
+            outputPath: skillPath,
+            content: skill.content,
+            size: Buffer.byteLength(skill.content, 'utf8'),
+          });
+        }
       }
     } catch (error) {
       errorCount++;
@@ -263,6 +283,17 @@ async function runBuild(
         logError(inputFile, message);
       }
     }
+  }
+
+  // Generate main init skill if any states were processed
+  if (allStateNames.length > 0) {
+    const mainInit = generateMainInitSkill(allStateNames);
+    results.push({
+      inputFile: 'generated',
+      outputPath: `.claude/skills/${mainInit.filename}`,
+      content: mainInit.content,
+      size: Buffer.byteLength(mainInit.content, 'utf8'),
+    });
   }
 
   // Merge all MCP configs into settings.json
