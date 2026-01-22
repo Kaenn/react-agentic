@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 Phase: 15 of 15 (Command Output Handling)
 Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 15-02-PLAN.md (Transformer)
+Last activity: 2026-01-22 - Completed quick task 003: Add type-safe shell test builder functions
 
 Progress: [██████░░░░] Phase 15: 67%
 Next: 15-03-PLAN.md (Emitter)
@@ -140,6 +140,7 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 |---|-------------|------|--------|-----------|
 | 001 | Docs conditionals feature | 2026-01-22 | fa2d9fd | [001-docs-conditionals-feature](./quick/001-docs-conditionals-feature/) |
 | 002 | Docs + TSX updates for Phase 14 Output Schema | 2026-01-22 | aa096ba | [002-docs-phase-14-output-schema](./quick/002-docs-phase-14-output-schema/) |
+| 003 | Add type-safe shell test builder functions | 2026-01-22 | 1fe764b | [003-add-type-safe-shell-test-builder-functio](./quick/003-add-type-safe-shell-test-builder-functio/) |
 
 ## Session Continuity
 
