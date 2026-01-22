@@ -247,6 +247,39 @@ export interface OnStatusNode {
 }
 
 /**
+ * Read state value from registry
+ * Emits as bash JSON read operation
+ */
+export interface ReadStateNode {
+  kind: 'readState';
+  /** State key identifier (e.g., 'projectContext') */
+  stateKey: string;
+  /** Variable to store result (from useVariable) */
+  variableName: string;
+  /** Optional: nested field path (e.g., 'user.preferences.theme') */
+  field?: string;
+}
+
+/**
+ * Write state value to registry
+ * Emits as bash JSON write operation
+ */
+export interface WriteStateNode {
+  kind: 'writeState';
+  /** State key identifier (e.g., 'projectContext') */
+  stateKey: string;
+  /** Write mode: 'field' for single field, 'merge' for partial update */
+  mode: 'field' | 'merge';
+  /** For field mode: nested field path (e.g., 'user.name') */
+  field?: string;
+  /** Value to write - either variable reference or literal */
+  value: {
+    type: 'variable' | 'literal';
+    content: string;
+  };
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -262,7 +295,9 @@ export type BlockNode =
   | AssignNode
   | IfNode
   | ElseNode
-  | OnStatusNode;
+  | OnStatusNode
+  | ReadStateNode
+  | WriteStateNode;
 
 // ============================================================================
 // Special Nodes
