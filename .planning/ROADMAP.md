@@ -7,6 +7,8 @@
 - **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
 - **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
 - **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
+- **v1.5 Skill System** - Phase 16 (current)
+- **v1.6 State System** - Phase 17 (planned)
 
 ## Phases
 
@@ -44,6 +46,12 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [x] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
 - [x] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
+
+### v1.5 Skill System (Current)
+
+**Milestone Goal:** Enable TSX-authored Claude Code skills with hybrid static/generated file support — SKILL.md generated from TSX, with support for static scripts and templates.
+
+- [ ] **Phase 16: Skill Component** - Skill/SkillFile/SkillStatic components, multi-file output to .claude/skills/{name}/
 
 ## Phase Details
 
@@ -180,10 +188,78 @@ Plans:
 - [x] 15-02-PLAN.md — OnStatus component parsing and IR
 - [x] 15-03-PLAN.md — Emitter for status-based conditional blocks
 
+### Phase 16: Skill Component
+**Goal**: Enable TSX-authored Claude Code skills with hybrid static/generated file support
+**Depends on**: Phase 15
+**Requirements**: SKILL-01, SKILL-02, SKILL-03, SKILL-04, SKILL-05, SKILL-06
+**Success Criteria** (what must be TRUE):
+  1. `<Skill name="deploy" ...>` outputs to `.claude/skills/deploy/SKILL.md`
+  2. Skill frontmatter includes name, description, disableModelInvocation, allowedTools
+  3. `<SkillFile name="reference.md">` generates additional files in skill directory
+  4. `<SkillStatic src="scripts/validate.sh" />` copies static files from source
+  5. Skill body content renders as markdown in SKILL.md
+  6. Build process handles multi-file skill output (SKILL.md + supporting files)
+**Plans:** 5 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — IR and JSX type extensions for Skill
+- [ ] 16-02-PLAN.md — Transformer parsing for Skill/SkillFile/SkillStatic
+- [ ] 16-03-PLAN.md — Emitter and build command multi-file output
+- [ ] 16-04-PLAN.md — Public API exports
+- [ ] 16-05-PLAN.md — Integration test and documentation
+
+**Details:**
+Hybrid approach:
+- SKILL.md: TSX-generated (dynamic content, TypeScript validation, variables)
+- reference.md: TSX-generated via SkillFile (optional, for dynamic content)
+- scripts/: Static files copied via SkillStatic
+- templates/: Static files copied via SkillStatic
+
+### v1.6 State System (Planned)
+
+**Milestone Goal:** Enable typed, persistent state for Commands and Agents with compile-time validation — shared global state accessible via ReadState/WriteState components and CLI skills.
+
+- [ ] **Phase 17: State System** - StateRegistry, ReadState/WriteState components, file adapter, CLI skills
+
+### Phase 17: State System
+**Goal**: Typed, persistent state system for Commands and Agents with compile-time validation
+**Depends on**: Phase 16
+**Requirements**: STATE-01, STATE-02, STATE-03, STATE-04, STATE-05, STATE-06
+**Success Criteria** (what must be TRUE):
+  1. `createStateRegistry()` creates typed registry with schema, storage config, and defaults
+  2. `<ReadState state={ref}>` component reads full state or nested field with compile-time type checking
+  3. `<WriteState state={ref} field="path" value={val}>` writes single field with type validation
+  4. `<WriteState state={ref} merge={partial}>` merges partial updates to state
+  5. FileAdapter persists state to JSON file with create-if-missing behavior
+  6. CLI skills `/react-agentic:read_state` and `/react-agentic:write_state` provide direct access
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 17 to break down)
+
+**Details:**
+Core architecture:
+- State Registry: Centralized file with manual StateKey enum, schema definitions, storage config
+- Components: ReadState (full/field/nested), WriteState (field/merge/replace modes)
+- Storage: Abstract adapter pattern (FileAdapter first, Supabase/Postgres/Redis later)
+- Type Safety: Compile-time validation of field paths and value types
+- Nested Access: Dot-notation paths (e.g., `decisions.techStack`)
+
+File structure:
+```
+src/state/
+├── registry.ts       # Central registry + interfaces
+├── types.ts          # StateRef, StateAdapter, etc.
+├── components.ts     # ReadState, WriteState
+└── adapters/
+    ├── base.ts       # StateAdapter interface
+    └── file.ts       # JSON file adapter
+```
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -195,7 +271,9 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 | 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
+| 16. Skill Component | v1.5 | 0/5 | Not Started | - |
+| 17. State System | v1.6 | 0/? | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*Milestone: v1.4 Agent Output Management — COMPLETE*
+*Milestone: v1.5 Skill System — Phase 16 planned*
