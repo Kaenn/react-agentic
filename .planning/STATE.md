@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 17 (State System)
-Plan: 4 of 6 (17-01 through 17-04, 17-06 complete)
-Status: In progress
-Last activity: 2026-01-22 - Completed 17-06-PLAN.md (CLI Skills)
+Plan: 6 of 6 (all complete)
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 17-05-PLAN.md (Integration & Docs)
 
-Progress: [█████░░░░░] Phase 17: 5/6 plans (83%)
-Next: Execute Plan 17-05 (state-read skill - may be duplicate of 17-06)
+Progress: [██████████] Phase 17: 6/6 plans (100%)
+Next: Phase 17 complete - ready for v1.6 release
 
 ## Milestone History
 
@@ -179,6 +179,10 @@ v1.6 implementation decisions (17-06):
 - dual-implementation-examples: Skills provide both jq and Node.js implementation examples
 - state-directory-convention: State files stored in .state/{key}.json pattern
 
+v1.6 implementation decisions (17-05):
+- demo-uses-equals-helper: State demo uses equals() test helper for type-safe conditionals
+- exports-include-state-types: StateRef, ReadStateProps, WriteStateProps exported from main index
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -204,5 +208,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 17-06-PLAN.md (CLI Skills)
-Resume with: Execute Plan 17-05 (may be duplicate) or complete Phase 17
+Stopped at: Completed 17-05-PLAN.md (Integration & Docs)
+Resume with: Phase 17 complete - v1.6 ready for release
