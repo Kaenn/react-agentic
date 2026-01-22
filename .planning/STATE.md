@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 18 (MCP Configuration)
-Plan: 0 of 4 (not planned yet)
-Status: Not started
-Last activity: 2026-01-22 - Shipped v1.6 State System
+Plan: 1 of 4 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 18-01-PLAN.md (IR Nodes & JSX Components)
 
-Progress: [░░░░░░░░░░] Phase 18: 0%
-Next: `/gsd:plan-phase 18` to break down into plans
+Progress: [██░░░░░░░░] Phase 18: 25%
+Next: Execute 18-02-PLAN.md (Transformer)
 
 ## Milestone History
 
@@ -186,6 +186,10 @@ v1.6 implementation decisions (17-05):
 - demo-uses-equals-helper: State demo uses equals() test helper for type-safe conditionals
 - exports-include-state-types: StateRef, ReadStateProps, WriteStateProps exported from main index
 
+v1.7 implementation decisions (18-01):
+- mcp-transport-types: MCPServerNode supports stdio, http, sse in single type with union
+- convenience-components: MCPStdioServer/MCPHTTPServer wrappers with required props for better TS inference
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -211,5 +215,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed Phase 17 (State System)
-Resume with: Phase 18 planning or v1.6 milestone wrap-up
+Stopped at: Completed 18-01-PLAN.md (IR Nodes & JSX Components)
+Resume with: Execute 18-02-PLAN.md (Transformer)
