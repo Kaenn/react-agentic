@@ -309,6 +309,59 @@ export interface AgentDocumentNode {
   children: BlockNode[];
 }
 
+// ============================================================================
+// Skill Nodes
+// ============================================================================
+
+/**
+ * Skill YAML frontmatter data
+ * Uses Claude Code skills format with kebab-case field names
+ */
+export interface SkillFrontmatterNode {
+  kind: 'skillFrontmatter';
+  name: string;                        // Required: skill directory name
+  description: string;                 // Required: what/when description
+  disableModelInvocation?: boolean;    // Optional: prevent auto-invoke
+  userInvocable?: boolean;             // Optional: hide from / menu
+  allowedTools?: string[];             // Optional: tools without permission
+  argumentHint?: string;               // Optional: [filename] hint
+  model?: string;                      // Optional: model override
+  context?: 'fork';                    // Optional: run in subagent
+  agent?: string;                      // Optional: which subagent
+}
+
+/**
+ * SkillFile node for generated files within skill
+ * Each SkillFile produces an output file in the skill directory
+ */
+export interface SkillFileNode {
+  kind: 'skillFile';
+  name: string;                        // Output filename (e.g., "reference.md")
+  children: BlockNode[];               // Content to generate
+}
+
+/**
+ * SkillStatic node for static file copying
+ * Copies files from source location to skill directory
+ */
+export interface SkillStaticNode {
+  kind: 'skillStatic';
+  src: string;                         // Source path relative to TSX file
+  dest?: string;                       // Optional destination path override
+}
+
+/**
+ * Skill document root node
+ * Produces a skill directory with SKILL.md plus optional supporting files
+ */
+export interface SkillDocumentNode {
+  kind: 'skillDocument';
+  frontmatter: SkillFrontmatterNode;   // Required (like Agent)
+  children: BlockNode[];               // SKILL.md body content
+  files: SkillFileNode[];              // Generated files from SkillFile
+  statics: SkillStaticNode[];          // Static files from SkillStatic
+}
+
 /**
  * Reference to a TypeScript type across files
  * Used for tracking Agent interface imports in SpawnAgent
@@ -333,9 +386,13 @@ export type IRNode =
   | InlineNode
   | FrontmatterNode
   | AgentFrontmatterNode
+  | SkillFrontmatterNode
+  | SkillFileNode
+  | SkillStaticNode
   | ListItemNode
   | DocumentNode
   | AgentDocumentNode
+  | SkillDocumentNode
   | TypeReference;
 
 // ============================================================================
