@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 17 (State System)
-Plan: 1 of 6 (17-02 State Storage Layer)
+Plan: 2 of 6 (17-04 State Emitter Logic)
 Status: In progress
-Last activity: 2026-01-22 - Completed 17-02-PLAN.md
+Last activity: 2026-01-22 - Completed 17-04-PLAN.md
 
-Progress: [█░░░░░░░░░] Phase 17: 1/6 plans (17%)
-Next: Execute Plan 17-03 (useStateRef hook)
+Progress: [██░░░░░░░░] Phase 17: 2/6 plans (33%)
+Next: Execute Plan 17-03 (useStateRef hook) or 17-05 (state-read skill)
 
 ## Milestone History
 
@@ -164,6 +164,12 @@ v1.6 implementation decisions (17-02):
 - file-adapter-pretty-json: FileAdapter uses 2-space JSON formatting for human readability
 - dot-notation-standalone-helpers: getNestedValue/setNestedValue as functions (not class methods) for reuse
 
+v1.6 implementation decisions (17-04):
+- skill-invocation-prose: Emitter generates prose-style "Use skill ..." instructions
+- readstate-optional-field: emitReadState conditionally includes --field flag
+- writestate-dual-mode: emitWriteState handles field mode (--field --value) and merge mode (--merge)
+- variable-shell-syntax: Variable references emit as $VARIABLE_NAME in skill invocations
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -189,5 +195,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 17-02-PLAN.md (State Storage Layer)
-Resume with: Execute Plan 17-03 (useStateRef hook)
+Stopped at: Completed 17-04-PLAN.md (State Emitter Logic)
+Resume with: Execute Plan 17-03 (useStateRef hook) or 17-05 (state-read skill)
