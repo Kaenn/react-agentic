@@ -17,8 +17,8 @@ export * from './emitter/index.js';
 export * from './parser/index.js';
 
 // JSX components and types
-export { Agent, Assign, Command, If, Else, Markdown, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, useOutput, useVariable, useStateRef, ReadState, WriteState, XmlBlock } from './jsx.js';
-export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, VariableRef, WriteStateProps, XmlBlockProps } from './jsx.js';
+export { Agent, Assign, Command, If, Else, Markdown, MCPConfig, MCPServer, MCPStdioServer, MCPHTTPServer, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, useOutput, useVariable, useStateRef, ReadState, WriteState, XmlBlock } from './jsx.js';
+export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, MCPConfigProps, MCPServerProps, MCPStdioServerProps, MCPHTTPServerProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, VariableRef, WriteStateProps, XmlBlockProps } from './jsx.js';
 
 // State System
 export {
