@@ -33,6 +33,8 @@ import type {
   SpawnAgentInput,
   TypeReference,
   AssignNode,
+  IfNode,
+  ElseNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
@@ -53,7 +55,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -227,14 +229,10 @@ export class Transformer {
 
     const frontmatter: FrontmatterNode = { kind: 'frontmatter', data };
 
-    // Transform children as body blocks
-    const children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        const block = this.transformToBlock(child);
-        if (block) children.push(block);
-      }
-    }
+    // Transform children as body blocks (with If/Else sibling detection)
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
 
     return { kind: 'document', frontmatter, children };
   }
@@ -283,28 +281,17 @@ export class Transformer {
       ...(inputType && { inputType }),
     };
 
-    // Transform children as body blocks
-    const children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        const block = this.transformToBlock(child);
-        if (block) children.push(block);
-      }
-    }
+    // Transform children as body blocks (with If/Else sibling detection)
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
 
     return { kind: 'agentDocument', frontmatter, children };
   }
 
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
-    const children = node.getJsxChildren();
-    const blocks: BlockNode[] = [];
-
-    for (const child of children) {
-      const block = this.transformToBlock(child);
-      if (block) blocks.push(block);
-    }
-
-    return blocks;
+    // Use helper for If/Else sibling detection
+    return this.transformBlockChildren(node.getJsxChildren());
   }
 
   private transformToBlock(node: Node): BlockNode | null {
@@ -386,6 +373,16 @@ export class Transformer {
     // Assign block element (variable assignment)
     if (name === 'Assign') {
       return this.transformAssign(node);
+    }
+
+    // If component - conditional block
+    if (name === 'If') {
+      return this.transformIf(node);
+    }
+
+    // Else component - standalone is an error (must follow If as sibling)
+    if (name === 'Else') {
+      throw this.createError('<Else> must follow <If> as sibling', node);
     }
 
     // Markdown passthrough
@@ -499,11 +496,8 @@ export class Transformer {
       return { kind: 'blockquote', children: [] };
     }
 
-    const children: BlockNode[] = [];
-    for (const child of node.getJsxChildren()) {
-      const block = this.transformToBlock(child);
-      if (block) children.push(block);
-    }
+    // Transform children as blocks (with If/Else sibling detection)
+    const children = this.transformBlockChildren(node.getJsxChildren());
 
     return { kind: 'blockquote', children };
   }
@@ -728,14 +722,10 @@ export class Transformer {
       }
     }
 
-    // Transform children as blocks
-    const children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        const block = this.transformToBlock(child);
-        if (block) children.push(block);
-      }
-    }
+    // Transform children as blocks (with If/Else sibling detection)
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
 
     return {
       kind: 'xmlBlock',
@@ -764,14 +754,10 @@ export class Transformer {
       );
     }
 
-    // Transform children as blocks
-    const children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        const block = this.transformToBlock(child);
-        if (block) children.push(block);
-      }
-    }
+    // Transform children as blocks (with If/Else sibling detection)
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
 
     return {
       kind: 'xmlBlock',
@@ -1190,6 +1176,112 @@ export class Transformer {
         element
       );
     }
+  }
+
+  /**
+   * Transform an If element to IfNode
+   * If is a block-level element that emits prose-based conditionals
+   */
+  private transformIf(node: JsxElement | JsxSelfClosingElement): IfNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract test prop (required)
+    const test = getAttributeValue(openingElement, 'test');
+    if (!test) {
+      throw this.createError('If requires test prop', openingElement);
+    }
+
+    // Transform children as "then" block using helper
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'if',
+      test,
+      children,
+    };
+  }
+
+  /**
+   * Transform an Else element to ElseNode
+   * Else is a block-level element that provides "otherwise" content
+   */
+  private transformElse(node: JsxElement | JsxSelfClosingElement): ElseNode {
+    // Transform children as "else" block
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'else',
+      children,
+    };
+  }
+
+  /**
+   * Transform JSX children to BlockNodes, handling If/Else sibling pairs
+   */
+  private transformBlockChildren(jsxChildren: Node[]): BlockNode[] {
+    const blocks: BlockNode[] = [];
+    let i = 0;
+
+    while (i < jsxChildren.length) {
+      const child = jsxChildren[i];
+
+      // Skip whitespace-only text
+      if (Node.isJsxText(child)) {
+        const text = extractText(child);
+        if (!text) {
+          i++;
+          continue;
+        }
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = getElementName(child);
+
+        if (childName === 'If') {
+          // Transform If
+          const ifNode = this.transformIf(child);
+          blocks.push(ifNode);
+
+          // Check for Else sibling
+          let nextIndex = i + 1;
+          while (nextIndex < jsxChildren.length) {
+            const sibling = jsxChildren[nextIndex];
+            // Skip whitespace-only text
+            if (Node.isJsxText(sibling)) {
+              const text = extractText(sibling);
+              if (!text) {
+                nextIndex++;
+                continue;
+              }
+            }
+            // Check if next non-whitespace is Else
+            if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))
+                && getElementName(sibling) === 'Else') {
+              const elseNode = this.transformElse(sibling);
+              blocks.push(elseNode);
+              i = nextIndex; // Skip past Else in outer loop
+            }
+            break;
+          }
+        } else {
+          const block = this.transformToBlock(child);
+          if (block) blocks.push(block);
+        }
+      } else {
+        const block = this.transformToBlock(child);
+        if (block) blocks.push(block);
+      }
+
+      i++;
+    }
+
+    return blocks;
   }
 
   /**
