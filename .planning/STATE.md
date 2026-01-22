@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 17 (State System)
-Plan: 3 of 6 (17-03 State Transformer, 17-04 State Emitter complete)
+Plan: 4 of 6 (17-01 through 17-04, 17-06 complete)
 Status: In progress
-Last activity: 2026-01-22 - Completed 17-03-PLAN.md (State Transformer)
+Last activity: 2026-01-22 - Completed 17-06-PLAN.md (CLI Skills)
 
-Progress: [███░░░░░░░] Phase 17: 3/6 plans (50%)
-Next: Execute Plan 17-05 (state-read skill) or 17-06 (CLI skills)
+Progress: [█████░░░░░] Phase 17: 5/6 plans (83%)
+Next: Execute Plan 17-05 (state-read skill - may be duplicate of 17-06)
 
 ## Milestone History
 
@@ -174,6 +174,11 @@ v1.6 implementation decisions (17-04):
 - writestate-dual-mode: emitWriteState handles field mode (--field --value) and merge mode (--merge)
 - variable-shell-syntax: Variable references emit as $VARIABLE_NAME in skill invocations
 
+v1.6 implementation decisions (17-06):
+- skill-json-output: Skills output valid JSON for machine-readable responses
+- dual-implementation-examples: Skills provide both jq and Node.js implementation examples
+- state-directory-convention: State files stored in .state/{key}.json pattern
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -199,5 +204,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 17-03-PLAN.md (State Transformer)
-Resume with: Execute Plan 17-05 (state-read skill) or 17-06 (CLI skills)
+Stopped at: Completed 17-06-PLAN.md (CLI Skills)
+Resume with: Execute Plan 17-05 (may be duplicate) or complete Phase 17
