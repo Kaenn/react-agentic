@@ -155,6 +155,10 @@ v1.5 implementation decisions (16-04):
 - wildcard-preserves-ir: export * from ir/index.js already exports SkillDocumentNode and related types
 - wildcard-preserves-emitter: export * from emitter/index.js already exports emitSkill/emitSkillFile
 
+v1.6 implementation decisions (17-01):
+- state-node-modes: WriteStateNode uses mode: 'field' | 'merge' to distinguish write patterns
+- phantom-schema-type: StateRef<TSchema> uses phantom _schema property for compile-time typing
+
 v1.6 implementation decisions (17-02):
 - adapter-interface-six-methods: StateAdapter defines read/write/readField/writeField/merge/exists
 - file-adapter-pretty-json: FileAdapter uses 2-space JSON formatting for human readability
