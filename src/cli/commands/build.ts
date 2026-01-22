@@ -3,7 +3,7 @@
  */
 import { Command } from 'commander';
 import { globby } from 'globby';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, copyFile } from 'fs/promises';
 import path from 'path';
 import { Node } from 'ts-morph';
 import type { Project } from 'ts-morph';
@@ -13,12 +13,14 @@ import {
   transform,
   emit,
   emitAgent,
+  emitSkill,
+  emitSkillFile,
   getAttributeValue,
   resolveTypeImport,
   extractInterfaceProperties,
   extractPromptPlaceholders,
 } from '../../index.js';
-import type { DocumentNode, AgentDocumentNode } from '../../index.js';
+import type { DocumentNode, AgentDocumentNode, SkillDocumentNode } from '../../index.js';
 import type { SourceFile } from 'ts-morph';
 import {
   logSuccess,
@@ -112,6 +114,52 @@ function validateSpawnAgents(
 }
 
 /**
+ * Process a skill document into build outputs
+ */
+function processSkill(
+  doc: SkillDocumentNode,
+  inputFile: string
+): BuildResult[] {
+  const skillName = doc.frontmatter.name;
+  const skillDir = `.claude/skills/${skillName}`;
+  const inputDir = path.dirname(inputFile);
+
+  const results: BuildResult[] = [];
+
+  // 1. Generate SKILL.md
+  const skillMd = emitSkill(doc);
+  const skillMdResult: BuildResult = {
+    inputFile,
+    outputPath: `${skillDir}/SKILL.md`,
+    content: skillMd,
+    size: Buffer.byteLength(skillMd, 'utf8'),
+  };
+
+  // Attach statics to SKILL.md result (processed during write phase)
+  if (doc.statics.length > 0) {
+    skillMdResult.statics = doc.statics.map(s => ({
+      src: path.resolve(inputDir, s.src),
+      dest: `${skillDir}/${s.dest || path.basename(s.src)}`,
+    }));
+  }
+
+  results.push(skillMdResult);
+
+  // 2. Generate SkillFiles
+  for (const file of doc.files) {
+    const content = emitSkillFile(file);
+    results.push({
+      inputFile,
+      outputPath: `${skillDir}/${file.name}`,
+      content,
+      size: Buffer.byteLength(content, 'utf8'),
+    });
+  }
+
+  return results;
+}
+
+/**
  * Run a build cycle for the given files
  * Returns counts for summary reporting
  */
@@ -144,13 +192,15 @@ async function runBuild(
       const doc = transform(root, sourceFile);
 
       // Determine output path and emit based on document type
-      let markdown: string;
-      let outputPath: string;
       const basename = path.basename(inputFile, '.tsx');
 
-      if (doc.kind === 'agentDocument') {
+      if (doc.kind === 'skillDocument') {
+        // Skill: multi-file output to .claude/skills/{name}/
+        const skillResults = processSkill(doc, inputFile);
+        results.push(...skillResults);
+      } else if (doc.kind === 'agentDocument') {
         // Agent: emit with GSD format (pass sourceFile for structured_returns)
-        markdown = emitAgent(doc, sourceFile);
+        const markdown = emitAgent(doc, sourceFile);
 
         // Get folder prop for output path (need to re-parse for this)
         // The folder prop affects output path but is not in frontmatter
@@ -165,11 +215,18 @@ async function runBuild(
         const agentDir = folder
           ? path.join('.claude/agents', folder)
           : '.claude/agents';
-        outputPath = path.join(agentDir, `${basename}.md`);
+        const outputPath = path.join(agentDir, `${basename}.md`);
+
+        results.push({
+          inputFile,
+          outputPath,
+          content: markdown,
+          size: Buffer.byteLength(markdown, 'utf8'),
+        });
       } else {
         // Command: emit with standard format, use --out option
-        markdown = emit(doc);
-        outputPath = path.join(options.out, `${basename}.md`);
+        const markdown = emit(doc);
+        const outputPath = path.join(options.out, `${basename}.md`);
 
         // Run validation pass for documents with SpawnAgent
         const validationErrors = validateSpawnAgents(doc, sourceFile);
@@ -179,15 +236,14 @@ async function runBuild(
         }
         // Note: Validation errors are logged but build continues (warning mode)
         // To make validation blocking, add: if (validationErrors.length > 0) continue;
-      }
 
-      // Collect result
-      results.push({
-        inputFile,
-        outputPath,
-        content: markdown,
-        size: Buffer.byteLength(markdown, 'utf8'),
-      });
+        results.push({
+          inputFile,
+          outputPath,
+          content: markdown,
+          size: Buffer.byteLength(markdown, 'utf8'),
+        });
+      }
     } catch (error) {
       errorCount++;
       if (error instanceof TranspileError) {
@@ -207,6 +263,16 @@ async function runBuild(
       await mkdir(outputDir, { recursive: true });
       await writeFile(result.outputPath, result.content, 'utf-8');
       logSuccess(result.inputFile, result.outputPath);
+
+      // Copy static files if present (skills only)
+      if (result.statics) {
+        for (const staticFile of result.statics) {
+          const destDir = path.dirname(staticFile.dest);
+          await mkdir(destDir, { recursive: true });
+          await copyFile(staticFile.src, staticFile.dest);
+          logSuccess(staticFile.src, staticFile.dest);
+        }
+      }
     }
   }
 

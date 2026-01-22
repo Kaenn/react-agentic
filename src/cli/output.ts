@@ -64,6 +64,8 @@ export interface BuildResult {
   outputPath: string;
   content: string;
   size: number;
+  /** Static files to copy (skills only) */
+  statics?: Array<{ src: string; dest: string }>;
 }
 
 /**
