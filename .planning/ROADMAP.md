@@ -202,7 +202,7 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — IR and JSX type extensions for Skill
+- [x] 16-01-PLAN.md — IR and JSX type extensions for Skill
 - [ ] 16-02-PLAN.md — Transformer parsing for Skill/SkillFile/SkillStatic
 - [ ] 16-03-PLAN.md — Emitter and build command multi-file output
 - [ ] 16-04-PLAN.md — Public API exports
@@ -271,7 +271,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 16. Skill Component | v1.5 | 0/5 | Not Started | - |
+| 16. Skill Component | v1.5 | 1/5 | In Progress | - |
 | 17. State System | v1.6 | 0/? | Not Started | - |
 
 ---

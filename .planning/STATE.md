@@ -5,17 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.4 Agent Output Management COMPLETE
+**Current focus:** v1.5 Skill System
 
 ## Current Position
 
-Phase: 15 of 15 (Command Output Handling)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed quick task 004: Docs + TSX updates for Phase 15
+Phase: 16 (Skill Component)
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-01-22 - Completed 16-01-PLAN.md
 
-Progress: [██████████] Phase 15: 100%
-Next: v1.4 release or next milestone
+Progress: [██░░░░░░░░] Phase 16: 20%
 
 ## Milestone History
 
@@ -52,6 +51,7 @@ Next: v1.4 release or next milestone
 | 12 | 4/4 | 12m | 3m |
 | 14 | 3/3 | 9m | 3m |
 | 15 | 3/3 | 8m 19s | 2m 46s |
+| 16 | 1/5 | 2m | 2m |
 
 *Updated after each plan completion*
 
@@ -135,6 +135,15 @@ v1.4 implementation decisions (15-03):
 - forEachDescendant-outputs: extractOutputDeclarations uses forEachDescendant to find declarations inside function bodies
 - field-expression-compile-time: output.field('key') expressions evaluated at compile time to '{output.key}'
 
+v1.5 implementation decisions (16-01):
+- skill-document-arrays: SkillDocumentNode uses separate files[] and statics[] arrays (not mixed children)
+- skill-camelcase-props: SkillFrontmatterNode uses camelCase, emitter maps to kebab-case YAML
+
+### Roadmap Evolution
+
+- Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
+- Phase 17 added: State System — Typed, persistent state for Commands and Agents with compile-time validation
+
 ### Pending Todos
 
 None.
@@ -155,5 +164,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Phase 15 execution complete, milestone v1.4 verified
-Resume with: `/gsd:audit-milestone` or `/gsd:complete-milestone`
+Stopped at: Completed 16-01-PLAN.md
+Resume with: `/gsd:execute-phase 16`
