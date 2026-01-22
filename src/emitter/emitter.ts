@@ -14,8 +14,10 @@ import type {
   BlockquoteNode,
   CodeBlockNode,
   DocumentNode,
+  ElseNode,
   FrontmatterNode,
   HeadingNode,
+  IfNode,
   InlineNode,
   InputPropertyValue,
   ListItemNode,
@@ -134,6 +136,10 @@ export class MarkdownEmitter {
         return this.emitSpawnAgent(node);
       case 'assign':
         return this.emitAssign(node);
+      case 'if':
+        return this.emitIf(node);
+      case 'else':
+        return this.emitElse(node);
       default:
         return assertNever(node);
     }
@@ -429,6 +435,50 @@ export class MarkdownEmitter {
     }
 
     return `\`\`\`bash\n${line}\n\`\`\``;
+  }
+
+  /**
+   * Emit If node as prose-based conditional
+   *
+   * Output format:
+   * **If {test}:**
+   *
+   * {content}
+   */
+  private emitIf(node: IfNode): string {
+    const parts: string[] = [];
+
+    // Emit condition header
+    parts.push(`**If ${node.test}:**`);
+
+    // Emit "then" block content with blank line after header
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Emit Else node as prose-based conditional
+   *
+   * Output format:
+   * **Otherwise:**
+   *
+   * {content}
+   */
+  private emitElse(node: ElseNode): string {
+    const parts: string[] = [];
+
+    // Emit "otherwise" header
+    parts.push('**Otherwise:**');
+
+    // Emit "else" block content with blank line after header
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    return parts.join('\n\n');
   }
 
   /**
