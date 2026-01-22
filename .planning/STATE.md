@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.2 Type-Safe Communication COMPLETE
+**Current focus:** v1.3 Conditional Logic IN PROGRESS
 
 ## Current Position
 
-Phase: 12 (Typed SpawnAgent Input)
-Plan: 4 of 4 complete
-Status: v1.2 COMPLETE
-Last activity: 2026-01-22 - Completed 12-04-PLAN.md
+Phase: 13 of 15 (Conditional Logic)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 13-01-PLAN.md
 
-Progress: [██████████] v1.2 100%
-Next: Define v1.3 milestone or documentation update
+Progress: [█░░░░░░░░░] Phase 13: 33%
+Next: 13-02-PLAN.md (Transformer parsing for If/Else)
 
 ## Milestone History
 
@@ -108,5 +108,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12-04-PLAN.md (Phase 12 COMPLETE, v1.2 COMPLETE)
-Resume with: Define next milestone or update documentation
+Stopped at: Completed 13-01-PLAN.md (IR and JSX stubs for If/Else)
+Resume with: 13-02-PLAN.md (Transformer parsing for If/Else)

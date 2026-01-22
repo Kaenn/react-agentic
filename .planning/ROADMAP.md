@@ -36,6 +36,13 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [ ] **Phase 13: Conditional Logic** - If/Else components for shell test expressions, variable interpolation, compile-time syntax validation
 
+### v1.4 Agent Output Management (Planned)
+
+**Milestone Goal:** Enable typed agent-to-command communication with standard status protocols — agents return structured outputs, commands handle them with type-safe status-based conditional blocks.
+
+- [ ] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
+- [ ] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
+
 ## Phase Details
 
 ### Phase 8: IR Extensions
@@ -133,14 +140,48 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — IR and JSX type extensions for If/Else
+- [x] 13-01-PLAN.md — IR and JSX type extensions for If/Else
 - [ ] 13-02-PLAN.md — Transformer parsing for If/Else with sibling detection
 - [ ] 13-03-PLAN.md — Emitter and test command
+
+### Phase 14: Agent Output Schema
+**Goal**: Define standard agent output types and auto-generate structured returns section in agent markdown
+**Depends on**: Phase 13
+**Requirements**: OUTPUT-01, OUTPUT-02, OUTPUT-03, OUTPUT-04, OUTPUT-05
+**Success Criteria** (what must be TRUE):
+  1. `AgentStatus` type defines standard codes: SUCCESS, BLOCKED, NOT_FOUND, ERROR, CHECKPOINT
+  2. `BaseOutput` interface requires `status: AgentStatus` with optional `message: string`
+  3. Agent TOutput type parameter extends BaseOutput with status-specific fields
+  4. Emitter generates `<structured_returns>` section from output type interface
+  5. Generated returns show status-specific field templates (e.g., SUCCESS shows confidence, findings)
+**Plans:** 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — AgentStatus and BaseOutput type definitions
+- [ ] 14-02-PLAN.md — TOutput extraction and IR representation
+- [ ] 14-03-PLAN.md — Emitter for structured_returns section
+
+### Phase 15: Command Output Handling
+**Goal**: Enable commands to handle agent outputs with type-safe status-based conditional blocks
+**Depends on**: Phase 14
+**Requirements**: OUTPUT-06, OUTPUT-07, OUTPUT-08, OUTPUT-09, OUTPUT-10
+**Success Criteria** (what must be TRUE):
+  1. `useOutput(AgentRef)` hook returns typed accessor bound to spawned agent
+  2. `<OnStatus output={ref} status="SUCCESS">` component accepts output ref and status
+  3. OnStatus children render as conditional prose block for that status
+  4. Output field interpolation works: `{output.confidence}` emits placeholder
+  5. Multiple OnStatus blocks for different statuses produce sequential conditional blocks
+**Plans:** 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — useOutput hook and OutputRef type
+- [ ] 15-02-PLAN.md — OnStatus component parsing and IR
+- [ ] 15-03-PLAN.md — Emitter for status-based conditional blocks
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -149,8 +190,10 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
-| 13. Conditional Logic | v1.3 | 0/3 | Not Started | — |
+| 13. Conditional Logic | v1.3 | 1/3 | In Progress | — |
+| 14. Agent Output Schema | v1.4 | 0/3 | Not Started | — |
+| 15. Command Output Handling | v1.4 | 0/3 | Not Started | — |
 
 ---
 *Roadmap created: 2026-01-21*
-*Milestone: v1.3 Conditional Logic*
+*Milestone: v1.4 Agent Output Management*
