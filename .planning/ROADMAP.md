@@ -6,6 +6,7 @@
 - **v1.1 Agent Framework** - Phases 8-11 (shipped 2026-01-21)
 - **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
 - **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
+- **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
 
 ## Phases
 
@@ -37,12 +38,12 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [x] **Phase 13: Conditional Logic** - If/Else components for shell test expressions, variable interpolation, compile-time syntax validation
 
-### v1.4 Agent Output Management (Planned)
+### v1.4 Agent Output Management (Complete)
 
 **Milestone Goal:** Enable typed agent-to-command communication with standard status protocols — agents return structured outputs, commands handle them with type-safe status-based conditional blocks.
 
 - [x] **Phase 14: Agent Output Schema** - BaseOutput/AgentStatus types, TOutput type parameter, auto-generated `<structured_returns>`
-- [ ] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
+- [x] **Phase 15: Command Output Handling** - useOutput hook, OnStatus component, status-based conditional rendering
 
 ## Phase Details
 
@@ -175,9 +176,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — useOutput hook and OutputRef type
-- [ ] 15-02-PLAN.md — OnStatus component parsing and IR
-- [ ] 15-03-PLAN.md — Emitter for status-based conditional blocks
+- [x] 15-01-PLAN.md — useOutput hook and OutputRef type
+- [x] 15-02-PLAN.md — OnStatus component parsing and IR
+- [x] 15-03-PLAN.md — Emitter for status-based conditional blocks
 
 ## Progress
 
@@ -193,8 +194,8 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 | 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
 | 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 15. Command Output Handling | v1.4 | 0/3 | Not Started | — |
+| 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
 
 ---
 *Roadmap created: 2026-01-21*
-*Milestone: v1.4 Agent Output Management*
+*Milestone: v1.4 Agent Output Management — COMPLETE*

@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.5 Command Output Handling COMPLETE
+**Current focus:** v1.4 Agent Output Management COMPLETE
 
 ## Current Position
 
@@ -15,7 +15,7 @@ Status: Phase complete
 Last activity: 2026-01-22 - Completed 15-03-PLAN.md (Emitter)
 
 Progress: [██████████] Phase 15: 100%
-Next: v1.5 release
+Next: v1.4 release or next milestone
 
 ## Milestone History
 
@@ -30,6 +30,9 @@ Next: v1.5 release
   - Phase 12: Typed SpawnAgent Input
 - v1.3 Conditional Logic: Shipped 2026-01-22 (1 phase, 3 plans)
   - Phase 13: If/Else Components
+- v1.4 Agent Output Management: Shipped 2026-01-22 (2 phases, 6 plans)
+  - Phase 14: Agent Output Schema
+  - Phase 15: Command Output Handling
 
 ## Performance Metrics
 
@@ -118,16 +121,16 @@ v1.4 implementation decisions (14-03):
 - emitter-type-resolution: Pass sourceFile to emitAgent for type resolution at emit time
 - yaml-template-generation: Generate YAML template from interface properties with type hints
 
-v1.5 implementation decisions (15-01):
+v1.4 implementation decisions (15-01):
 - field-returns-placeholder: field('key') returns '{output.key}' string for runtime interpolation
 - baseoutput-constraint: useOutput<T extends BaseOutput> ensures type safety
 
-v1.5 implementation decisions (15-02):
+v1.4 implementation decisions (15-02):
 - outputs-map-tracking: Track useOutput declarations in Map<string, string> mirroring variables pattern
 - agent-name-from-useoutput: Agent name resolved from useOutput first argument (string literal)
 - emitter-stub-pattern: OnStatus case in emitter throws 'not yet implemented' following v1.1 pattern
 
-v1.5 implementation decisions (15-03):
+v1.4 implementation decisions (15-03):
 - prose-status-format: OnStatus emits as **On STATUS:** following If/Else pattern
 - forEachDescendant-outputs: extractOutputDeclarations uses forEachDescendant to find declarations inside function bodies
 - field-expression-compile-time: output.field('key') expressions evaluated at compile time to '{output.key}'
@@ -151,5 +154,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 15-03-PLAN.md (Emitter) - Phase 15 complete
-Resume with: v1.5 release or next development cycle
+Stopped at: Phase 15 execution complete, milestone v1.4 verified
+Resume with: `/gsd:audit-milestone` or `/gsd:complete-milestone`
