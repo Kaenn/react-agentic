@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.6 State System
+**Current focus:** v1.7 MCP Configuration
 
 ## Current Position
 
-Phase: 17 (State System)
-Plan: 6 of 6 (all complete)
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 17-05-PLAN.md (Integration & Docs)
+Phase: 18 (MCP Configuration)
+Plan: 0 of 4 (not planned yet)
+Status: Not started
+Last activity: 2026-01-22 - Shipped v1.6 State System
 
-Progress: [██████████] Phase 17: 6/6 plans (100%)
-Next: Phase 17 complete - ready for v1.6 release
+Progress: [░░░░░░░░░░] Phase 18: 0%
+Next: `/gsd:plan-phase 18` to break down into plans
 
 ## Milestone History
 
@@ -35,6 +35,8 @@ Next: Phase 17 complete - ready for v1.6 release
   - Phase 15: Command Output Handling
 - v1.5 Skill System: Shipped 2026-01-22 (1 phase, 5 plans)
   - Phase 16: Skill Component
+- v1.6 State System: Shipped 2026-01-22 (1 phase, 6 plans)
+  - Phase 17: State System
 
 ## Performance Metrics
 
@@ -55,6 +57,7 @@ Next: Phase 17 complete - ready for v1.6 release
 | 14 | 3/3 | 9m | 3m |
 | 15 | 3/3 | 8m 19s | 2m 46s |
 | 16 | 5/5 | 11m | 2m 12s |
+| 17 | 6/6 | ~12m | ~2m |
 
 *Updated after each plan completion*
 
@@ -208,5 +211,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 17-05-PLAN.md (Integration & Docs)
-Resume with: Phase 17 complete - v1.6 ready for release
+Stopped at: Completed Phase 17 (State System)
+Resume with: Phase 18 planning or v1.6 milestone wrap-up

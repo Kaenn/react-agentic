@@ -8,7 +8,8 @@
 - **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
 - **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
 - **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
-- **v1.6 State System** - Phase 17 (planned)
+- **v1.6 State System** - Phase 17 (shipped 2026-01-22)
+- **v1.7 MCP Configuration** - Phase 18 (planned)
 
 ## Phases
 
@@ -215,11 +216,11 @@ Hybrid approach:
 - scripts/: Static files copied via SkillStatic
 - templates/: Static files copied via SkillStatic
 
-### v1.6 State System (Planned)
+### v1.6 State System (Complete)
 
 **Milestone Goal:** Enable typed, persistent state for Commands and Agents with compile-time validation — shared global state accessible via ReadState/WriteState components and CLI skills.
 
-- [ ] **Phase 17: State System** - StateRegistry, ReadState/WriteState components, file adapter, CLI skills
+- [x] **Phase 17: State System** - StateRegistry, ReadState/WriteState components, file adapter, CLI skills
 
 ### Phase 17: State System
 **Goal**: Typed, persistent state system for Commands and Agents with compile-time validation
@@ -235,12 +236,12 @@ Hybrid approach:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — IR and JSX type extensions for State
-- [ ] 17-02-PLAN.md — StateRegistry and FileAdapter implementation
-- [ ] 17-03-PLAN.md — Transformer parsing for ReadState/WriteState
-- [ ] 17-04-PLAN.md — Emitter for state operations
-- [ ] 17-05-PLAN.md — Integration test and documentation
-- [ ] 17-06-PLAN.md — CLI skills (state-read, state-write)
+- [x] 17-01-PLAN.md — IR and JSX type extensions for State
+- [x] 17-02-PLAN.md — StateRegistry and FileAdapter implementation
+- [x] 17-03-PLAN.md — Transformer parsing for ReadState/WriteState
+- [x] 17-04-PLAN.md — Emitter for state operations
+- [x] 17-05-PLAN.md — Integration test and documentation
+- [x] 17-06-PLAN.md — CLI skills (state-read, state-write)
 
 **Details:**
 Core architecture:
@@ -259,10 +260,84 @@ src/state/
 └── index.ts          # Public exports
 ```
 
+### v1.7 MCP Configuration (Planned)
+
+**Milestone Goal:** Enable TSX-based MCP server configuration following Claude Code conventions — type-safe server definitions compiled to `.claude/settings.json` format.
+
+- [ ] **Phase 18: MCP Configuration** - MCPServer component, stdio/SSE types, settings.json generation
+
+### Phase 18: MCP Configuration
+**Goal**: TSX-based MCP server configuration that compiles to Claude Code settings format
+**Depends on**: Phase 17
+**Requirements**: MCP-01, MCP-02, MCP-03, MCP-04, MCP-05, MCP-06
+**Success Criteria** (what must be TRUE):
+  1. `<MCPServer name="sqlite" type="stdio" command="npx" args={[...]} />` defines MCP server
+  2. MCPServer supports `type="stdio"` with command/args and `type="sse"` with url
+  3. Optional env prop passes environment variables to server process
+  4. Build generates/updates `.claude/settings.json` mcpServers section
+  5. Multiple MCPServer components merge into single settings.json
+  6. Existing settings.json content preserved (only mcpServers section updated)
+**Plans:** 4 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — IR and JSX type extensions for MCPServer
+- [ ] 18-02-PLAN.md — Transformer parsing for MCPServer component
+- [ ] 18-03-PLAN.md — Settings.json emitter with merge logic
+- [ ] 18-04-PLAN.md — Integration test and documentation
+
+**Details:**
+Component API:
+```tsx
+// Stdio server (most common)
+<MCPServer
+  name="sqlite"
+  type="stdio"
+  command="npx"
+  args={["-y", "mcp-server-sqlite", "--db-path", "./data/state.db"]}
+  env={{ DEBUG: "true" }}  // optional
+/>
+
+// SSE server (remote)
+<MCPServer
+  name="remote-api"
+  type="sse"
+  url="https://api.example.com/mcp"
+/>
+```
+
+Output format (Claude Code settings.json):
+```json
+{
+  "mcpServers": {
+    "sqlite": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-server-sqlite", "--db-path", "./data/state.db"],
+      "env": { "DEBUG": "true" }
+    },
+    "remote-api": {
+      "type": "sse",
+      "url": "https://api.example.com/mcp"
+    }
+  }
+}
+```
+
+File structure:
+```
+src/app/mcp/           # MCP configuration files
+├── sqlite.tsx         # SQLite server config
+├── playwright.tsx     # Playwright server config
+└── custom-api.tsx     # Custom API server config
+
+.claude/
+└── settings.json      # Generated output (merged)
+```
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -275,8 +350,9 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
-| 17. State System | v1.6 | 0/6 | Not Started | - |
+| 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
+| 18. MCP Configuration | v1.7 | 0/4 | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*v1.5 Skill System shipped 2026-01-22*
+*v1.6 State System shipped 2026-01-22*
