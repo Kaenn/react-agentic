@@ -1656,6 +1656,114 @@ export class Transformer {
   }
 
   /**
+   * Transform WriteState JSX element into IR node
+   *
+   * Two modes:
+   * 1. Field mode: field="path" value={val}
+   * 2. Merge mode: merge={partial}
+   */
+  private transformWriteState(node: JsxElement | JsxSelfClosingElement): WriteStateNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract state prop (required)
+    const stateAttr = openingElement.getAttribute('state');
+    if (!stateAttr || !Node.isJsxAttribute(stateAttr)) {
+      throw this.createError('WriteState requires state prop', openingElement);
+    }
+    const stateInit = stateAttr.getInitializer();
+    if (!stateInit || !Node.isJsxExpression(stateInit)) {
+      throw this.createError('WriteState state prop must be JSX expression', openingElement);
+    }
+    const stateExpr = stateInit.getExpression();
+    if (!stateExpr) {
+      throw this.createError('WriteState state prop expression is empty', openingElement);
+    }
+    const stateKey = this.extractStateKey(stateExpr, openingElement);
+
+    // Check for field prop (field mode)
+    const fieldAttr = openingElement.getAttribute('field');
+    const mergeAttr = openingElement.getAttribute('merge');
+
+    if (fieldAttr && Node.isJsxAttribute(fieldAttr)) {
+      // Field mode: field + value
+      const fieldInit = fieldAttr.getInitializer();
+      if (!fieldInit || !Node.isStringLiteral(fieldInit)) {
+        throw this.createError('WriteState field prop must be string literal', openingElement);
+      }
+      const field = fieldInit.getLiteralText();
+
+      // Extract value prop
+      const valueAttr = openingElement.getAttribute('value');
+      if (!valueAttr || !Node.isJsxAttribute(valueAttr)) {
+        throw this.createError('WriteState with field requires value prop', openingElement);
+      }
+      const valueInit = valueAttr.getInitializer();
+      if (!valueInit) {
+        throw this.createError('WriteState value prop is empty', openingElement);
+      }
+
+      let value: { type: 'variable' | 'literal'; content: string };
+      if (Node.isStringLiteral(valueInit)) {
+        value = { type: 'literal', content: valueInit.getLiteralText() };
+      } else if (Node.isJsxExpression(valueInit)) {
+        const valueExpr = valueInit.getExpression();
+        if (!valueExpr) {
+          throw this.createError('WriteState value expression is empty', openingElement);
+        }
+        // Check if it's a variable reference
+        if (Node.isIdentifier(valueExpr)) {
+          const varName = valueExpr.getText();
+          const tracked = this.variables.get(varName);
+          if (tracked) {
+            value = { type: 'variable', content: tracked.envName };
+          } else {
+            // Not a tracked variable - treat as literal expression text
+            value = { type: 'literal', content: valueExpr.getText() };
+          }
+        } else {
+          // Treat as literal expression
+          value = { type: 'literal', content: valueExpr.getText() };
+        }
+      } else {
+        throw this.createError('WriteState value must be string or expression', openingElement);
+      }
+
+      return {
+        kind: 'writeState',
+        stateKey,
+        mode: 'field',
+        field,
+        value,
+      };
+    } else if (mergeAttr && Node.isJsxAttribute(mergeAttr)) {
+      // Merge mode
+      const mergeInit = mergeAttr.getInitializer();
+      if (!mergeInit || !Node.isJsxExpression(mergeInit)) {
+        throw this.createError('WriteState merge prop must be JSX expression', openingElement);
+      }
+      const mergeExpr = mergeInit.getExpression();
+      if (!mergeExpr) {
+        throw this.createError('WriteState merge expression is empty', openingElement);
+      }
+
+      // For merge, we serialize the object literal to JSON
+      // This supports simple object literals at compile time
+      const content = mergeExpr.getText();
+
+      return {
+        kind: 'writeState',
+        stateKey,
+        mode: 'merge',
+        value: { type: 'literal', content },
+      };
+    } else {
+      throw this.createError('WriteState requires either field+value or merge prop', openingElement);
+    }
+  }
+
+  /**
    * Transform an OnStatus element to OnStatusNode
    * OnStatus is a block-level element that emits status-based conditionals
    */
