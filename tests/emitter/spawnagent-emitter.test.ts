@@ -1,12 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { emit } from '../../src/emitter/emitter.js';
-import type { DocumentNode, SpawnAgentNode, FrontmatterNode } from '../../src/ir/index.js';
+import type { DocumentNode, SpawnAgentNode, FrontmatterNode, SpawnAgentInput } from '../../src/ir/index.js';
+
+/**
+ * Input for creating a SpawnAgent in tests
+ * All fields from SpawnAgentNode except 'kind'
+ */
+type SpawnAgentTestInput = {
+  agent: string;
+  model: string;
+  description: string;
+  prompt?: string;
+  input?: SpawnAgentInput;
+  extraInstructions?: string;
+};
 
 /**
  * Helper to create DocumentNode with SpawnAgent for testing
  */
 function createDocWithSpawnAgent(
-  spawnAgents: Omit<SpawnAgentNode, 'kind'>[],
+  spawnAgents: SpawnAgentTestInput[],
   extraChildren: DocumentNode['children'] = []
 ): DocumentNode {
   const frontmatter: FrontmatterNode = {
@@ -271,6 +284,134 @@ describe('SpawnAgent emission', () => {
 
       // Verify the Task() block format matches GSD expectations
       expect(output).toMatch(/Task\(\n {2}prompt=".*",\n {2}subagent_type=".*",\n {2}model=".*",\n {2}description=".*"\n\)/);
+    });
+  });
+
+  describe('input-based prompt generation', () => {
+    it('emits prompt from VariableRef input', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        input: { type: 'variable', variableName: 'CONTEXT' }
+      }]);
+
+      const output = emit(doc);
+
+      // VariableRef should emit <input>{var_name}</input> with lowercase
+      // Actual newlines are preserved in the output
+      expect(output).toContain('<input>');
+      expect(output).toContain('{context}');
+      expect(output).toContain('</input>');
+      // Verify the structure: <input>\n{context}\n</input>
+      expect(output).toMatch(/<input>\n\{context\}\n<\/input>/);
+    });
+
+    it('emits prompt from object literal input', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        input: {
+          type: 'object',
+          properties: [
+            { name: 'phase', value: { type: 'string', value: '5' } },
+            { name: 'goal', value: { type: 'placeholder', name: 'goal_var' } }
+          ]
+        }
+      }]);
+
+      const output = emit(doc);
+
+      // Object literal should emit <prop_name>value</prop_name> per property
+      expect(output).toContain('<phase>');
+      expect(output).toContain('5');
+      expect(output).toContain('</phase>');
+      expect(output).toContain('<goal>');
+      expect(output).toContain('{goal_var}');
+      expect(output).toContain('</goal>');
+    });
+
+    it('emits variable type in object literal with lowercase', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        input: {
+          type: 'object',
+          properties: [
+            { name: 'context', value: { type: 'variable', name: 'CTX' } }
+          ]
+        }
+      }]);
+
+      const output = emit(doc);
+
+      // Variable type values should be lowercase
+      expect(output).toContain('{ctx}');
+    });
+
+    it('appends extraInstructions to generated prompt', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        input: { type: 'variable', variableName: 'CTX' },
+        extraInstructions: 'Additional context here.'
+      }]);
+
+      const output = emit(doc);
+
+      // Prompt should contain both the input block and extra instructions
+      expect(output).toContain('{ctx}');
+      expect(output).toContain('Additional context here.');
+    });
+
+    it('still emits from prompt prop (backward compat)', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        prompt: 'Do the task'
+      }]);
+
+      const output = emit(doc);
+
+      expect(output).toContain('prompt="Do the task"');
+    });
+
+    it('prompt prop takes precedence when both prompt and input exist', () => {
+      // Note: transformer prevents this, but emitter should handle it
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        prompt: 'Use this prompt',
+        input: { type: 'variable', variableName: 'IGNORED' }
+      }]);
+
+      const output = emit(doc);
+
+      // prompt prop should win
+      expect(output).toContain('prompt="Use this prompt"');
+      expect(output).not.toContain('{ignored}');
+    });
+
+    it('separates extraInstructions with double newline', () => {
+      const doc = createDocWithSpawnAgent([{
+        agent: 'test',
+        model: 'm',
+        description: 'd',
+        input: { type: 'variable', variableName: 'DATA' },
+        extraInstructions: 'Extra instructions.'
+      }]);
+
+      const output = emit(doc);
+
+      // The prompt should have double newline before extra instructions
+      // <input>\n{data}\n</input>\n\nExtra instructions.
+      // Actual newlines are preserved in output
+      expect(output).toMatch(/<\/input>\n\nExtra instructions\./);
     });
   });
 });
