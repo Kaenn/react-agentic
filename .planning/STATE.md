@@ -130,9 +130,10 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Docs conditionals feature | 2026-01-22 | fa2d9fd | [001-docs-conditionals-feature](./quick/001-docs-conditionals-feature/) |
+| 002 | Docs + TSX updates for Phase 14 Output Schema | 2026-01-22 | aa096ba | [002-docs-phase-14-output-schema](./quick/002-docs-phase-14-output-schema/) |
 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 14-03-PLAN.md (Emitter) - Phase 14 complete
+Stopped at: Quick task 002 - Phase 14 docs and TSX updates
 Resume with: Phase 15 (Validation) or v1.4 release
