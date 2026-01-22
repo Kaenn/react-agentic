@@ -203,10 +203,10 @@ Plans:
 
 Plans:
 - [x] 16-01-PLAN.md — IR and JSX type extensions for Skill
-- [ ] 16-02-PLAN.md — Transformer parsing for Skill/SkillFile/SkillStatic
-- [ ] 16-03-PLAN.md — Emitter and build command multi-file output
-- [ ] 16-04-PLAN.md — Public API exports
-- [ ] 16-05-PLAN.md — Integration test and documentation
+- [x] 16-02-PLAN.md — Transformer parsing for Skill/SkillFile/SkillStatic
+- [x] 16-03-PLAN.md — Emitter and build command multi-file output
+- [x] 16-04-PLAN.md — Public API exports
+- [x] 16-05-PLAN.md — Integration test and documentation
 
 **Details:**
 Hybrid approach:
@@ -226,34 +226,35 @@ Hybrid approach:
 **Depends on**: Phase 16
 **Requirements**: STATE-01, STATE-02, STATE-03, STATE-04, STATE-05, STATE-06
 **Success Criteria** (what must be TRUE):
-  1. `createStateRegistry()` creates typed registry with schema, storage config, and defaults
-  2. `<ReadState state={ref}>` component reads full state or nested field with compile-time type checking
+  1. `useStateRef<TSchema>(key)` creates typed state reference for compile-time validation
+  2. `<ReadState state={ref}>` reads full state or nested field with compile-time type checking
   3. `<WriteState state={ref} field="path" value={val}>` writes single field with type validation
   4. `<WriteState state={ref} merge={partial}>` merges partial updates to state
   5. FileAdapter persists state to JSON file with create-if-missing behavior
-  6. CLI skills `/react-agentic:read_state` and `/react-agentic:write_state` provide direct access
-**Plans:** 0 plans
+  6. CLI skills `/react-agentic:state-read` and `/react-agentic:state-write` provide direct access
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 17 to break down)
+- [ ] 17-01-PLAN.md — IR and JSX type extensions for State
+- [ ] 17-02-PLAN.md — StateRegistry and FileAdapter implementation
+- [ ] 17-03-PLAN.md — Transformer parsing for ReadState/WriteState
+- [ ] 17-04-PLAN.md — Emitter for state operations
+- [ ] 17-05-PLAN.md — Integration test and documentation
 
 **Details:**
 Core architecture:
-- State Registry: Centralized file with manual StateKey enum, schema definitions, storage config
-- Components: ReadState (full/field/nested), WriteState (field/merge/replace modes)
+- State Reference: useStateRef<TSchema>(key) creates typed reference
+- Components: ReadState (full/field/nested), WriteState (field/merge modes)
 - Storage: Abstract adapter pattern (FileAdapter first, Supabase/Postgres/Redis later)
-- Type Safety: Compile-time validation of field paths and value types
-- Nested Access: Dot-notation paths (e.g., `decisions.techStack`)
+- Type Safety: Compile-time validation via TypeScript generics
+- Nested Access: Dot-notation paths (e.g., `config.debug`)
 
 File structure:
 ```
 src/state/
-├── registry.ts       # Central registry + interfaces
-├── types.ts          # StateRef, StateAdapter, etc.
-├── components.ts     # ReadState, WriteState
-└── adapters/
-    ├── base.ts       # StateAdapter interface
-    └── file.ts       # JSON file adapter
+├── types.ts          # StateAdapter interface, StateConfig, helpers
+├── file-adapter.ts   # JSON file adapter implementation
+└── index.ts          # Public exports
 ```
 
 ## Progress
@@ -272,7 +273,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
-| 17. State System | v1.6 | 0/? | Not Started | - |
+| 17. State System | v1.6 | 0/5 | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
