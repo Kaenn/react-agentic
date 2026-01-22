@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 17 (State System)
-Plan: 0 of ? (not planned yet)
-Status: Not started
-Last activity: 2026-01-22 - Shipped v1.5 Skill System
+Plan: 1 of 6 (17-02 State Storage Layer)
+Status: In progress
+Last activity: 2026-01-22 - Completed 17-02-PLAN.md
 
-Progress: [░░░░░░░░░░] Phase 17: 0%
-Next: `/gsd:plan-phase 17` to break down into plans
+Progress: [█░░░░░░░░░] Phase 17: 1/6 plans (17%)
+Next: Execute Plan 17-03 (useStateRef hook)
 
 ## Milestone History
 
@@ -155,6 +155,11 @@ v1.5 implementation decisions (16-04):
 - wildcard-preserves-ir: export * from ir/index.js already exports SkillDocumentNode and related types
 - wildcard-preserves-emitter: export * from emitter/index.js already exports emitSkill/emitSkillFile
 
+v1.6 implementation decisions (17-02):
+- adapter-interface-six-methods: StateAdapter defines read/write/readField/writeField/merge/exists
+- file-adapter-pretty-json: FileAdapter uses 2-space JSON formatting for human readability
+- dot-notation-standalone-helpers: getNestedValue/setNestedValue as functions (not class methods) for reuse
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -180,5 +185,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed Phase 16 (Skill Component)
-Resume with: Phase 17 or v1.5 milestone wrap-up
+Stopped at: Completed 17-02-PLAN.md (State Storage Layer)
+Resume with: Execute Plan 17-03 (useStateRef hook)
