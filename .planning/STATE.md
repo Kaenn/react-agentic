@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 18 (MCP Configuration)
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 18-01-PLAN.md (IR Nodes & JSX Components)
+Last activity: 2026-01-22 - Completed 18-02-PLAN.md (Transformer)
 
-Progress: [██░░░░░░░░] Phase 18: 25%
-Next: Execute 18-02-PLAN.md (Transformer)
+Progress: [█████░░░░░] Phase 18: 50%
+Next: Execute 18-03-PLAN.md (Emitter)
 
 ## Milestone History
 
@@ -190,6 +190,11 @@ v1.7 implementation decisions (18-01):
 - mcp-transport-types: MCPServerNode supports stdio, http, sse in single type with union
 - convenience-components: MCPStdioServer/MCPHTTPServer wrappers with required props for better TS inference
 
+v1.7 implementation decisions (18-02):
+- mcpconfig-wrapper: MCPConfig wrapper component for multiple server definitions (follows existing patterns)
+- type-specific-validation: Validate prop combinations based on transport type at compile time (fail-fast)
+- process-env-resolution: Resolve process.env.X at build time with error on undefined
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -215,5 +220,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 18-01-PLAN.md (IR Nodes & JSX Components)
-Resume with: Execute 18-02-PLAN.md (Transformer)
+Stopped at: Completed 18-02-PLAN.md (Transformer)
+Resume with: Execute 18-03-PLAN.md (Emitter)
