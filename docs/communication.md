@@ -550,6 +550,125 @@ export default function ConditionalDeployCommand() {
 
 This pattern emits conditional blocks that guide Claude's execution flow, spawning agents only when conditions are met.
 
+## Handling Agent Output
+
+After spawning an agent, you often need to handle its return status. The `useOutput` hook and `OnStatus` component provide type-safe output handling.
+
+### useOutput Hook
+
+Declare an output reference to track an agent's return:
+
+```tsx
+import { useOutput, OnStatus } from '../jsx.js';
+import type { MyAgentOutput } from './my-agent.js';
+
+const output = useOutput<MyAgentOutput>("my-agent");
+```
+
+The generic type parameter links to the agent's output interface, enabling type-safe field access.
+
+### OnStatus Component
+
+Conditionally render content based on agent return status:
+
+```tsx
+<OnStatus output={output} status="SUCCESS">
+  <p>Agent completed with {output.field('confidence')} confidence.</p>
+</OnStatus>
+
+<OnStatus output={output} status="BLOCKED">
+  <p>Agent blocked by: {output.field('blockedBy')}</p>
+</OnStatus>
+
+<OnStatus output={output} status="ERROR">
+  <p>Agent encountered an error.</p>
+</OnStatus>
+```
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `output` | OutputRef | Yes | Output reference from `useOutput` |
+| `status` | string | Yes | Status to match (SUCCESS, BLOCKED, ERROR) |
+| `children` | ReactNode | Yes | Content to render when status matches |
+
+### output.field() Method
+
+Access typed output fields with compile-time interpolation:
+
+```tsx
+output.field('confidence')  // Emits: {output.confidence}
+output.field('blockedBy')   // Emits: {output.blockedBy}
+output.field('message')     // Emits: {output.message}
+```
+
+The field name is validated against the output interface at compile time.
+
+### Output Format
+
+`OnStatus` emits as prose-based markdown, following the same pattern as `<If>/<Else>`:
+
+```markdown
+**On SUCCESS:**
+
+Agent completed with {output.confidence} confidence.
+
+**On BLOCKED:**
+
+Agent blocked by: {output.blockedBy}
+
+**On ERROR:**
+
+Agent encountered an error.
+```
+
+### Complete Example
+
+A command that spawns an agent and handles all return statuses:
+
+```tsx
+import { Command, XmlBlock, SpawnAgent, useOutput, OnStatus } from '../jsx.js';
+import type { BuildAgentInput } from './build-agent.js';
+import type { BuildAgentOutput } from './build-agent.js';
+
+const buildOutput = useOutput<BuildAgentOutput>("build-agent");
+
+export default function BuildCommand() {
+  return (
+    <Command name="build" description="Build with status handling">
+      <XmlBlock name="process">
+        <h2>1. Spawn Build Agent</h2>
+
+        <SpawnAgent<BuildAgentInput>
+          agent="build-agent"
+          model="haiku"
+          description="Build application"
+          input={{ environment: "production" }}
+        />
+
+        <h2>2. Handle Result</h2>
+
+        <OnStatus output={buildOutput} status="SUCCESS">
+          <p>Build succeeded. Artifacts ready at {buildOutput.field('artifactPath')}.</p>
+          <p>Proceeding to deployment...</p>
+        </OnStatus>
+
+        <OnStatus output={buildOutput} status="BLOCKED">
+          <p>Build blocked: {buildOutput.field('blockedBy')}</p>
+          <p>Please resolve the blocker and retry.</p>
+        </OnStatus>
+
+        <OnStatus output={buildOutput} status="ERROR">
+          <p>Build failed: {buildOutput.field('message')}</p>
+          <p>Check logs and fix errors before retrying.</p>
+        </OnStatus>
+      </XmlBlock>
+    </Command>
+  );
+}
+```
+
 ## Tips
 
 1. **Export interfaces from agents** — Enables type-safe spawning
@@ -558,3 +677,5 @@ This pattern emits conditional blocks that guide Claude's execution flow, spawni
 4. **Handle both success/failure** — Agents can fail, plan for it
 5. **Use appropriate models** — `haiku` for simple tasks, `sonnet`/`opus` for complex
 6. **Combine with conditionals** — Use `<If>/<Else>` for conditional agent spawning
+7. **Use OnStatus for agent results** — Handle SUCCESS/BLOCKED/ERROR states explicitly
+8. **Import output types** — Always import the agent's output interface for type safety
