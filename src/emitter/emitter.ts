@@ -234,6 +234,10 @@ export class MarkdownEmitter {
         return this.emitReadState(node);
       case 'writeState':
         return this.emitWriteState(node);
+      case 'mcpServer':
+        // MCP servers are not emitted via markdown emitter
+        // They go through settings.ts emitter to settings.json
+        throw new Error('MCPServerNode should not be emitted via markdown emitter');
       default:
         return assertNever(node);
     }

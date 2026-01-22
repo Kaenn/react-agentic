@@ -5,3 +5,4 @@
  */
 
 export { emit, emitAgent, emitSkill, emitSkillFile, MarkdownEmitter } from './emitter.js';
+export { emitSettings, mergeSettings } from './settings.js';

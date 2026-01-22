@@ -10,6 +10,9 @@ export * from './ir/index.js';
 // Markdown emitter
 export * from './emitter/index.js';
 
+// Settings emitter (re-exported from emitter/index.js via wildcard, explicit for clarity)
+// emitSettings, mergeSettings - for MCP configuration to settings.json
+
 // Parser
 export * from './parser/index.js';
 

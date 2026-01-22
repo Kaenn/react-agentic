@@ -15,12 +15,14 @@ import {
   emitAgent,
   emitSkill,
   emitSkillFile,
+  emitSettings,
+  mergeSettings,
   getAttributeValue,
   resolveTypeImport,
   extractInterfaceProperties,
   extractPromptPlaceholders,
 } from '../../index.js';
-import type { DocumentNode, AgentDocumentNode, SkillDocumentNode } from '../../index.js';
+import type { DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode } from '../../index.js';
 import type { SourceFile } from 'ts-morph';
 import {
   logSuccess,
@@ -174,6 +176,7 @@ async function runBuild(
   }
 
   const results: BuildResult[] = [];
+  const mcpConfigs: { inputFile: string; doc: MCPConfigDocumentNode }[] = [];
   let errorCount = 0;
 
   // Phase 1: Process all files and collect results
@@ -223,7 +226,14 @@ async function runBuild(
           content: markdown,
           size: Buffer.byteLength(markdown, 'utf8'),
         });
-      } else {
+      } else if (doc.kind === 'mcpConfigDocument') {
+        // MCP config: collect servers for batch merge at end
+        mcpConfigs.push({
+          inputFile,
+          doc,
+        });
+        // Don't add to results - settings.json handled separately after loop
+      } else if (doc.kind === 'document') {
         // Command: emit with standard format, use --out option
         const markdown = emit(doc);
         const outputPath = path.join(options.out, `${basename}.md`);
@@ -255,10 +265,43 @@ async function runBuild(
     }
   }
 
+  // Merge all MCP configs into settings.json
+  if (mcpConfigs.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allServers: Record<string, any> = {};
+
+    for (const { doc } of mcpConfigs) {
+      const servers = emitSettings(doc);
+      Object.assign(allServers, servers);
+    }
+
+    if (!options.dryRun) {
+      await mergeSettings('.claude/settings.json', allServers);
+    }
+
+    // Log success for MCP configs
+    for (const { inputFile } of mcpConfigs) {
+      logSuccess(inputFile, '.claude/settings.json');
+    }
+
+    // Add to results for tree display (file already written by mergeSettings)
+    const settingsContent = JSON.stringify(allServers, null, 2);
+    results.push({
+      inputFile: mcpConfigs.map(c => c.inputFile).join(', '),
+      outputPath: '.claude/settings.json',
+      content: settingsContent,
+      size: Buffer.byteLength(settingsContent, 'utf8'),
+      skipWrite: true,  // Already written by mergeSettings
+    });
+  }
+
   // Phase 2: Write files (unless dry-run) and display tree
   if (!options.dryRun) {
     // Write all files (ensure directory exists per-file since Agents may have different paths)
     for (const result of results) {
+      // Skip files already written (e.g., settings.json handled by mergeSettings)
+      if (result.skipWrite) continue;
+
       const outputDir = path.dirname(result.outputPath);
       await mkdir(outputDir, { recursive: true });
       await writeFile(result.outputPath, result.content, 'utf-8');
