@@ -17,9 +17,11 @@ import type {
   FrontmatterNode,
   HeadingNode,
   InlineNode,
+  InputPropertyValue,
   ListItemNode,
   ListNode,
   ParagraphNode,
+  SpawnAgentInput,
   SpawnAgentNode,
   XmlBlockNode,
 } from '../ir/index.js';
@@ -322,6 +324,41 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Generate XML-structured prompt from SpawnAgentInput
+   *
+   * VariableRef -> <input>{var_name}</input>
+   * Object literal -> <prop>value</prop> per property
+   */
+  private generateInputPrompt(input: SpawnAgentInput): string {
+    if (input.type === 'variable') {
+      // Wrap variable in <input> block with lowercase variable name
+      return `<input>\n{${input.variableName.toLowerCase()}}\n</input>`;
+    }
+
+    // Object literal: create XML section per property
+    const sections: string[] = [];
+    for (const prop of input.properties) {
+      const value = this.formatInputValue(prop.value);
+      sections.push(`<${prop.name}>\n${value}\n</${prop.name}>`);
+    }
+    return sections.join('\n\n');
+  }
+
+  /**
+   * Format InputPropertyValue for prompt output
+   */
+  private formatInputValue(value: InputPropertyValue): string {
+    switch (value.type) {
+      case 'string':
+        return value.value;
+      case 'placeholder':
+        return `{${value.name}}`;
+      case 'variable':
+        return `{${value.name.toLowerCase()}}`;
+    }
+  }
+
+  /**
    * Emit SpawnAgent as GSD Task() syntax
    *
    * Output format:
@@ -336,13 +373,26 @@ export class MarkdownEmitter {
     // Escape double quotes in string values (backslash escape for Task() syntax)
     const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
 
-    // Build Task() with proper formatting
-    // Note: prompt can be multi-line, preserve actual newlines
-    // Prompt is optional in IR (for typed input), but emitter requires it for now
-    // Future: generate prompt from input when input prop is used
-    const prompt = node.prompt ?? '';
+    // Determine prompt: use provided prompt OR generate from input
+    let promptContent: string;
+    if (node.prompt) {
+      // Existing prompt-based usage (backward compat)
+      promptContent = node.prompt;
+    } else if (node.input) {
+      // Generate from typed input
+      promptContent = this.generateInputPrompt(node.input);
+    } else {
+      // Neither - shouldn't happen (transformer validates)
+      throw new Error('SpawnAgent requires either prompt or input');
+    }
+
+    // Append extraInstructions if present
+    if (node.extraInstructions) {
+      promptContent = promptContent + '\n\n' + node.extraInstructions;
+    }
+
     return `Task(
-  prompt="${escapeQuotes(prompt)}",
+  prompt="${escapeQuotes(promptContent)}",
   subagent_type="${escapeQuotes(node.agent)}",
   model="${escapeQuotes(node.model)}",
   description="${escapeQuotes(node.description)}"
