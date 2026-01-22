@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 Phase: 19 (Scoped State Skills)
-Plan: 1 of 5 complete
+Plan: 2 of 4 complete
 Status: In progress
-Last activity: 2026-01-22 - Completed 19-01-PLAN.md (IR and JSX Foundation)
+Last activity: 2026-01-22 - Completed 19-02-PLAN.md (Provider Template System)
 
-Progress: [██--------] Phase 19: 20%
-Next: 19-02-PLAN.md (Transformer)
+Progress: [█████-----] Phase 19: 50%
+Next: 19-03-PLAN.md (State Transformer)
 
 ## Milestone History
 
@@ -61,7 +61,7 @@ Next: 19-02-PLAN.md (Transformer)
 | 16 | 5/5 | 11m | 2m 12s |
 | 17 | 6/6 | ~12m | ~2m |
 | 18 | 4/4 | ~15m | ~3m 45s |
-| 19 | 1/5 | 1m 25s | 1m 25s |
+| 19 | 2/4 | 4m 42s | 2m 21s |
 
 *Updated after each plan completion*
 
@@ -214,6 +214,11 @@ v1.8 implementation decisions (19-01):
 - state-provider-config: Separate config object for SQLite-specific configuration (extensible)
 - operation-not-in-blocknode: OperationNode internal to StateDocumentNode only
 
+v1.8 implementation decisions (19-02):
+- provider-registry-pattern: Map-based registry with registerProvider/getProvider
+- sql-escaping-approach: Double single quotes in SQL strings for injection prevention
+- json-output-format: sqlite3 -json piped through jq for reliable parsing
+
 ### Roadmap Evolution
 
 - Phase 16 added: Skill Component — TSX-authored Claude Code skills with hybrid static/generated files
@@ -239,5 +244,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 19-01-PLAN.md (IR and JSX Foundation)
-Resume with: 19-02-PLAN.md (Transformer)
+Stopped at: Completed 19-02-PLAN.md (Provider Template System)
+Resume with: 19-03-PLAN.md (State Transformer)
