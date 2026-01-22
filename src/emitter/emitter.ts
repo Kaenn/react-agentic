@@ -23,6 +23,7 @@ import type {
   InputPropertyValue,
   ListItemNode,
   ListNode,
+  OnStatusNode,
   ParagraphNode,
   SpawnAgentInput,
   SpawnAgentNode,
@@ -154,7 +155,7 @@ export class MarkdownEmitter {
       case 'else':
         return this.emitElse(node);
       case 'onStatus':
-        throw new Error('OnStatus emission not yet implemented');
+        return this.emitOnStatus(node);
       default:
         return assertNever(node);
     }
@@ -489,6 +490,28 @@ export class MarkdownEmitter {
     parts.push('**Otherwise:**');
 
     // Emit "else" block content with blank line after header
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Emit OnStatus node as prose-based status conditional
+   *
+   * Output format:
+   * **On SUCCESS:**
+   *
+   * {content}
+   */
+  private emitOnStatus(node: OnStatusNode): string {
+    const parts: string[] = [];
+
+    // Emit status header
+    parts.push(`**On ${node.status}:**`);
+
+    // Emit block content with blank line after header
     for (const child of node.children) {
       parts.push(this.emitBlock(child));
     }
