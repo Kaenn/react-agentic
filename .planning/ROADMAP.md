@@ -4,7 +4,7 @@
 
 - **v1.0 MVP** - Phases 1-7 (shipped 2026-01-21)
 - **v1.1 Agent Framework** - Phases 8-11 (shipped 2026-01-21)
-- **v1.2 Type-Safe Communication** - Phase 12
+- **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
 
 ## Phases
 
@@ -24,11 +24,11 @@ See: .planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 10: SpawnAgent Component** - Task() syntax generation in Commands
 - [x] **Phase 11: Type Safety** - Generic typing and cross-file validation
 
-### v1.2 Type-Safe Communication (In Progress)
+### v1.2 Type-Safe Communication (Complete)
 
 **Milestone Goal:** Replace manual prompt-based agent communication with type-driven input contracts — SpawnAgent uses typed `input` prop instead of freeform prompts.
 
-- [ ] **Phase 12: Typed SpawnAgent Input** - Input prop with VariableRef/object literal, auto-generated prompts, children as extra instructions
+- [x] **Phase 12: Typed SpawnAgent Input** - Input prop with VariableRef/object literal, auto-generated prompts, children as extra instructions
 
 ## Phase Details
 
@@ -108,10 +108,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — IR and JSX type extensions for input prop
-- [ ] 12-02-PLAN.md — Transformer parsing for input prop and children
-- [ ] 12-03-PLAN.md — Emitter prompt generation from input
-- [ ] 12-04-PLAN.md — Validation tests and documentation
+- [x] 12-01-PLAN.md — IR and JSX type extensions for input prop
+- [x] 12-02-PLAN.md — Transformer parsing for input prop and children
+- [x] 12-03-PLAN.md — Emitter prompt generation from input
+- [x] 12-04-PLAN.md — Validation tests and documentation
 
 ## Progress
 
@@ -124,7 +124,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12
 | 9. Agent Transpilation | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 12. Typed SpawnAgent Input | v1.2 | 0/4 | Planned | - |
+| 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
 
 ---
 *Roadmap created: 2026-01-21*
