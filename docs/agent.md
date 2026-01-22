@@ -5,15 +5,19 @@ Agents are specialized workers that can be spawned by commands using `Task()`. T
 ## Basic Structure
 
 ```tsx
-import { Agent, Markdown, XmlBlock } from '../jsx.js';
+import { Agent, Markdown, XmlBlock, BaseOutput } from '../jsx.js';
 
 export interface MyAgentInput {
   // Define expected input shape
 }
 
+export interface MyAgentOutput extends BaseOutput {
+  // Define output shape (extends required BaseOutput)
+}
+
 export default function MyAgent() {
   return (
-    <Agent<MyAgentInput>
+    <Agent<MyAgentInput, MyAgentOutput>
       name="my-agent"
       description="What this agent does"
       tools="Read, Write, Bash"
@@ -34,14 +38,15 @@ export default function MyAgent() {
 | `tools` | string | | Space-separated tool names |
 | `color` | string | | Terminal output color |
 | `folder` | string | | Subfolder for namespacing |
-| `TInput` | generic | | TypeScript interface for input validation |
+| `TInput` | generic | | TypeScript interface for input contract |
+| `TOutput` | generic | | TypeScript interface for output contract (must extend `BaseOutput`) |
 
 ## Example: Test Runner Agent
 
 An agent that runs tests and reports results:
 
 ```tsx
-import { Agent, XmlBlock, Markdown } from '../jsx.js';
+import { Agent, XmlBlock, Markdown, BaseOutput } from '../jsx.js';
 
 /**
  * Input contract for test-runner agent
@@ -52,9 +57,24 @@ export interface TestRunnerInput {
   watch?: boolean;
 }
 
+/**
+ * Output contract for test-runner agent
+ * Must extend BaseOutput to include required status field
+ */
+export interface TestRunnerOutput extends BaseOutput {
+  // SUCCESS fields
+  passed?: number;
+  failed?: number;
+  skipped?: number;
+  coverage?: number;
+  duration?: string;
+  // FAILED fields
+  failures?: Array<{ test: string; file: string; line: number; error: string }>;
+}
+
 export default function TestRunnerAgent() {
   return (
-    <Agent<TestRunnerInput>
+    <Agent<TestRunnerInput, TestRunnerOutput>
       name="test-runner"
       description="Runs tests and reports results with optional coverage"
       tools="Bash, Read, Grep"
@@ -211,7 +231,7 @@ You receive these parameters in your prompt:
 
 ## Input Interface
 
-The generic type parameter defines the expected input shape:
+The first generic type parameter (`TInput`) defines the expected input shape:
 
 ```tsx
 export interface TestRunnerInput {
@@ -227,6 +247,114 @@ This enables:
 1. **Documentation** — Clear contract for what the agent expects
 2. **Type Safety** — Compile-time validation when used with `SpawnAgent`
 3. **Cross-file Validation** — Commands importing the type get autocomplete
+
+## Output Interface
+
+The second generic type parameter (`TOutput`) defines the agent's return structure. Output interfaces **must extend `BaseOutput`** which provides standard status codes.
+
+### BaseOutput and AgentStatus
+
+```tsx
+import { BaseOutput, AgentStatus } from '../jsx.js';
+
+// AgentStatus is a union of standard status codes:
+type AgentStatus =
+  | 'SUCCESS'      // Agent completed task successfully
+  | 'BLOCKED'      // Agent cannot proceed, needs external input
+  | 'NOT_FOUND'    // Requested resource not found
+  | 'ERROR'        // Agent encountered an error
+  | 'CHECKPOINT';  // Agent reached milestone, pausing
+
+// BaseOutput requires status and optional message:
+interface BaseOutput {
+  status: AgentStatus;
+  message?: string;
+}
+```
+
+### Defining Output Contracts
+
+Extend `BaseOutput` with your agent's specific fields:
+
+```tsx
+export interface AnalyzerOutput extends BaseOutput {
+  // SUCCESS-specific fields
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+  findings?: string[];
+  metrics?: { linesAnalyzed: number; issuesFound: number };
+
+  // BLOCKED-specific fields
+  blockedBy?: string;
+  options?: string[];
+
+  // NOT_FOUND-specific fields
+  searchedPaths?: string[];
+}
+```
+
+### Auto-Generated Structured Returns
+
+When you provide a `TOutput` type parameter, the compiler **automatically generates** a `<structured_returns>` section in the output markdown. This section:
+
+1. Documents all status codes the agent can return
+2. Generates a YAML template showing all interface properties with type hints
+3. Provides a structured format for orchestrators to parse
+
+**Example agent definition:**
+
+```tsx
+export interface ResearcherOutput extends BaseOutput {
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+  findings?: string[];
+  filePath?: string;
+  blockedBy?: string;
+}
+
+<Agent<ResearcherInput, ResearcherOutput>
+  name="researcher"
+  description="Research topics"
+  tools="Read Grep WebSearch"
+>
+  {/* Agent instructions */}
+</Agent>
+```
+
+**Auto-generated output section:**
+
+```markdown
+<structured_returns>
+## Return Format
+
+Return your results as YAML matching this schema:
+
+\`\`\`yaml
+status: SUCCESS | BLOCKED | NOT_FOUND | ERROR | CHECKPOINT
+message: "..."  # optional
+confidence: <HIGH | MEDIUM | LOW>  # optional
+findings: [...]  # optional
+filePath: "..."  # optional
+blockedBy: "..."  # optional
+\`\`\`
+
+## Status Codes
+
+- **SUCCESS**: Task completed successfully
+- **BLOCKED**: Cannot proceed, needs external input
+- **NOT_FOUND**: Requested resource not found
+- **ERROR**: Encountered an error
+- **CHECKPOINT**: Reached milestone, pausing
+</structured_returns>
+```
+
+### Manual vs Auto-Generated
+
+| Approach | When to Use |
+|----------|-------------|
+| Auto-generated (with `TOutput`) | Standard agents with predictable outputs |
+| Manual `<XmlBlock name="structured_returns">` | Complex agents needing custom documentation |
+| Both | Not recommended (manual takes precedence) |
+
+> **Backward Compatibility:** Agents without `TOutput` work exactly as before. No `<structured_returns>` section is generated.
 
 ## Structured Returns
 
@@ -247,6 +375,8 @@ This allows the orchestrating command to handle different outcomes.
 ## Tips
 
 1. **Define clear input contracts** — Document what parameters you expect
-2. **Use structured returns** — Makes parsing results predictable
-3. **Include role section** — Helps Claude understand its purpose
-4. **Export the interface** — Allows type-safe spawning from commands
+2. **Define output contracts** — Use `TOutput` for auto-generated structured returns
+3. **Extend BaseOutput** — Required for output interfaces
+4. **Use structured returns** — Makes parsing results predictable
+5. **Include role section** — Helps Claude understand its purpose
+6. **Export interfaces** — Allows type-safe spawning from commands

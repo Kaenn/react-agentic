@@ -1,4 +1,4 @@
-import { Agent, XmlBlock } from '../../jsx.js';
+import { Agent, XmlBlock, BaseOutput } from '../../jsx.js';
 
 /**
  * Input contract for simple-orchestrator agent
@@ -8,9 +8,23 @@ export interface SimpleOrchestratorInput {
   outputFile: string;
 }
 
+/**
+ * Output contract for simple-orchestrator agent
+ */
+export interface SimpleOrchestratorOutput extends BaseOutput {
+  /** Path to the output file written */
+  outputFile?: string;
+  /** The command timestamp that was parsed */
+  commandTimestamp?: string;
+  /** The agent's generated timestamp */
+  agentTimestamp?: string;
+  /** Whether verification succeeded */
+  success?: boolean;
+}
+
 export default function SimpleOrchestratorAgent() {
   return (
-    <Agent<SimpleOrchestratorInput>
+    <Agent<SimpleOrchestratorInput, SimpleOrchestratorOutput>
       name="simple-orchestrator-agent"
       description="Processes timestamp verification requests. Spawned by test:simple-orchestrator command."
       tools="Read Write Bash"

@@ -1,19 +1,58 @@
-import { Agent, Markdown, XmlBlock } from '../../jsx.js';
+import { Agent, Markdown, XmlBlock, BaseOutput } from '../../jsx.js';
 
 /**
  * Input contract for gsd-phase-researcher agent
+ *
+ * This interface defines what the orchestrator passes via SpawnAgent input prop.
+ * The emitter generates XML blocks like <phase>{value}</phase> for each property.
  */
 export interface PhaseResearcherInput {
+  /** Phase number (e.g., "05") */
   phase: string;
+  /** Phase name extracted from roadmap */
+  phaseName: string;
+  /** Phase description from roadmap */
   phaseDescription: string;
+  /** Requirements content (optional) */
+  requirements?: string;
+  /** Prior decisions from STATE.md (optional) */
+  decisions?: string;
+  /** Phase context from CONTEXT.md (optional) */
+  phaseContext?: string;
+  /** Output directory path for RESEARCH.md */
   outputDir: string;
-  stateContext: string;
-  roadmapSection: string;
+}
+
+/**
+ * Output contract for gsd-phase-researcher agent
+ *
+ * Extends BaseOutput with research-specific fields.
+ * The emitter auto-generates a structured_returns section from this interface.
+ */
+export interface PhaseResearcherOutput extends BaseOutput {
+  /** Overall research confidence level */
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+  /** Key findings summary (3-5 bullet points) */
+  keyFindings?: string[];
+  /** Path to created RESEARCH.md file */
+  filePath?: string;
+  /** Confidence breakdown by area */
+  confidenceBreakdown?: {
+    standardStack: 'HIGH' | 'MEDIUM' | 'LOW';
+    architecture: 'HIGH' | 'MEDIUM' | 'LOW';
+    pitfalls: 'HIGH' | 'MEDIUM' | 'LOW';
+  };
+  /** Open questions that couldn't be resolved */
+  openQuestions?: string[];
+  /** What's blocking progress (for BLOCKED status) */
+  blockedBy?: string;
+  /** Options to resolve blocker */
+  options?: string[];
 }
 
 export default function GsdPhaseResearcherAgent() {
   return (
-    <Agent<PhaseResearcherInput>
+    <Agent<PhaseResearcherInput, PhaseResearcherOutput>
       name="gsd-phase-researcher"
       description="Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by /gsd:plan-phase orchestrator."
       tools="Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*"
