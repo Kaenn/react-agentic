@@ -6,7 +6,7 @@
  */
 
 import type { StateDocumentNode } from '../ir/nodes.js';
-import { getProvider, type GeneratedSkill, type ProviderContext } from '../providers/index.js';
+import { getProviderAsync, type GeneratedSkill, type ProviderContext } from '../providers/index.js';
 
 /**
  * Result of emitting a State component
@@ -31,11 +31,11 @@ export interface StateEmitResult {
  * @param doc - The state document node from transformer
  * @returns Array of generated skill files and state name
  */
-export function emitState(doc: StateDocumentNode): StateEmitResult {
+export async function emitState(doc: StateDocumentNode): Promise<StateEmitResult> {
   const { state } = doc;
 
-  // Get provider template
-  const provider = getProvider(state.provider);
+  // Get provider template (async to ensure provider is loaded)
+  const provider = await getProviderAsync(state.provider);
 
   // Build provider context
   const ctx: ProviderContext = {

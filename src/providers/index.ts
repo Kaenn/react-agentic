@@ -75,6 +75,28 @@ export function registerProvider(provider: ProviderTemplate): void {
   providers.set(provider.name, provider);
 }
 
+// Lazy initialization flag
+let initialized = false;
+
+/**
+ * Ensure built-in providers are registered
+ * Uses dynamic import to avoid circular dependency issues
+ */
+async function ensureProviders(): Promise<void> {
+  if (initialized) return;
+  initialized = true;
+  await import('./sqlite.js');
+}
+
+/**
+ * Initialize providers synchronously (call at module load time)
+ * This ensures providers are available for sync getProvider calls
+ */
+export function initializeProviders(): void {
+  // Trigger async initialization
+  ensureProviders();
+}
+
 /**
  * Get a provider by name
  * @throws Error if provider not registered
@@ -87,5 +109,11 @@ export function getProvider(name: string): ProviderTemplate {
   return provider;
 }
 
-// Re-export SQLite provider (registers itself on import)
-export { SQLiteProvider } from './sqlite.js';
+/**
+ * Get a provider by name with automatic initialization
+ * Ensures providers are loaded before lookup
+ */
+export async function getProviderAsync(name: string): Promise<ProviderTemplate> {
+  await ensureProviders();
+  return getProvider(name);
+}

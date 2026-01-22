@@ -258,7 +258,7 @@ async function runBuild(
       } else if (doc.kind === 'stateDocument') {
         // State: multi-file output to .claude/skills/
         const stateDoc = doc as StateDocumentNode;
-        const result = emitState(stateDoc);
+        const result = await emitState(stateDoc);
 
         // Track state name for main init generation
         allStateNames.push(result.stateName);

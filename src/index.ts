@@ -21,7 +21,7 @@ export { Agent, Assign, Command, If, Else, Markdown, MCPConfig, MCPServer, MCPSt
 export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, MCPConfigProps, MCPServerProps, MCPStdioServerProps, MCPHTTPServerProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, VariableRef, WriteStateProps, XmlBlockProps, StateProps, OperationProps, SQLiteConfig } from './jsx.js';
 
 // Provider templates for State component
-export { getProvider, type ProviderTemplate, type GeneratedSkill } from './providers/index.js';
+export { getProvider, getProviderAsync, type ProviderTemplate, type GeneratedSkill } from './providers/index.js';
 
 // State System
 export {
