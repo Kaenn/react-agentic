@@ -260,13 +260,22 @@ export class Transformer {
     const tools = getAttributeValue(openingElement, 'tools');
     const color = getAttributeValue(openingElement, 'color');
 
-    // Extract generic type argument if present
+    // Extract generic type arguments if present (TInput, TOutput)
     const typeArgs = extractTypeArguments(node);
     let inputType: TypeReference | undefined;
+    let outputType: TypeReference | undefined;
+
     if (typeArgs && typeArgs.length > 0) {
       inputType = {
         kind: 'typeReference',
         name: typeArgs[0],
+        resolved: false,  // Will be resolved in validation phase
+      };
+    }
+    if (typeArgs && typeArgs.length > 1) {
+      outputType = {
+        kind: 'typeReference',
+        name: typeArgs[1],
         resolved: false,  // Will be resolved in validation phase
       };
     }
@@ -279,6 +288,7 @@ export class Transformer {
       ...(tools && { tools }),
       ...(color && { color }),
       ...(inputType && { inputType }),
+      ...(outputType && { outputType }),
     };
 
     // Transform children as body blocks (with If/Else sibling detection)
