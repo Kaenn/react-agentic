@@ -34,7 +34,7 @@ import type {
   TypeReference,
   AssignNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, type ExtractedVariable } from './parser.js';
+import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -1009,12 +1009,18 @@ export class Transformer {
     // Extract generic type argument if present
     const typeArgs = extractTypeArguments(node);
     let inputType: TypeReference | undefined;
-    if (typeArgs && typeArgs.length > 0) {
+    const typeParam = typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
+    if (typeParam) {
       inputType = {
         kind: 'typeReference',
-        name: typeArgs[0],
+        name: typeParam,
         resolved: false,  // Will be resolved in validation phase
       };
+    }
+
+    // Validate input object against interface if both present
+    if (input) {
+      this.validateInputAgainstInterface(input, typeParam, openingElement);
     }
 
     return {
@@ -1102,6 +1108,88 @@ export class Transformer {
 
     const content = parts.join('').trim();
     return content || undefined;
+  }
+
+  /**
+   * Extract type argument from SpawnAgent<T> syntax
+   *
+   * Returns the type name string (e.g., "ResearcherInput") or undefined
+   * if no type argument is present.
+   */
+  private extractSpawnAgentTypeParam(
+    element: JsxOpeningElement | JsxSelfClosingElement
+  ): string | undefined {
+    // Use existing extractTypeArguments helper (works on both JsxElement and self-closing)
+    // We need to reconstruct the full node for extractTypeArguments
+    const parent = element.getParent();
+    if (!parent) return undefined;
+
+    // extractTypeArguments expects JsxElement or JsxSelfClosingElement
+    if (Node.isJsxElement(parent)) {
+      const typeArgs = extractTypeArguments(parent);
+      return typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
+    }
+    if (Node.isJsxSelfClosingElement(element)) {
+      const typeArgs = extractTypeArguments(element);
+      return typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Validate input object properties against SpawnAgent<T> type parameter.
+   *
+   * Throws compile error if required interface properties are missing.
+   * Only validates object literal inputs (VariableRef is runtime-checked).
+   *
+   * @param input - The parsed SpawnAgentInput (may be variable or object)
+   * @param typeParam - The type parameter name (e.g., "ResearcherInput")
+   * @param element - The JSX element for error reporting
+   */
+  private validateInputAgainstInterface(
+    input: SpawnAgentInput,
+    typeParam: string | undefined,
+    element: JsxOpeningElement | JsxSelfClosingElement
+  ): void {
+    // Only validate object literal inputs (VariableRef is runtime-checked)
+    if (input.type !== 'object') return;
+
+    // No type param = no validation (backward compat)
+    if (!typeParam) return;
+
+    // Require source file for type resolution
+    if (!this.sourceFile) {
+      // Can't resolve types without source file context - skip validation
+      return;
+    }
+
+    // Resolve the interface (local or imported)
+    const resolved = resolveTypeImport(typeParam, this.sourceFile);
+    if (!resolved?.interface) {
+      // Interface not found - skip validation (warning logged elsewhere)
+      return;
+    }
+
+    // Extract required properties from interface
+    const interfaceProps = extractInterfaceProperties(resolved.interface);
+    const requiredProps = interfaceProps.filter(p => p.required);
+
+    // Get property names from input object
+    const inputPropNames = input.properties.map(p => p.name);
+
+    // Find missing required properties
+    const missing = requiredProps.filter(p => !inputPropNames.includes(p.name));
+
+    if (missing.length > 0) {
+      const missingNames = missing.map(p => p.name).join(', ');
+      const requiredNames = requiredProps.map(p => p.name).join(', ');
+      throw this.createError(
+        `SpawnAgent input missing required properties: ${missingNames}. ` +
+        `Interface '${typeParam}' requires: ${requiredNames}`,
+        element
+      );
+    }
   }
 
   /**
