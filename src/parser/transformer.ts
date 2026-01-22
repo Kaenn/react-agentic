@@ -36,6 +36,10 @@ import type {
   IfNode,
   ElseNode,
   OnStatusNode,
+  SkillDocumentNode,
+  SkillFrontmatterNode,
+  SkillFileNode,
+  SkillStaticNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
@@ -56,7 +60,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -113,7 +117,7 @@ export class Transformer {
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
@@ -128,7 +132,7 @@ export class Transformer {
       this.outputs = this.extractOutputDeclarations(sourceFile);
     }
 
-    // Check for Command or Agent wrapper at root level
+    // Check for Command, Agent, or Skill wrapper at root level
     if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
       const name = getElementName(node);
       if (name === 'Command') {
@@ -136,6 +140,9 @@ export class Transformer {
       }
       if (name === 'Agent') {
         return this.transformAgent(node);
+      }
+      if (name === 'Skill') {
+        return this.transformSkill(node);
       }
     }
 
@@ -303,6 +310,106 @@ export class Transformer {
       : [];
 
     return { kind: 'agentDocument', frontmatter, children };
+  }
+
+  /**
+   * Transform a Skill element to SkillDocumentNode with frontmatter, body, files, and statics
+   */
+  private transformSkill(node: JsxElement | JsxSelfClosingElement): SkillDocumentNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract required props
+    const name = getAttributeValue(openingElement, 'name');
+    const description = getAttributeValue(openingElement, 'description');
+
+    if (!name) {
+      throw this.createError('Skill requires name prop', openingElement);
+    }
+    if (!description) {
+      throw this.createError('Skill requires description prop', openingElement);
+    }
+
+    // Validate skill name (lowercase, numbers, hyphens only)
+    if (!/^[a-z0-9-]+$/.test(name)) {
+      throw this.createError(
+        `Skill name must be lowercase letters, numbers, and hyphens only: '${name}'`,
+        openingElement
+      );
+    }
+
+    // Extract optional props
+    const disableModelInvocation = this.getBooleanAttribute(openingElement, 'disableModelInvocation');
+    const userInvocable = this.getBooleanAttribute(openingElement, 'userInvocable');
+    const allowedTools = getArrayAttributeValue(openingElement, 'allowedTools');
+    const argumentHint = getAttributeValue(openingElement, 'argumentHint');
+    const model = getAttributeValue(openingElement, 'model');
+    const context = getAttributeValue(openingElement, 'context') as 'fork' | undefined;
+    const agent = getAttributeValue(openingElement, 'agent');
+
+    // Build frontmatter
+    const frontmatter: SkillFrontmatterNode = {
+      kind: 'skillFrontmatter',
+      name,
+      description,
+      ...(disableModelInvocation !== undefined && { disableModelInvocation }),
+      ...(userInvocable !== undefined && { userInvocable }),
+      ...(allowedTools && allowedTools.length > 0 && { allowedTools }),
+      ...(argumentHint && { argumentHint }),
+      ...(model && { model }),
+      ...(context && { context }),
+      ...(agent && { agent }),
+    };
+
+    // Process children: separate body content, SkillFile, and SkillStatic
+    const { children, files, statics } = this.processSkillChildren(node);
+
+    return {
+      kind: 'skillDocument',
+      frontmatter,
+      children,
+      files,
+      statics,
+    };
+  }
+
+  /**
+   * Process Skill children into body content, SkillFile nodes, and SkillStatic nodes
+   * (Stub - implemented in Task 2)
+   */
+  private processSkillChildren(_node: JsxElement | JsxSelfClosingElement): {
+    children: BlockNode[];
+    files: SkillFileNode[];
+    statics: SkillStaticNode[];
+  } {
+    throw new Error('processSkillChildren not yet implemented');
+  }
+
+  /**
+   * Get boolean attribute value from JSX element
+   * Handles: disableModelInvocation (true), disableModelInvocation={true}, disableModelInvocation={false}
+   */
+  private getBooleanAttribute(
+    element: JsxOpeningElement | JsxSelfClosingElement,
+    name: string
+  ): boolean | undefined {
+    const attr = element.getAttribute(name);
+    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+    const init = attr.getInitializer();
+    // Boolean attribute without value: disableModelInvocation (means true)
+    if (!init) return true;
+
+    // JSX expression: disableModelInvocation={true}
+    if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (expr && (expr.getText() === 'true' || expr.getText() === 'false')) {
+        return expr.getText() === 'true';
+      }
+    }
+
+    return undefined;
   }
 
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
@@ -1651,9 +1758,9 @@ export class Transformer {
 }
 
 /**
- * Convenience function to transform a JSX element to a DocumentNode or AgentDocumentNode
+ * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, or SkillDocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode {
   const transformer = new Transformer();
   return transformer.transform(node, sourceFile);
 }
