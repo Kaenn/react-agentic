@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.4 Agent Output Schema COMPLETE
+**Current focus:** v1.5 Command Output Handling IN PROGRESS
 
 ## Current Position
 
-Phase: 14 of 15 (Agent Output Schema)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 14-03-PLAN.md (Emitter)
+Phase: 15 of 15 (Command Output Handling)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 15-01-PLAN.md (JSX Types)
 
-Progress: [██████████] Phase 14: 100%
-Next: Phase 15 (Validation)
+Progress: [███░░░░░░░] Phase 15: 33%
+Next: 15-02-PLAN.md (Transformer)
 
 ## Milestone History
 
@@ -117,6 +117,10 @@ v1.4 implementation decisions (14-03):
 - emitter-type-resolution: Pass sourceFile to emitAgent for type resolution at emit time
 - yaml-template-generation: Generate YAML template from interface properties with type hints
 
+v1.5 implementation decisions (15-01):
+- field-returns-placeholder: field('key') returns '{output.key}' string for runtime interpolation
+- baseoutput-constraint: useOutput<T extends BaseOutput> ensures type safety
+
 ### Pending Todos
 
 None.
@@ -135,5 +139,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Quick task 002 - Phase 14 docs and TSX updates
-Resume with: Phase 15 (Validation) or v1.4 release
+Stopped at: Completed 15-01-PLAN.md (JSX Types)
+Resume with: 15-02-PLAN.md (Transformer)
