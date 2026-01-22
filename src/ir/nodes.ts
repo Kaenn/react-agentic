@@ -201,6 +201,28 @@ export interface AssignNode {
 }
 
 /**
+ * Conditional If block
+ * Emits as **If {test}:** prose pattern
+ */
+export interface IfNode {
+  kind: 'if';
+  /** Shell test expression (preserved verbatim) */
+  test: string;
+  /** "then" block content */
+  children: BlockNode[];
+}
+
+/**
+ * Else block (sibling to If)
+ * Emits as **Otherwise:** prose pattern
+ */
+export interface ElseNode {
+  kind: 'else';
+  /** "otherwise" block content */
+  children: BlockNode[];
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -213,7 +235,9 @@ export type BlockNode =
   | XmlBlockNode
   | RawMarkdownNode
   | SpawnAgentNode
-  | AssignNode;
+  | AssignNode
+  | IfNode
+  | ElseNode;
 
 // ============================================================================
 // Special Nodes
