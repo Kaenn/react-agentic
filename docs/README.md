@@ -10,6 +10,7 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Command](./command.md) | How to build slash commands with practical examples |
 | [Agent](./agent.md) | How to build spawnable agents with input contracts |
 | [Communication](./communication.md) | SpawnAgent pattern for Command ↔ Agent communication |
+| [Variables](./variables.md) | Shell variables with `useVariable` and `<Assign>` |
 
 ## Technical Reference
 
