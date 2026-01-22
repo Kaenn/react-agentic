@@ -376,14 +376,95 @@ export class Transformer {
 
   /**
    * Process Skill children into body content, SkillFile nodes, and SkillStatic nodes
-   * (Stub - implemented in Task 2)
    */
-  private processSkillChildren(_node: JsxElement | JsxSelfClosingElement): {
+  private processSkillChildren(node: JsxElement | JsxSelfClosingElement): {
     children: BlockNode[];
     files: SkillFileNode[];
     statics: SkillStaticNode[];
   } {
-    throw new Error('processSkillChildren not yet implemented');
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { children: [], files: [], statics: [] };
+    }
+
+    const children: BlockNode[] = [];
+    const files: SkillFileNode[] = [];
+    const statics: SkillStaticNode[] = [];
+    const jsxChildren = node.getJsxChildren();
+
+    for (const child of jsxChildren) {
+      // Skip whitespace-only text
+      if (Node.isJsxText(child)) {
+        const text = extractText(child);
+        if (!text) continue;
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = getElementName(child);
+
+        if (childName === 'SkillFile') {
+          files.push(this.transformSkillFile(child));
+          continue;
+        }
+
+        if (childName === 'SkillStatic') {
+          statics.push(this.transformSkillStatic(child));
+          continue;
+        }
+      }
+
+      // Regular body content
+      const block = this.transformToBlock(child);
+      if (block) children.push(block);
+    }
+
+    return { children, files, statics };
+  }
+
+  /**
+   * Transform SkillFile element to SkillFileNode
+   */
+  private transformSkillFile(node: JsxElement | JsxSelfClosingElement): SkillFileNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    const name = getAttributeValue(openingElement, 'name');
+    if (!name) {
+      throw this.createError('SkillFile requires name prop', openingElement);
+    }
+
+    // Transform children as file content
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'skillFile',
+      name,
+      children,
+    };
+  }
+
+  /**
+   * Transform SkillStatic element to SkillStaticNode
+   */
+  private transformSkillStatic(node: JsxElement | JsxSelfClosingElement): SkillStaticNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    const src = getAttributeValue(openingElement, 'src');
+    if (!src) {
+      throw this.createError('SkillStatic requires src prop', openingElement);
+    }
+
+    const dest = getAttributeValue(openingElement, 'dest');
+
+    return {
+      kind: 'skillStatic',
+      src,
+      ...(dest && { dest }),
+    };
   }
 
   /**
