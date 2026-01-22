@@ -327,6 +327,86 @@ export interface BaseOutput {
 }
 
 // ============================================================================
+// Agent Output Handling (useOutput hook + OnStatus component)
+// ============================================================================
+
+/**
+ * Reference to an agent's output from useOutput
+ * @typeParam T - The agent's TOutput type (compile-time only)
+ */
+export interface OutputRef<T = unknown> {
+  /** Agent name this output is bound to */
+  agent: string;
+  /** Field accessor - returns placeholder for interpolation */
+  field: <K extends keyof T>(key: K) => string;
+  /** Phantom type marker (compile-time only) */
+  _type?: T;
+}
+
+/**
+ * Bind to a spawned agent's output for status-based handling
+ *
+ * This is a compile-time hook. The actual output binding happens at runtime
+ * when the agent completes. The hook returns an OutputRef for use in OnStatus
+ * and field interpolation.
+ *
+ * @typeParam T - The agent's TOutput type (must extend BaseOutput)
+ * @param agentName - Agent name matching SpawnAgent's agent prop
+ * @returns OutputRef for use in OnStatus and field interpolation
+ *
+ * @example
+ * import type { ResearcherOutput } from './researcher.agent.js';
+ *
+ * const output = useOutput<ResearcherOutput>("researcher");
+ *
+ * // In JSX:
+ * <OnStatus output={output} status="SUCCESS">
+ *   <p>Research complete with {output.field('confidence')} confidence.</p>
+ * </OnStatus>
+ */
+export function useOutput<T extends BaseOutput = BaseOutput>(
+  agentName: string
+): OutputRef<T> {
+  return {
+    agent: agentName,
+    field: (key) => `{output.${String(key)}}`,
+  };
+}
+
+/**
+ * Props for the OnStatus component
+ */
+export interface OnStatusProps {
+  /** Output reference from useOutput */
+  output: OutputRef;
+  /** Status value to match (SUCCESS, BLOCKED, etc.) */
+  status: AgentStatus;
+  /** Block content for this status */
+  children?: ReactNode;
+}
+
+/**
+ * OnStatus component - conditional block for agent status handling
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime. Emits as **On {status}:** pattern.
+ *
+ * @example
+ * const output = useOutput<ResearcherOutput>("researcher");
+ *
+ * <OnStatus output={output} status="SUCCESS">
+ *   <p>Research complete.</p>
+ *   <p>Confidence: {output.field('confidence')}</p>
+ * </OnStatus>
+ * <OnStatus output={output} status="BLOCKED">
+ *   <p>Research blocked by: {output.field('blockedBy')}</p>
+ * </OnStatus>
+ */
+export function OnStatus(_props: OnStatusProps): null {
+  return null;
+}
+
+// ============================================================================
 // Conditional Logic (If/Else components)
 // ============================================================================
 
