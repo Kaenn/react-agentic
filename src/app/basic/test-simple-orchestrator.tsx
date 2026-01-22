@@ -1,5 +1,5 @@
-import { Command, XmlBlock, SpawnAgent, Assign, useVariable, If, Else } from '../../jsx.js';
-import type { SimpleOrchestratorInput } from './simple-orchestrator-agent.js';
+import { Command, XmlBlock, SpawnAgent, Assign, useVariable, useOutput, OnStatus, If, Else, fileExists } from '../../jsx.js';
+import type { SimpleOrchestratorInput, SimpleOrchestratorOutput } from './simple-orchestrator-agent.js';
 
 // Declare shell variables with useVariable
 const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP", {
@@ -9,6 +9,9 @@ const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP", {
 const outputFile = useVariable<string>("OUTPUT_FILE", {
   value: "/tmp/gsd-test/agent-result.md"
 });
+
+// Track agent output for status-based handling
+const agentOutput = useOutput<SimpleOrchestratorOutput>("basic/simple-orchestrator-agent");
 
 export default function TestSimpleOrchestratorCommand() {
   return (
@@ -49,10 +52,20 @@ mkdir -p /tmp/gsd-test
           }}
         />
 
+        <h3>Handle Agent Status</h3>
+        <OnStatus output={agentOutput} status="SUCCESS">
+          <p>Agent completed successfully. Output: {agentOutput.field('message')}</p>
+          <p>Output file: {agentOutput.field('outputFile')}</p>
+        </OnStatus>
+
+        <OnStatus output={agentOutput} status="ERROR">
+          <p>Agent failed: {agentOutput.field('message')}</p>
+        </OnStatus>
+
         <h2>Step 3: Validate Result</h2>
         <p>After agent returns, check if the output file exists and validate:</p>
 
-        <If test="[ -f $OUTPUT_FILE ]">
+        <If test={fileExists(outputFile)}>
           <p>Output file found. Reading contents:</p>
           <pre><code className="language-bash">cat "$OUTPUT_FILE"</code></pre>
           <p>Verify the file contains all required fields (Input Timestamp, Agent Timestamp, Success).</p>
