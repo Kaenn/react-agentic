@@ -37,7 +37,7 @@ import type {
   ElseNode,
   OnStatusNode,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
+import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, type ExtractedVariable } from './parser.js';
 
 // ============================================================================
 // Element Classification
@@ -1241,7 +1241,8 @@ export class Transformer {
       : node;
 
     // Extract test prop (required)
-    const test = getAttributeValue(openingElement, 'test');
+    // Use getTestAttributeValue to support both string literals and test helper function calls
+    const test = getTestAttributeValue(openingElement, 'test', this.variables);
     if (!test) {
       throw this.createError('If requires test prop', openingElement);
     }
@@ -1444,6 +1445,11 @@ export class Transformer {
   /**
    * Transform an Assign element to AssignNode
    * Assign emits a bash code block with variable assignment
+   *
+   * Supports three assignment types (exactly one required):
+   * - bash: VAR=$(command)
+   * - value: VAR=value (quoted if spaces)
+   * - env: VAR=$ENV_VAR
    */
   private transformAssign(node: JsxElement | JsxSelfClosingElement): AssignNode {
     const openingElement = Node.isJsxElement(node)
@@ -1468,7 +1474,7 @@ export class Transformer {
 
     const localName = expr.getText();
 
-    // Look up in extracted variables
+    // Look up in extracted variables to get the env name
     const variable = this.variables.get(localName);
     if (!variable) {
       throw this.createError(
@@ -1477,11 +1483,102 @@ export class Transformer {
       );
     }
 
+    // Extract assignment from props (exactly one of bash, value, env)
+    const bashProp = this.extractAssignPropValue(openingElement, 'bash');
+    const valueProp = this.extractAssignPropValue(openingElement, 'value');
+    const envProp = this.extractAssignPropValue(openingElement, 'env');
+
+    const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
+    if (propCount === 0) {
+      throw this.createError(
+        'Assign requires one of: bash, value, or env prop',
+        openingElement
+      );
+    }
+    if (propCount > 1) {
+      throw this.createError(
+        'Assign accepts only one of: bash, value, or env prop',
+        openingElement
+      );
+    }
+
+    let assignment: { type: 'bash' | 'value' | 'env'; content: string };
+    if (bashProp !== undefined) {
+      assignment = { type: 'bash', content: bashProp };
+    } else if (valueProp !== undefined) {
+      assignment = { type: 'value', content: valueProp };
+    } else {
+      assignment = { type: 'env', content: envProp! };
+    }
+
     return {
       kind: 'assign',
       variableName: variable.envName,
-      assignment: variable.assignment,
+      assignment,
     };
+  }
+
+  /**
+   * Extract assignment prop value from Assign element
+   * Handles string literals, JSX expressions with strings, and template literals
+   */
+  private extractAssignPropValue(
+    element: JsxOpeningElement | JsxSelfClosingElement,
+    propName: string
+  ): string | undefined {
+    const attr = element.getAttribute(propName);
+    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+    const init = attr.getInitializer();
+    if (!init) return undefined;
+
+    // String literal: prop="value"
+    if (Node.isStringLiteral(init)) {
+      return init.getLiteralValue();
+    }
+
+    // JSX expression: prop={...}
+    if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (!expr) return undefined;
+
+      // String literal: prop={"value"}
+      if (Node.isStringLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // Template literal without substitution: prop={`value`}
+      if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // Template expression with substitution: prop={`ls ${VAR}`}
+      if (Node.isTemplateExpression(expr)) {
+        return this.extractBashTemplate(expr);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract template literal content preserving ${VAR} syntax for bash
+   */
+  private extractBashTemplate(expr: TemplateExpression): string {
+    const parts: string[] = [];
+
+    // Head: text before first ${...}
+    parts.push(expr.getHead().getLiteralText());
+
+    // Spans: each has expression + literal text after
+    for (const span of expr.getTemplateSpans()) {
+      const spanExpr = span.getExpression();
+      // Preserve ${...} syntax for bash
+      parts.push(`\${${spanExpr.getText()}}`);
+      parts.push(span.getLiteral().getLiteralText());
+    }
+
+    return parts.join('');
   }
 
   /**

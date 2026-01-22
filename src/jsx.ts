@@ -222,47 +222,40 @@ export interface VariableRef<T = string> {
 }
 
 /**
- * Assignment specification for useVariable
- * Either a bash command or a static value
- */
-export type Assignment<T> =
-  | { bash: string }
-  | { value: T };
-
-/**
- * Declare a shell variable with bash command or static value
+ * Declare a shell variable reference
  *
- * This is a compile-time hook. The actual variable assignment is emitted
- * when <Assign var={...} /> is used in the JSX.
+ * This is a compile-time hook that creates a reference to a shell variable.
+ * The actual assignment is specified on <Assign> where you emit it.
  *
  * @param name - Shell variable name (e.g., "PHASE_DIR")
- * @param assignment - Bash command or static value
  * @returns VariableRef for use in Assign and string interpolation
  *
  * @example
- * const phaseDir = useVariable<string>("PHASE_DIR", {
- *   bash: `ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`
- * });
+ * const phaseDir = useVariable("PHASE_DIR");
  *
- * // In JSX:
- * <Assign var={phaseDir} />
+ * // In JSX - assignment specified at emission point:
+ * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`} />
  *
  * // For interpolation:
- * <Condition test={`[ -z ${phaseDir.ref} ]`}>
+ * <If test={`[ -z ${phaseDir.ref} ]`}>
  */
-export function useVariable<T = string>(
-  name: string,
-  _assignment: Assignment<T>
-): VariableRef<T> {
+export function useVariable<T = string>(name: string): VariableRef<T> {
   return { name, ref: name };
 }
 
 /**
  * Props for the Assign component
+ * Specify exactly one of: bash, value, or env
  */
 export interface AssignProps {
   /** Variable reference from useVariable */
   var: VariableRef;
+  /** Bash command to capture output: VAR=$(command) */
+  bash?: string;
+  /** Static value: VAR=value (quoted if contains spaces) */
+  value?: string;
+  /** Environment variable to read: VAR=$ENV_VAR */
+  env?: string;
 }
 
 /**
@@ -271,14 +264,20 @@ export interface AssignProps {
  * This is a compile-time component. It's never executed at runtime.
  * It emits a bash code block with the variable assignment.
  *
- * @example
- * const phaseDir = useVariable("PHASE_DIR", { bash: `ls -d test` });
- * <Assign var={phaseDir} />
+ * @example bash command
+ * const phaseDir = useVariable("PHASE_DIR");
+ * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* | head -1`} />
+ * // Outputs: PHASE_DIR=$(ls -d .planning/phases/${PHASE}-* | head -1)
  *
- * Outputs:
- * ```bash
- * PHASE_DIR=$(ls -d test)
- * ```
+ * @example static value
+ * const outputFile = useVariable("OUTPUT_FILE");
+ * <Assign var={outputFile} value="/tmp/output.md" />
+ * // Outputs: OUTPUT_FILE=/tmp/output.md
+ *
+ * @example environment variable
+ * const phase = useVariable("PHASE");
+ * <Assign var={phase} env="PHASE_NUMBER" />
+ * // Outputs: PHASE=$PHASE_NUMBER
  */
 export function Assign(_props: AssignProps): null {
   return null;
@@ -440,7 +439,8 @@ export interface ElseProps {
  * </If>
  *
  * @example with VariableRef interpolation
- * const phaseDir = useVariable("PHASE_DIR", { bash: `ls -d test` });
+ * const phaseDir = useVariable("PHASE_DIR");
+ * <Assign var={phaseDir} bash={`ls -d test`} />
  * <If test={`[ -z ${phaseDir.ref} ]`}>
  *   <p>No phase directory found.</p>
  * </If>
@@ -478,7 +478,7 @@ export function Else(_props: ElseProps): null {
  * @returns Shell test expression: [ -f $VAR_NAME ]
  *
  * @example
- * const configFile = useVariable("CONFIG", { bash: `echo config.json` });
+ * const configFile = useVariable("CONFIG");
  * <If test={fileExists(configFile)}>
  */
 export function fileExists(varRef: VariableRef): string {
@@ -492,7 +492,7 @@ export function fileExists(varRef: VariableRef): string {
  * @returns Shell test expression: [ -d $VAR_NAME ]
  *
  * @example
- * const outputDir = useVariable("OUT_DIR", { bash: `echo dist` });
+ * const outputDir = useVariable("OUT_DIR");
  * <If test={dirExists(outputDir)}>
  */
 export function dirExists(varRef: VariableRef): string {
@@ -506,7 +506,7 @@ export function dirExists(varRef: VariableRef): string {
  * @returns Shell test expression: [ -z $VAR_NAME ]
  *
  * @example
- * const result = useVariable("RESULT", { bash: `grep pattern file` });
+ * const result = useVariable("RESULT");
  * <If test={isEmpty(result)}>
  *   <p>No matches found.</p>
  * </If>
@@ -522,7 +522,7 @@ export function isEmpty(varRef: VariableRef): string {
  * @returns Shell test expression: [ -n $VAR_NAME ]
  *
  * @example
- * const result = useVariable("RESULT", { bash: `grep pattern file` });
+ * const result = useVariable("RESULT");
  * <If test={notEmpty(result)}>
  *   <p>Found matches!</p>
  * </If>
@@ -539,7 +539,7 @@ export function notEmpty(varRef: VariableRef): string {
  * @returns Shell test expression: [ $VAR_NAME = value ]
  *
  * @example
- * const status = useVariable("STATUS", { bash: `echo $?` });
+ * const status = useVariable("STATUS");
  * <If test={equals(status, "0")}>
  *   <p>Success!</p>
  * </If>

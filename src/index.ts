@@ -15,4 +15,4 @@ export * from './parser/index.js';
 
 // JSX components and types
 export { Agent, Assign, Command, If, Else, Markdown, OnStatus, SpawnAgent, useOutput, useVariable, XmlBlock } from './jsx.js';
-export type { AgentProps, AgentStatus, AssignProps, Assignment, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, OnStatusProps, OutputRef, SpawnAgentProps, VariableRef, XmlBlockProps } from './jsx.js';
+export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, OnStatusProps, OutputRef, SpawnAgentProps, VariableRef, XmlBlockProps } from './jsx.js';

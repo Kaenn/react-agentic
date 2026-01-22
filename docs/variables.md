@@ -7,16 +7,14 @@ Variables let you capture dynamic values at runtime and use them throughout your
 ```tsx
 import { Command, Assign, useVariable } from '../jsx.js';
 
-// Declare variable with bash command
-const timestamp = useVariable<string>("TIMESTAMP", {
-  bash: `date -u +"%Y-%m-%dT%H:%M:%SZ"`
-});
+// Declare variable reference
+const timestamp = useVariable<string>("TIMESTAMP");
 
 export default function MyCommand() {
   return (
     <Command name="my-command" description="Uses variables">
-      {/* Emit the variable assignment */}
-      <Assign var={timestamp} />
+      {/* Emit the variable assignment with bash command */}
+      <Assign var={timestamp} bash={`date -u +"%Y-%m-%dT%H:%M:%SZ"`} />
 
       {/* Use the variable in shell commands */}
       <pre><code className="language-bash">
@@ -29,33 +27,23 @@ echo "Time: $TIMESTAMP"
 
 ## useVariable Hook
 
-Declares a shell variable with either a bash command or static value.
+Declares a shell variable reference. The actual assignment is specified on `<Assign>`.
 
 ```tsx
-// Capture command output
-const phaseDir = useVariable<string>("PHASE_DIR", {
-  bash: `ls -d .planning/phases/${PHASE}-* 2>/dev/null | head -1`
-});
-
-// Set static value
-const outputFile = useVariable<string>("OUTPUT_FILE", {
-  value: "/tmp/output/result.md"
-});
+// Declare variable references
+const phaseDir = useVariable<string>("PHASE_DIR");
+const outputFile = useVariable<string>("OUTPUT_FILE");
 ```
 
 ### Signature
 
 ```tsx
-function useVariable<T = string>(
-  name: string,
-  assignment: { bash: string } | { value: T }
-): VariableRef<T>
+function useVariable<T = string>(name: string): VariableRef<T>
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `name` | string | Shell variable name (e.g., `"PHASE_DIR"`) |
-| `assignment` | object | Either `{ bash: "command" }` or `{ value: "static" }` |
 
 ### Returns
 
@@ -65,17 +53,38 @@ function useVariable<T = string>(
 
 ## Assign Component
 
-Emits the actual variable assignment as a bash code block.
-
-```tsx
-<Assign var={phaseDir} />
-```
+Emits the actual variable assignment as a bash code block. You specify **how** to assign the value here.
 
 ### Props
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `var` | VariableRef | Yes | Variable from `useVariable` |
+| `bash` | string | One of | Bash command to capture output: `VAR=$(command)` |
+| `value` | string | One of | Static value: `VAR=value` |
+| `env` | string | One of | Environment variable: `VAR=$ENV` |
+
+**Note:** Exactly one of `bash`, `value`, or `env` must be provided.
+
+### Examples
+
+```tsx
+const phaseDir = useVariable("PHASE_DIR");
+const outputFile = useVariable("OUTPUT_FILE");
+const phase = useVariable("PHASE");
+
+// Bash command - capture output
+<Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`} />
+// Outputs: PHASE_DIR=$(ls -d .planning/phases/${PHASE}-* 2>/dev/null | head -1)
+
+// Static value
+<Assign var={outputFile} value="/tmp/output/result.md" />
+// Outputs: OUTPUT_FILE=/tmp/output/result.md
+
+// Environment variable
+<Assign var={phase} env="PHASE_NUMBER" />
+// Outputs: PHASE=$PHASE_NUMBER
+```
 
 ### Output
 
@@ -90,6 +99,13 @@ For static values:
 ```markdown
 ```bash
 OUTPUT_FILE=/tmp/output/result.md
+```​
+```
+
+For environment variables:
+```markdown
+```bash
+PHASE=$PHASE_NUMBER
 ```​
 ```
 
@@ -109,13 +125,8 @@ import { Command, XmlBlock, SpawnAgent, Assign, useVariable } from '../jsx.js';
 import type { AgentInput } from './my-agent.js';
 
 // Declare variables at module level (outside component)
-const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP", {
-  bash: `date -u +"%Y-%m-%dT%H:%M:%SZ"`
-});
-
-const outputFile = useVariable<string>("OUTPUT_FILE", {
-  value: "/tmp/gsd-test/agent-result.md"
-});
+const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP");
+const outputFile = useVariable<string>("OUTPUT_FILE");
 
 export default function OrchestratorCommand() {
   return (
@@ -132,8 +143,8 @@ mkdir -p /tmp/gsd-test
         </code></pre>
 
         {/* Emit variable assignments */}
-        <Assign var={commandTimestamp} />
-        <Assign var={outputFile} />
+        <Assign var={commandTimestamp} bash={`date -u +"%Y-%m-%dT%H:%M:%SZ"`} />
+        <Assign var={outputFile} value="/tmp/gsd-test/agent-result.md" />
 
         <h2>Step 2: Spawn Agent</h2>
         <SpawnAgent<AgentInput>
@@ -216,7 +227,9 @@ cat "$OUTPUT_FILE"
 When using variables in `SpawnAgent` prompts, use the `{variable_name}` syntax (lowercase with underscores). Claude Code interpolates these at runtime:
 
 ```tsx
-const phaseNumber = useVariable("PHASE_NUMBER", { bash: `echo 5` });
+const phaseNumber = useVariable("PHASE_NUMBER");
+
+<Assign var={phaseNumber} bash={`echo 5`} />
 
 <SpawnAgent
   prompt={`Process phase {phase_number}`}  // Uses {phase_number}
@@ -234,6 +247,8 @@ The variable name is converted: `PHASE_NUMBER` → `{phase_number}`
 
 3. **Use descriptive names** — `COMMAND_TIMESTAMP` is clearer than `TS`
 
-4. **Prefer bash for dynamic values** — Use `{ bash: ... }` when the value needs to be computed at runtime
+4. **Use `bash` for dynamic values** — When the value needs to be computed at runtime
 
-5. **Use value for constants** — Use `{ value: ... }` for paths and configuration that don't change
+5. **Use `value` for constants** — For paths and configuration that don't change
+
+6. **Use `env` for environment access** — When you need to read from the environment

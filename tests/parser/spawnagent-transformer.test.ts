@@ -298,7 +298,7 @@ Goal: \${goal}
   describe('input prop parsing', () => {
     it('transforms input with VariableRef', () => {
       const tsx = `
-        const ctx = useVariable("CTX", { bash: \`echo hi\` });
+        const ctx = useVariable("CTX");
         export default function Test() {
           return (
             <Command name="test" description="Test">
@@ -466,7 +466,7 @@ Goal: \${goal}
 
     it('handles VariableRef in object properties', () => {
       const tsx = `
-        const myVar = useVariable("MY_VAR", { bash: \`echo hello\` });
+        const myVar = useVariable("MY_VAR");
         export default function Test() {
           return (
             <Command name="test" description="Test">

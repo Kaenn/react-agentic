@@ -8,17 +8,19 @@
  * - Variable reference in test expression
  */
 
-import { Command, XmlBlock, If, Else, Assign, useVariable } from '../../jsx.js';
+import { Command, XmlBlock, If, Else, Assign, useVariable, equals, isEmpty } from '../../jsx.js';
 
-const configExists = useVariable("CONFIG_EXISTS", {
-  bash: `[ -f .planning/config.json ] && echo "true" || echo "false"`
-});
-
-const phaseDir = useVariable("PHASE_DIR", {
-  bash: `ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`
-});
 
 export default function TestConditional() {
+
+  const configExists = useVariable("CONFIG_EXISTS", {
+    bash: `[ -f .planning/config.json ] && echo "true" || echo "false"`
+  });
+
+  const phaseDir = useVariable("PHASE_DIR", {
+    bash: `ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`
+  });
+
   return (
     <Command name="test-conditional" description="Test conditional logic components">
       <h2>Conditional Logic Test</h2>
@@ -29,7 +31,7 @@ export default function TestConditional() {
         <h3>Step 1: Check Configuration</h3>
         <Assign var={configExists} />
 
-        <If test="[ $CONFIG_EXISTS = 'true' ]">
+        <If test={equals(configExists, "'true'")}>
           <p>Configuration found. Loading settings from config file.</p>
         </If>
         <Else>
@@ -39,7 +41,7 @@ export default function TestConditional() {
         <h3>Step 2: Find Phase Directory</h3>
         <Assign var={phaseDir} />
 
-        <If test="[ -z $PHASE_DIR ]">
+        <If test={isEmpty(phaseDir)}>
           <p>Phase directory not found. Creating new directory.</p>
           <pre><code className="language-bash">mkdir -p .planning/phases/$PHASE-unknown</code></pre>
         </If>

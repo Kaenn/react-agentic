@@ -373,12 +373,12 @@ export function Researcher() {
 }
 
 // Command uses typed input with VariableRefs
-const phaseVar = useVariable<string>("PHASE", { bash: `echo "$1"` });
+const phaseVar = useVariable<string>("PHASE");
 
 export default function PlanPhase() {
   return (
     <Command name="plan" description="Plan a phase">
-      <Assign var={phaseVar} />
+      <Assign var={phaseVar} bash={`echo "$1"`} />
       <SpawnAgent<ResearcherInput>
         input={{
           phase: phaseVar,           // VariableRef - emits {phase}

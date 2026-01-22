@@ -85,12 +85,16 @@ For type-safe test expressions, use the helper functions instead of raw strings:
 
 ```tsx
 import {
-  If, useVariable,
+  If, Assign, useVariable,
   fileExists, dirExists, isEmpty, notEmpty, equals, and, or
 } from '../jsx.js';
 
-const config = useVariable("CONFIG", { bash: `echo config.json` });
-const result = useVariable("RESULT", { bash: `cat output.txt` });
+const config = useVariable("CONFIG");
+const result = useVariable("RESULT");
+
+// In your component:
+<Assign var={config} bash={`echo config.json`} />
+<Assign var={result} bash={`cat output.txt`} />
 
 // File/directory tests
 <If test={fileExists(config)}>    // [ -f $CONFIG ]

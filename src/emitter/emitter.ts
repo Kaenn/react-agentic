@@ -434,20 +434,33 @@ export class MarkdownEmitter {
    * VAR_NAME=value
    * ```
    * (with quotes if value contains spaces)
+   *
+   * Output format for env:
+   * ```bash
+   * VAR_NAME=$ENV_VAR
+   * ```
    */
   private emitAssign(node: AssignNode): string {
     const { variableName, assignment } = node;
 
     let line: string;
-    if (assignment.type === 'bash') {
-      // Bash command: VAR=$(command)
-      line = `${variableName}=$(${assignment.content})`;
-    } else {
-      // Static value: quote if contains spaces
-      const val = assignment.content;
-      line = /\s/.test(val)
-        ? `${variableName}="${val}"`
-        : `${variableName}=${val}`;
+    switch (assignment.type) {
+      case 'bash':
+        // Bash command: VAR=$(command)
+        line = `${variableName}=$(${assignment.content})`;
+        break;
+      case 'value': {
+        // Static value: quote if contains spaces
+        const val = assignment.content;
+        line = /\s/.test(val)
+          ? `${variableName}="${val}"`
+          : `${variableName}=${val}`;
+        break;
+      }
+      case 'env':
+        // Environment variable: VAR=$ENV
+        line = `${variableName}=$${assignment.content}`;
+        break;
     }
 
     return `\`\`\`bash\n${line}\n\`\`\``;

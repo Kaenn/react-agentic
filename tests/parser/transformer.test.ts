@@ -1636,4 +1636,127 @@ line3</code></pre>
       }
     });
   });
+
+  describe('Assign component', () => {
+    function transformWithSourceFile(tsx: string) {
+      const project = createProject();
+      const source = parseSource(project, tsx, 'test.tsx');
+      const root = findRootJsxElement(source);
+      if (!root) throw new Error('No JSX found');
+      const transformer = new Transformer();
+      return transformer.transform(root, source);
+    }
+
+    it('transforms Assign with bash prop', () => {
+      const tsx = `
+        const ts = useVariable("TIMESTAMP");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={ts} bash={\`date -u +"%Y-%m-%dT%H:%M:%SZ"\`} />
+            </Command>
+          );
+        }`;
+      const doc = transformWithSourceFile(tsx);
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0]).toEqual({
+        kind: 'assign',
+        variableName: 'TIMESTAMP',
+        assignment: { type: 'bash', content: 'date -u +"%Y-%m-%dT%H:%M:%SZ"' },
+      });
+    });
+
+    it('transforms Assign with value prop', () => {
+      const tsx = `
+        const output = useVariable("OUTPUT_FILE");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={output} value="/tmp/result.md" />
+            </Command>
+          );
+        }`;
+      const doc = transformWithSourceFile(tsx);
+      expect(doc.children[0]).toEqual({
+        kind: 'assign',
+        variableName: 'OUTPUT_FILE',
+        assignment: { type: 'value', content: '/tmp/result.md' },
+      });
+    });
+
+    it('transforms Assign with env prop', () => {
+      const tsx = `
+        const phase = useVariable("PHASE");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={phase} env="PHASE_NUMBER" />
+            </Command>
+          );
+        }`;
+      const doc = transformWithSourceFile(tsx);
+      expect(doc.children[0]).toEqual({
+        kind: 'assign',
+        variableName: 'PHASE',
+        assignment: { type: 'env', content: 'PHASE_NUMBER' },
+      });
+    });
+
+    it('preserves ${VAR} in bash template expressions', () => {
+      const tsx = `
+        const dir = useVariable("PHASE_DIR");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={dir} bash={\`ls -d .planning/phases/\${PHASE}-* | head -1\`} />
+            </Command>
+          );
+        }`;
+      const doc = transformWithSourceFile(tsx);
+      expect(doc.children[0]).toEqual({
+        kind: 'assign',
+        variableName: 'PHASE_DIR',
+        assignment: { type: 'bash', content: 'ls -d .planning/phases/${PHASE}-* | head -1' },
+      });
+    });
+
+    it('throws when no assignment prop provided', () => {
+      const tsx = `
+        const ts = useVariable("TS");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={ts} />
+            </Command>
+          );
+        }`;
+      expect(() => transformWithSourceFile(tsx)).toThrow(/requires one of: bash, value, or env/);
+    });
+
+    it('throws when multiple assignment props provided', () => {
+      const tsx = `
+        const ts = useVariable("TS");
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={ts} bash="echo hi" value="static" />
+            </Command>
+          );
+        }`;
+      expect(() => transformWithSourceFile(tsx)).toThrow(/accepts only one of: bash, value, or env/);
+    });
+
+    it('throws when variable not declared with useVariable', () => {
+      const tsx = `
+        const notAVar = "just a string";
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <Assign var={notAVar} bash="echo hi" />
+            </Command>
+          );
+        }`;
+      expect(() => transformWithSourceFile(tsx)).toThrow(/not found.*useVariable/);
+    });
+  });
 });

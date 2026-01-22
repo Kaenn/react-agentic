@@ -24,6 +24,7 @@ import {
   SyntaxKind,
   InterfaceDeclaration,
   TemplateExpression,
+  CallExpression,
 } from 'ts-morph';
 
 export interface CreateProjectOptions {
@@ -131,6 +132,160 @@ export function getAttributeValue(
     }
   }
 
+  return undefined;
+}
+
+/**
+ * Known test helper function names from jsx.ts
+ */
+const TEST_HELPERS = new Set(['fileExists', 'dirExists', 'isEmpty', 'notEmpty', 'equals', 'and', 'or']);
+
+/**
+ * Get the value of a test attribute, supporting both string literals
+ * and test helper function calls like fileExists(varRef), isEmpty(varRef), etc.
+ *
+ * @param element - The JSX element to get the attribute from
+ * @param name - The attribute name (typically 'test')
+ * @param variables - Map of declared useVariable results for resolving identifiers
+ * @returns The test expression string, or undefined if not found/invalid
+ */
+export function getTestAttributeValue(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init) {
+    return undefined;
+  }
+
+  // String literal: attr="value"
+  if (Node.isStringLiteral(init)) {
+    return init.getLiteralValue();
+  }
+
+  // JSX expression: attr={value}, attr={"value"}, or attr={helperFn(var)}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (!expr) {
+      return undefined;
+    }
+
+    // String literal inside expression: attr={"value"}
+    if (Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // Call expression: attr={fileExists(varRef)} or attr={equals(varRef, "value")}
+    if (Node.isCallExpression(expr)) {
+      return evaluateTestHelperCall(expr, variables);
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * ts-morph Node type alias for use in local function signatures
+ */
+type TsMorphNode = import('ts-morph').Node;
+
+/**
+ * Evaluate a test helper function call at compile time.
+ *
+ * Supports:
+ * - fileExists(varRef) -> [ -f $VAR_NAME ]
+ * - dirExists(varRef) -> [ -d $VAR_NAME ]
+ * - isEmpty(varRef) -> [ -z $VAR_NAME ]
+ * - notEmpty(varRef) -> [ -n $VAR_NAME ]
+ * - equals(varRef, "value") -> [ $VAR_NAME = value ]
+ * - and(...tests) -> test1 && test2 && ...
+ * - or(...tests) -> test1 || test2 || ...
+ */
+function evaluateTestHelperCall(
+  callExpr: CallExpression,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  const callee = callExpr.getExpression();
+  if (!Node.isIdentifier(callee)) {
+    return undefined;
+  }
+
+  const funcName = callee.getText();
+  if (!TEST_HELPERS.has(funcName)) {
+    return undefined;
+  }
+
+  const args = callExpr.getArguments();
+
+  switch (funcName) {
+    case 'fileExists': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -f $${varName} ]` : undefined;
+    }
+    case 'dirExists': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -d $${varName} ]` : undefined;
+    }
+    case 'isEmpty': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -z $${varName} ]` : undefined;
+    }
+    case 'notEmpty': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -n $${varName} ]` : undefined;
+    }
+    case 'equals': {
+      const varName = resolveVariableArg(args[0], variables);
+      const value = args[1] && Node.isStringLiteral(args[1]) ? args[1].getLiteralValue() : undefined;
+      return varName && value ? `[ $${varName} = ${value} ]` : undefined;
+    }
+    case 'and': {
+      const tests = args.map((arg: TsMorphNode) => evaluateTestArg(arg, variables)).filter((t: string | undefined): t is string => t !== undefined);
+      return tests.length > 0 ? tests.join(' && ') : undefined;
+    }
+    case 'or': {
+      const tests = args.map((arg: TsMorphNode) => evaluateTestArg(arg, variables)).filter((t: string | undefined): t is string => t !== undefined);
+      return tests.length > 0 ? tests.join(' || ') : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolve a variable reference argument to its shell variable name.
+ */
+function resolveVariableArg(
+  arg: TsMorphNode | undefined,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  if (!arg || !Node.isIdentifier(arg)) {
+    return undefined;
+  }
+  const variable = variables.get(arg.getText());
+  return variable?.envName;
+}
+
+/**
+ * Evaluate a test argument for and/or composition.
+ * Handles both string literals and nested helper calls.
+ */
+function evaluateTestArg(
+  arg: TsMorphNode,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  if (Node.isStringLiteral(arg)) {
+    return arg.getLiteralValue();
+  }
+  if (Node.isCallExpression(arg)) {
+    return evaluateTestHelperCall(arg, variables);
+  }
   return undefined;
 }
 
@@ -724,19 +879,13 @@ export interface ExtractedVariable {
   localName: string;
   /** Shell variable name (e.g., "PHASE_DIR") */
   envName: string;
-  /** Assignment specification */
-  assignment: {
-    type: 'bash' | 'value';
-    content: string;
-  };
 }
 
 /**
  * Extract all useVariable() declarations from a source file
  *
  * Finds patterns like:
- *   const phaseDir = useVariable("PHASE_DIR", { bash: `...` });
- *   const version = useVariable("VERSION", { value: "1.0" });
+ *   const phaseDir = useVariable("PHASE_DIR");
  *
  * @param sourceFile - Source file to extract from
  * @returns Map from local variable name to ExtractedVariable info
@@ -758,20 +907,12 @@ export function extractVariableDeclarations(
     if (!Node.isIdentifier(callExpr) || callExpr.getText() !== 'useVariable') return;
 
     const args = initializer.getArguments();
-    if (args.length < 2) return;
+    if (args.length < 1) return;
 
     // First arg: string literal for env name
     const firstArg = args[0];
     if (!Node.isStringLiteral(firstArg)) return;
     const envName = firstArg.getLiteralValue();
-
-    // Second arg: object literal with bash or value
-    const secondArg = args[1];
-    if (!Node.isObjectLiteralExpression(secondArg)) return;
-
-    // Extract assignment from object literal
-    const assignment = extractAssignment(secondArg);
-    if (!assignment) return;
 
     // Get local variable name
     const localName = node.getName();
@@ -779,78 +920,12 @@ export function extractVariableDeclarations(
     result.set(localName, {
       localName,
       envName,
-      assignment,
     });
   });
 
   return result;
 }
 
-/**
- * Extract assignment specification from object literal
- * Handles: { bash: `...` } or { value: "..." }
- */
-function extractAssignment(
-  objLiteral: ObjectLiteralExpression
-): { type: 'bash' | 'value'; content: string } | undefined {
-  for (const prop of objLiteral.getProperties()) {
-    if (!Node.isPropertyAssignment(prop)) continue;
-
-    const name = prop.getName();
-    const init = prop.getInitializer();
-    if (!init) continue;
-
-    if (name === 'bash') {
-      // Handle string literal or template literal
-      if (Node.isStringLiteral(init)) {
-        return { type: 'bash', content: init.getLiteralValue() };
-      }
-      if (Node.isNoSubstitutionTemplateLiteral(init)) {
-        return { type: 'bash', content: init.getLiteralValue() };
-      }
-      if (Node.isTemplateExpression(init)) {
-        // Template with substitutions - reconstruct preserving ${VAR} syntax
-        return { type: 'bash', content: extractTemplateWithVars(init) };
-      }
-    }
-
-    if (name === 'value') {
-      // Handle string literal, number, or template literal
-      if (Node.isStringLiteral(init)) {
-        return { type: 'value', content: init.getLiteralValue() };
-      }
-      if (Node.isNoSubstitutionTemplateLiteral(init)) {
-        return { type: 'value', content: init.getLiteralValue() };
-      }
-      if (Node.isNumericLiteral(init)) {
-        return { type: 'value', content: init.getLiteralValue().toString() };
-      }
-    }
-  }
-
-  return undefined;
-}
-
-/**
- * Extract template literal content preserving ${VAR} syntax for bash
- * Unlike Markdown where ${var} becomes {var}, bash needs ${VAR} preserved
- */
-function extractTemplateWithVars(expr: TemplateExpression): string {
-  const parts: string[] = [];
-
-  // Head: text before first ${...}
-  parts.push(expr.getHead().getLiteralText());
-
-  // Spans: each has expression + literal text after
-  for (const span of expr.getTemplateSpans()) {
-    const spanExpr = span.getExpression();
-    // Preserve ${...} syntax for bash
-    parts.push(`\${${spanExpr.getText()}}`);
-    parts.push(span.getLiteral().getLiteralText());
-  }
-
-  return parts.join('');
-}
 
 // ============================================================================
 // SpawnAgent Input Utilities

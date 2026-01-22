@@ -15,6 +15,7 @@ Full documentation lives in [`docs/`](docs/README.md):
 | [Command](docs/command.md) | Build slash commands (e.g., `/db-migrate`) |
 | [Agent](docs/agent.md) | Build spawnable agents with input contracts |
 | [Communication](docs/communication.md) | SpawnAgent pattern for Command ↔ Agent data flow |
+| [Variables](docs/variables.md) | Shell variables with `useVariable` and `<Assign>` |
 
 ### Technical Reference
 | Doc | Description |
@@ -52,7 +53,8 @@ docs/              # Documentation (keep up to date!)
 ├── getting-started.md
 ├── command.md
 ├── agent.md
-└── communication.md
+├── communication.md
+└── variables.md
 
 .claude/
 ├── commands/      # Generated command markdown
@@ -66,5 +68,7 @@ docs/              # Documentation (keep up to date!)
 | `<Command>` | Slash command | `/deploy`, `/migrate` |
 | `<Agent>` | Spawnable worker | `test-runner`, `code-reviewer` |
 | `<SpawnAgent>` | Spawn agent from command | Emits `Task()` syntax |
+| `useVariable` | Declare shell variable | `useVariable("TS")` |
+| `<Assign>` | Emit variable assignment | `<Assign var={ts} bash={\`date\`} />` |
 | `<Markdown>` | Inline content | Free-form markdown |
 | `<XmlBlock>` | Structured section | `<objective>`, `<process>` |
