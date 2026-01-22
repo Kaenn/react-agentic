@@ -30,6 +30,12 @@ See: .planning/milestones/v1.0-ROADMAP.md
 
 - [x] **Phase 12: Typed SpawnAgent Input** - Input prop with VariableRef/object literal, auto-generated prompts, children as extra instructions
 
+### v1.3 Conditional Logic (In Progress)
+
+**Milestone Goal:** Enable conditional execution in commands and agents using `<If>` component with variable-based test expressions — matching the prose-based conditional pattern from GSD commands.
+
+- [ ] **Phase 13: Conditional Logic** - If/Else components for shell test expressions, variable interpolation, compile-time syntax validation
+
 ## Phase Details
 
 ### Phase 8: IR Extensions
@@ -113,10 +119,28 @@ Plans:
 - [x] 12-03-PLAN.md — Emitter prompt generation from input
 - [x] 12-04-PLAN.md — Validation tests and documentation
 
+### Phase 13: Conditional Logic
+**Goal**: Enable conditional execution in commands/agents using If/Else components that emit prose-based conditionals matching GSD patterns
+**Depends on**: Phase 12
+**Requirements**: COND-01, COND-02, COND-03, COND-04, COND-05, COND-06
+**Success Criteria** (what must be TRUE):
+  1. `<If test="condition">` component emits **If condition:** / **Otherwise:** prose pattern
+  2. `<If>` accepts `test` prop as string shell expression or `VariableRef` comparison
+  3. `<If>` children become the "then" block content
+  4. `<Else>` component (optional sibling) provides "otherwise" content
+  5. Nested `<If>` components produce properly indented conditional chains
+  6. Variable interpolation in test expressions: `${varRef.ref}` or `{variable}` syntax
+**Plans:** 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — IR and JSX type extensions for If/Else
+- [ ] 13-02-PLAN.md — Transformer parsing for If/Else with sibling detection
+- [ ] 13-03-PLAN.md — Emitter and test command
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -125,7 +149,8 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12
 | 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
 | 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
+| 13. Conditional Logic | v1.3 | 0/3 | Not Started | — |
 
 ---
 *Roadmap created: 2026-01-21*
-*Milestone: v1.2 Type-Safe Communication*
+*Milestone: v1.3 Conditional Logic*
