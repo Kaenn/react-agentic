@@ -6,6 +6,7 @@
  */
 
 import matter from 'gray-matter';
+import type { SourceFile } from 'ts-morph';
 import type {
   AgentDocumentNode,
   AgentFrontmatterNode,
@@ -25,8 +26,10 @@ import type {
   ParagraphNode,
   SpawnAgentInput,
   SpawnAgentNode,
+  TypeReference,
   XmlBlockNode,
 } from '../ir/index.js';
+import { resolveTypeImport, extractInterfaceProperties } from '../parser/parser.js';
 import { assertNever } from './utils.js';
 
 /**
@@ -94,8 +97,10 @@ export class MarkdownEmitter {
 
   /**
    * Emit an AgentDocumentNode to markdown
+   * @param doc - The agent document node
+   * @param sourceFile - Optional source file for type resolution (needed for structured_returns)
    */
-  emitAgent(doc: AgentDocumentNode): string {
+  emitAgent(doc: AgentDocumentNode, sourceFile?: SourceFile): string {
     const parts: string[] = [];
 
     // Agent frontmatter (GSD format)
@@ -104,6 +109,14 @@ export class MarkdownEmitter {
     // Body content (same as Command)
     for (const child of doc.children) {
       parts.push(this.emitBlock(child));
+    }
+
+    // Auto-generate structured_returns if outputType present
+    if (doc.frontmatter.outputType && sourceFile) {
+      const structuredReturns = this.emitStructuredReturns(doc.frontmatter.outputType, sourceFile);
+      if (structuredReturns) {
+        parts.push(structuredReturns);
+      }
     }
 
     // Join with double newlines for block separation, then ensure single trailing newline
@@ -482,6 +495,88 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Generate <structured_returns> section from output type interface
+   *
+   * Resolves the TypeReference to its interface definition, extracts properties,
+   * and generates status-specific templates based on field names.
+   */
+  private emitStructuredReturns(outputType: TypeReference, sourceFile: SourceFile): string | null {
+    // Resolve the interface
+    const resolved = resolveTypeImport(outputType.name, sourceFile);
+    if (!resolved?.interface) {
+      return null;
+    }
+
+    // Extract properties
+    const props = extractInterfaceProperties(resolved.interface);
+    if (props.length === 0) {
+      return null;
+    }
+
+    // Find status property (should always exist if extending BaseOutput)
+    const statusProp = props.find(p => p.name === 'status');
+    const otherProps = props.filter(p => p.name !== 'status' && p.name !== 'message');
+
+    // Generate template showing all fields
+    const lines: string[] = [
+      '<structured_returns>',
+      '',
+      '## Output Format',
+      '',
+      'Return a YAML code block with the following structure:',
+      '',
+      '```yaml',
+      'status: SUCCESS | BLOCKED | NOT_FOUND | ERROR | CHECKPOINT',
+    ];
+
+    // Add message if in interface
+    const messageProp = props.find(p => p.name === 'message');
+    if (messageProp) {
+      lines.push('message: "Human-readable status message"');
+    }
+
+    // Add other fields
+    for (const prop of otherProps) {
+      const required = prop.required ? '' : '  # optional';
+      const typeHint = this.formatTypeHint(prop.type);
+      lines.push(`${prop.name}: ${typeHint}${required}`);
+    }
+
+    lines.push('```');
+
+    // Add status-specific guidance
+    lines.push('');
+    lines.push('### Status Codes');
+    lines.push('');
+    lines.push('- **SUCCESS**: Task completed successfully');
+    lines.push('- **BLOCKED**: Cannot proceed, needs external input');
+    lines.push('- **NOT_FOUND**: Requested resource not found');
+    lines.push('- **ERROR**: Execution error occurred');
+    lines.push('- **CHECKPOINT**: Milestone reached, pausing for verification');
+
+    lines.push('');
+    lines.push('</structured_returns>');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Format a TypeScript type as a hint for YAML output
+   */
+  private formatTypeHint(type: string): string {
+    // Handle common types
+    if (type === 'string') return '"..."';
+    if (type === 'number') return '0';
+    if (type === 'boolean') return 'true | false';
+    if (type.includes('[]')) return '[...]';
+    if (type.includes("'HIGH'") || type.includes("'MEDIUM'") || type.includes("'LOW'")) {
+      return 'HIGH | MEDIUM | LOW';
+    }
+    // For complex types, show placeholder
+    return `<${type.replace(/['"]/g, '')}>`;
+  }
+
+  /**
    * Emit XML block - <name attrs>content</name>
    */
   private emitXmlBlock(node: XmlBlockNode): string {
@@ -509,7 +604,7 @@ export function emit(doc: DocumentNode): string {
 /**
  * Convenience function for emitting an agent document
  */
-export function emitAgent(doc: AgentDocumentNode): string {
+export function emitAgent(doc: AgentDocumentNode, sourceFile?: SourceFile): string {
   const emitter = new MarkdownEmitter();
-  return emitter.emitAgent(doc);
+  return emitter.emitAgent(doc, sourceFile);
 }
