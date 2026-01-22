@@ -153,6 +153,8 @@ export class MarkdownEmitter {
         return this.emitIf(node);
       case 'else':
         return this.emitElse(node);
+      case 'onStatus':
+        throw new Error('OnStatus emission not yet implemented');
       default:
         return assertNever(node);
     }

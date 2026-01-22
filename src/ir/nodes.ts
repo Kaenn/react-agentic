@@ -223,6 +223,30 @@ export interface ElseNode {
 }
 
 /**
+ * Reference to an agent's output in the IR
+ * Captures the agent name for output binding
+ */
+export interface OutputReference {
+  kind: 'outputReference';
+  /** Agent name this output refers to */
+  agent: string;
+}
+
+/**
+ * OnStatus block - conditional based on agent return status
+ * Emits as **On {status}:** prose pattern
+ */
+export interface OnStatusNode {
+  kind: 'onStatus';
+  /** Output reference from useOutput */
+  outputRef: OutputReference;
+  /** Status to match (SUCCESS, BLOCKED, etc.) */
+  status: 'SUCCESS' | 'BLOCKED' | 'NOT_FOUND' | 'ERROR' | 'CHECKPOINT';
+  /** Block content for this status */
+  children: BlockNode[];
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -237,7 +261,8 @@ export type BlockNode =
   | SpawnAgentNode
   | AssignNode
   | IfNode
-  | ElseNode;
+  | ElseNode
+  | OnStatusNode;
 
 // ============================================================================
 // Special Nodes
