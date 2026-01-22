@@ -526,6 +526,19 @@ export class Transformer {
     for (const child of node.getJsxChildren()) {
       if (Node.isJsxText(child)) {
         parts.push(child.getText());
+      } else if (Node.isJsxExpression(child)) {
+        // Handle {`template`} and {"string"} expressions
+        const expr = child.getExpression();
+        if (expr) {
+          if (Node.isStringLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isTemplateExpression(expr)) {
+            // Template with substitutions: {`text ${var} more`}
+            parts.push(this.extractTemplateText(expr));
+          }
+        }
       }
     }
     // Trim only the outermost whitespace (leading/trailing)
@@ -637,11 +650,25 @@ export class Transformer {
 
   private extractAllText(node: JsxElement): string {
     // Recursively extract all text content from children
+    // Handles both JsxText and JsxExpression (string literals, template literals)
     const parts: string[] = [];
     for (const child of node.getJsxChildren()) {
       if (Node.isJsxText(child)) {
         const text = extractText(child);
         if (text) parts.push(text);
+      } else if (Node.isJsxExpression(child)) {
+        // Handle {`template`}, {"string"}, and {'string'} expressions
+        const expr = child.getExpression();
+        if (expr) {
+          if (Node.isStringLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+            parts.push(expr.getLiteralValue());
+          } else if (Node.isTemplateExpression(expr)) {
+            // Template with substitutions: {`text ${var} more`}
+            parts.push(this.extractTemplateText(expr));
+          }
+        }
       }
     }
     return parts.join('');
