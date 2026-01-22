@@ -694,3 +694,115 @@ export function SkillFile(_props: SkillFileProps): null {
 export function SkillStatic(_props: SkillStaticProps): null {
   return null;
 }
+
+// ============================================================================
+// State Management (useStateRef hook + ReadState/WriteState components)
+// ============================================================================
+
+/**
+ * Reference to a state key created by useStateRef
+ * @typeParam TSchema - Type of the state schema (compile-time only)
+ */
+export interface StateRef<TSchema = unknown> {
+  /** State key identifier */
+  key: string;
+  /** Phantom type marker (compile-time only) */
+  _schema?: TSchema;
+}
+
+/**
+ * Declare a state reference for reading/writing typed state
+ *
+ * This is a compile-time hook that creates a reference to a state key.
+ * The actual state operations happen at runtime via ReadState/WriteState.
+ *
+ * @typeParam TSchema - TypeScript interface for state shape
+ * @param key - State key identifier (e.g., "projectContext")
+ * @returns StateRef for use in ReadState/WriteState
+ *
+ * @example
+ * interface ProjectState { name: string; phase: number; }
+ * const projectState = useStateRef<ProjectState>("projectContext");
+ *
+ * // In JSX:
+ * <ReadState state={projectState} into={nameVar} field="name" />
+ */
+export function useStateRef<TSchema = unknown>(key: string): StateRef<TSchema> {
+  return { key };
+}
+
+/**
+ * Props for the ReadState component
+ * @typeParam TSchema - State schema type for field path validation
+ */
+export interface ReadStateProps<TSchema = unknown> {
+  /** State reference from useStateRef */
+  state: StateRef<TSchema>;
+  /** Variable to store the result */
+  into: VariableRef;
+  /** Optional: nested field path (e.g., "user.preferences.theme") */
+  field?: string;
+}
+
+/**
+ * Props for the WriteState component
+ * Specify exactly one of: field+value OR merge
+ * @typeParam TSchema - State schema type for field path validation
+ */
+export interface WriteStateProps<TSchema = unknown> {
+  /** State reference from useStateRef */
+  state: StateRef<TSchema>;
+  /** Field path for single-field write (e.g., "user.name") */
+  field?: string;
+  /** Value to write - string literal or VariableRef */
+  value?: string | VariableRef;
+  /** Partial object for merge write */
+  merge?: Partial<TSchema>;
+}
+
+/**
+ * ReadState component - reads typed state values from registry
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime. Emits bash JSON read operation.
+ *
+ * @typeParam TSchema - State schema type for field path validation
+ * @example Read entire state
+ * const projectState = useStateRef<ProjectState>("projectContext");
+ * const stateVar = useVariable("STATE_JSON");
+ * <ReadState state={projectState} into={stateVar} />
+ *
+ * @example Read specific field
+ * const nameVar = useVariable("PROJECT_NAME");
+ * <ReadState state={projectState} into={nameVar} field="name" />
+ *
+ * @example Read nested field
+ * const themeVar = useVariable("USER_THEME");
+ * <ReadState state={projectState} into={themeVar} field="user.preferences.theme" />
+ */
+export function ReadState<TSchema = unknown>(_props: ReadStateProps<TSchema>): null {
+  return null;
+}
+
+/**
+ * WriteState component - writes typed state values to registry
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime. Emits bash JSON write operation.
+ *
+ * Specify exactly one of: field+value OR merge
+ *
+ * @typeParam TSchema - State schema type for field path validation
+ * @example Write single field (literal value)
+ * <WriteState state={projectState} field="name" value="my-project" />
+ *
+ * @example Write single field (variable reference)
+ * const userInput = useVariable("USER_INPUT");
+ * <WriteState state={projectState} field="name" value={userInput} />
+ *
+ * @example Merge partial update
+ * <WriteState state={projectState} merge={{ phase: 2, status: "active" }} />
+ */
+export function WriteState<TSchema = unknown>(_props: WriteStateProps<TSchema>): null {
+  return null;
+}
