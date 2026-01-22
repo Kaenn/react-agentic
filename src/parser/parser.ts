@@ -851,3 +851,89 @@ function extractTemplateWithVars(expr: TemplateExpression): string {
 
   return parts.join('');
 }
+
+// ============================================================================
+// SpawnAgent Input Utilities
+// ============================================================================
+
+import type { InputProperty, InputPropertyValue } from '../ir/nodes.js';
+
+/**
+ * Check if an identifier references a useVariable result
+ *
+ * @param identifier - The identifier node to check
+ * @param variables - Map of declared useVariable results
+ * @returns true if identifier references a known useVariable
+ */
+export function isVariableRef(
+  identifier: string,
+  variables: Map<string, ExtractedVariable>
+): boolean {
+  return variables.has(identifier);
+}
+
+/**
+ * Extract SpawnAgent input object literal properties
+ *
+ * Handles property values:
+ * - String literal: { propName: "value" } -> { type: 'string', value: str }
+ * - {placeholder} pattern: { propName: "{var}" } -> { type: 'placeholder', name: var }
+ * - Identifier referencing variable: { propName: varRef } -> { type: 'variable', name: envName }
+ *
+ * @param objLiteral - The ObjectLiteralExpression from JSX input prop
+ * @param variables - Map of declared useVariable results
+ * @returns Array of InputProperty with proper InputPropertyValue types
+ */
+export function extractInputObjectLiteral(
+  objLiteral: ObjectLiteralExpression,
+  variables: Map<string, ExtractedVariable>
+): InputProperty[] {
+  const properties: InputProperty[] = [];
+
+  for (const prop of objLiteral.getProperties()) {
+    if (!Node.isPropertyAssignment(prop)) continue;
+
+    const name = prop.getName();
+    const initializer = prop.getInitializer();
+    if (!initializer) continue;
+
+    let value: InputPropertyValue;
+
+    if (Node.isStringLiteral(initializer)) {
+      const strValue = initializer.getLiteralValue();
+      // Check for {placeholder} pattern
+      const placeholderMatch = strValue.match(/^\{(\w+)\}$/);
+      if (placeholderMatch) {
+        value = { type: 'placeholder', name: placeholderMatch[1] };
+      } else {
+        value = { type: 'string', value: strValue };
+      }
+    } else if (Node.isNoSubstitutionTemplateLiteral(initializer)) {
+      const strValue = initializer.getLiteralValue();
+      // Check for {placeholder} pattern
+      const placeholderMatch = strValue.match(/^\{(\w+)\}$/);
+      if (placeholderMatch) {
+        value = { type: 'placeholder', name: placeholderMatch[1] };
+      } else {
+        value = { type: 'string', value: strValue };
+      }
+    } else if (Node.isIdentifier(initializer)) {
+      // Identifier referencing a variable
+      const varName = initializer.getText();
+      const variable = variables.get(varName);
+      if (variable) {
+        value = { type: 'variable', name: variable.envName };
+      } else {
+        // Unknown identifier - treat as string (will be validated elsewhere)
+        value = { type: 'string', value: varName };
+      }
+    } else {
+      // Unsupported initializer type - skip this property
+      continue;
+    }
+
+    properties.push({ name, value });
+  }
+
+  return properties;
+}
