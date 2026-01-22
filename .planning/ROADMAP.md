@@ -232,7 +232,7 @@ Hybrid approach:
   4. `<WriteState state={ref} merge={partial}>` merges partial updates to state
   5. FileAdapter persists state to JSON file with create-if-missing behavior
   6. CLI skills `/react-agentic:state-read` and `/react-agentic:state-write` provide direct access
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
 - [ ] 17-01-PLAN.md — IR and JSX type extensions for State
@@ -240,6 +240,7 @@ Plans:
 - [ ] 17-03-PLAN.md — Transformer parsing for ReadState/WriteState
 - [ ] 17-04-PLAN.md — Emitter for state operations
 - [ ] 17-05-PLAN.md — Integration test and documentation
+- [ ] 17-06-PLAN.md — CLI skills (state-read, state-write)
 
 **Details:**
 Core architecture:
@@ -248,6 +249,7 @@ Core architecture:
 - Storage: Abstract adapter pattern (FileAdapter first, Supabase/Postgres/Redis later)
 - Type Safety: Compile-time validation via TypeScript generics
 - Nested Access: Dot-notation paths (e.g., `config.debug`)
+- CLI Skills: `/react-agentic:state-read` and `/react-agentic:state-write` for direct access
 
 File structure:
 ```
@@ -273,7 +275,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
 | 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
-| 17. State System | v1.6 | 0/5 | Not Started | - |
+| 17. State System | v1.6 | 0/6 | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
