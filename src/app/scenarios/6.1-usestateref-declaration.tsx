@@ -14,7 +14,7 @@ import {
   Assign,
   ReadState,
   WriteState,
-  Markdown,
+  XmlBlock,
   If,
   notEmpty,
 } from '../../jsx.js';
@@ -55,72 +55,59 @@ export default function UseStateRefDeclaration() {
       name="6.1-usestateref-declaration"
       description="Test useStateRef hook for state reference declaration"
     >
-      <Markdown>
-{`# useStateRef Declaration Test
+      <h1>useStateRef Declaration Test</h1>
 
-This command validates that \`useStateRef()\` correctly creates state references.
+      <p>This command validates that <code>useStateRef()</code> correctly creates state references.</p>
 
-## Test Criteria
+      <h2>Test Criteria</h2>
 
-1. **State Reference Created**: useStateRef returns a StateRef object
-2. **Key Property Accessible**: The key property contains the state identifier
-3. **Type Parameter**: TypeScript generics provide compile-time type safety
-4. **Multiple Coexistence**: Multiple useStateRef calls can coexist
+      <ol>
+        <li><strong>State Reference Created</strong>: useStateRef returns a StateRef object</li>
+        <li><strong>Key Property Accessible</strong>: The key property contains the state identifier</li>
+        <li><strong>Type Parameter</strong>: TypeScript generics provide compile-time type safety</li>
+        <li><strong>Multiple Coexistence</strong>: Multiple useStateRef calls can coexist</li>
+      </ol>
 
-## Validation Instructions
+      <h2>Validation Instructions</h2>
 
-When Claude runs this command, it should:
+      <p>When Claude runs this command, it should:</p>
 
-1. Confirm that state references were created for:
-   - project-context (ProjectState schema)
-   - user-preferences (UserPreferences schema)
-   - session-data (SessionState schema)
+      <ol>
+        <li>
+          Confirm that state references were created for:
+          <ul>
+            <li>project-context (ProjectState schema)</li>
+            <li>user-preferences (UserPreferences schema)</li>
+            <li>session-data (SessionState schema)</li>
+          </ul>
+        </li>
+        <li>Verify the state-read skill calls reference the correct keys</li>
+        <li>Report the state keys used in each ReadState operation</li>
+      </ol>
 
-2. Verify the state-read skill calls reference the correct keys
+      <h2>State Operations</h2>
 
-3. Report the state keys used in each ReadState operation
-
-## State Operations
-
-### Test 1: First State Reference (project-context)
-`}
-      </Markdown>
+      <h3>Test 1: First State Reference (project-context)</h3>
 
       {/* Read from first state - demonstrates key property is accessible */}
       <ReadState state={projectState} into={projectName} field="name" />
 
-      <Markdown>
-{`
-### Test 2: Second State Reference (user-preferences)
-`}
-      </Markdown>
+      <h3>Test 2: Second State Reference (user-preferences)</h3>
 
       {/* Read from second state - demonstrates multiple refs coexist */}
       <ReadState state={userPrefs} into={userTheme} field="theme" />
 
-      <Markdown>
-{`
-### Test 3: Third State Reference (session-data)
-`}
-      </Markdown>
+      <h3>Test 3: Third State Reference (session-data)</h3>
 
       {/* Read from third state - demonstrates three refs working */}
       <ReadState state={sessionState} into={sessionUserId} field="userId" />
 
-      <Markdown>
-{`
-### Test 4: Full State Read (demonstrates key without field)
-`}
-      </Markdown>
+      <h3>Test 4: Full State Read (demonstrates key without field)</h3>
 
       {/* Read full state without field - shows key is used directly */}
       <ReadState state={projectState} into={readResult} />
 
-      <Markdown>
-{`
-### Test 5: Write Operation (confirms key accessible for writes)
-`}
-      </Markdown>
+      <h3>Test 5: Write Operation (confirms key accessible for writes)</h3>
 
       {/* Write to state - confirms key property works for writes */}
       <WriteState
@@ -129,14 +116,12 @@ When Claude runs this command, it should:
         value="dark"
       />
 
-      <Markdown>
-{`
-## Expected Output Format
+      <h2>Expected Output Format</h2>
 
-After running this command, report your findings in this YAML format:
+      <p>After running this command, report your findings in this YAML format:</p>
 
-\`\`\`yaml
-status: SUCCESS
+      <XmlBlock name="expected-output">
+{`status: SUCCESS
 test_results:
   state_reference_created: true  # StateRef objects returned from useStateRef
   key_property_accessible: true  # key property used in state-read/write calls
@@ -152,12 +137,12 @@ operations_executed:
   - "state-read session-data --field userId"
   - "state-read project-context (full)"
   - "state-write user-preferences --field theme --value dark"
-message: "All useStateRef criteria validated successfully"
-\`\`\`
+message: "All useStateRef criteria validated successfully"`}
+      </XmlBlock>
 
-**IMPORTANT**: Execute the state-read skill calls shown above. If the state files don't exist, that's expected - the test validates that the correct keys are being referenced, not that data exists.
-`}
-      </Markdown>
+      <p>
+        <strong>IMPORTANT</strong>: Execute the state-read skill calls shown above. If the state files don't exist, that's expected - the test validates that the correct keys are being referenced, not that data exists.
+      </p>
     </Command>
   );
 }

@@ -14,7 +14,7 @@ import {
   Assign,
   ReadState,
   WriteState,
-  Markdown,
+  XmlBlock,
 } from '../../jsx.js';
 
 // Define a comprehensive state schema for testing merge behavior
@@ -45,23 +45,24 @@ export default function WriteStateWithMerge() {
       name="6.5-writestate-with-merge"
       description="Test WriteState with merge for partial state updates"
     >
-      <Markdown>
-{`# WriteState with Merge Test
+      <h1>WriteState with Merge Test</h1>
 
-This command validates that \`<WriteState merge={{...}}>\` correctly performs partial updates.
+      <p>
+        This command validates that <code>&lt;WriteState merge=&#123;&#123;...&#125;&#125;&gt;</code> correctly performs partial updates.
+      </p>
 
-## Test Criteria
+      <h2>Test Criteria</h2>
 
-1. **Merge updates multiple fields**: A single WriteState with merge updates several fields at once
-2. **Unspecified fields are preserved**: Fields not in the merge object remain unchanged
-3. **Variable references work in merge object**: Dynamic values from variables can be merged
-4. **Claude executes merge correctly**: The state-write skill performs the merge operation
+      <ol>
+        <li><strong>Merge updates multiple fields</strong>: A single WriteState with merge updates several fields at once</li>
+        <li><strong>Unspecified fields are preserved</strong>: Fields not in the merge object remain unchanged</li>
+        <li><strong>Variable references work in merge object</strong>: Dynamic values from variables can be merged</li>
+        <li><strong>Claude executes merge correctly</strong>: The state-write skill performs the merge operation</li>
+      </ol>
 
-## Setup Phase
+      <h2>Setup Phase</h2>
 
-First, establish initial state with individual field writes.
-`}
-      </Markdown>
+      <p>First, establish initial state with individual field writes.</p>
 
       {/* Step 1: Write initial state with merge to establish baseline */}
       <WriteState
@@ -76,24 +77,18 @@ First, establish initial state with individual field writes.
         }}
       />
 
-      <Markdown>
-{`
-### Read Initial State
+      <h3>Read Initial State</h3>
 
-Reading the state after initial setup:
-`}
-      </Markdown>
+      <p>Reading the state after initial setup:</p>
 
       <ReadState state={testState} into={stateAfterInit} />
 
-      <Markdown>
-{`
-## Test 1: Merge Multiple Static Fields
+      <h2>Test 1: Merge Multiple Static Fields</h2>
 
-Now perform a merge that updates ONLY some fields (version, buildCount, status).
-The fields \`name\`, \`author\`, and \`lastUpdated\` should be PRESERVED.
-`}
-      </Markdown>
+      <p>
+        Now perform a merge that updates ONLY some fields (version, buildCount, status).
+        The fields <code>name</code>, <code>author</code>, and <code>lastUpdated</code> should be PRESERVED.
+      </p>
 
       {/* Test 1: Merge with static values - only update some fields */}
       <WriteState
@@ -105,31 +100,25 @@ The fields \`name\`, \`author\`, and \`lastUpdated\` should be PRESERVED.
         }}
       />
 
-      <Markdown>
-{`
-### Verify After Static Merge
+      <h3>Verify After Static Merge</h3>
 
-Reading state to verify only specified fields changed:
-`}
-      </Markdown>
+      <p>Reading state to verify only specified fields changed:</p>
 
       <ReadState state={testState} into={stateAfterMerge} />
 
-      <Markdown>
-{`
-**Expected State After Test 1:**
-- \`name\`: "merge-test-project" (PRESERVED - not in merge)
-- \`version\`: "2.0.0" (UPDATED)
-- \`buildCount\`: 42 (UPDATED)
-- \`author\`: "test-user" (PRESERVED - not in merge)
-- \`status\`: "updated" (UPDATED)
-- \`lastUpdated\`: "2026-01-01" (PRESERVED - not in merge)
+      <p><strong>Expected State After Test 1:</strong></p>
+      <ul>
+        <li><code>name</code>: "merge-test-project" (PRESERVED - not in merge)</li>
+        <li><code>version</code>: "2.0.0" (UPDATED)</li>
+        <li><code>buildCount</code>: 42 (UPDATED)</li>
+        <li><code>author</code>: "test-user" (PRESERVED - not in merge)</li>
+        <li><code>status</code>: "updated" (UPDATED)</li>
+        <li><code>lastUpdated</code>: "2026-01-01" (PRESERVED - not in merge)</li>
+      </ul>
 
-## Test 2: Merge with Variable References
+      <h2>Test 2: Merge with Variable References</h2>
 
-Assign dynamic values to variables, then merge them into state.
-`}
-      </Markdown>
+      <p>Assign dynamic values to variables, then merge them into state.</p>
 
       {/* Assign dynamic values to variables */}
       <Assign var={dynamicStatus} value="completed-dynamically" />
@@ -144,45 +133,50 @@ Assign dynamic values to variables, then merge them into state.
         }}
       />
 
-      <Markdown>
-{`
-### Verify After Variable Merge
+      <h3>Verify After Variable Merge</h3>
 
-Reading state to verify variable values were merged:
-`}
-      </Markdown>
+      <p>Reading state to verify variable values were merged:</p>
 
       <ReadState state={testState} into={stateAfterVarMerge} />
 
-      <Markdown>
-{`
-**Expected State After Test 2:**
-- \`name\`: "merge-test-project" (STILL PRESERVED)
-- \`version\`: "2.0.0" (STILL from Test 1)
-- \`buildCount\`: 42 (STILL from Test 1)
-- \`author\`: "test-user" (STILL PRESERVED)
-- \`status\`: "completed-dynamically" (UPDATED from variable)
-- \`lastUpdated\`: (current timestamp) (UPDATED from variable)
+      <p><strong>Expected State After Test 2:</strong></p>
+      <ul>
+        <li><code>name</code>: "merge-test-project" (STILL PRESERVED)</li>
+        <li><code>version</code>: "2.0.0" (STILL from Test 1)</li>
+        <li><code>buildCount</code>: 42 (STILL from Test 1)</li>
+        <li><code>author</code>: "test-user" (STILL PRESERVED)</li>
+        <li><code>status</code>: "completed-dynamically" (UPDATED from variable)</li>
+        <li><code>lastUpdated</code>: (current timestamp) (UPDATED from variable)</li>
+      </ul>
 
-## Validation Instructions
+      <h2>Validation Instructions</h2>
 
-After executing this command, Claude should:
+      <p>After executing this command, Claude should:</p>
 
-1. **Verify Test 1 - Static Merge**:
-   - Confirm \`version\`, \`buildCount\`, \`status\` were updated
-   - Confirm \`name\`, \`author\`, \`lastUpdated\` were PRESERVED (same as initial)
+      <ol>
+        <li>
+          <strong>Verify Test 1 - Static Merge</strong>:
+          <ul>
+            <li>Confirm <code>version</code>, <code>buildCount</code>, <code>status</code> were updated</li>
+            <li>Confirm <code>name</code>, <code>author</code>, <code>lastUpdated</code> were PRESERVED (same as initial)</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Verify Test 2 - Variable Merge</strong>:
+          <ul>
+            <li>Confirm <code>status</code> now equals "completed-dynamically" (from DYNAMIC_STATUS)</li>
+            <li>Confirm <code>lastUpdated</code> contains a timestamp (from CURRENT_TIMESTAMP)</li>
+            <li>Confirm <code>name</code>, <code>version</code>, <code>buildCount</code>, <code>author</code> are UNCHANGED</li>
+          </ul>
+        </li>
+      </ol>
 
-2. **Verify Test 2 - Variable Merge**:
-   - Confirm \`status\` now equals "completed-dynamically" (from DYNAMIC_STATUS)
-   - Confirm \`lastUpdated\` contains a timestamp (from CURRENT_TIMESTAMP)
-   - Confirm \`name\`, \`version\`, \`buildCount\`, \`author\` are UNCHANGED
+      <h2>Expected Output Format</h2>
 
-## Expected Output Format
+      <p>Report findings in this YAML format:</p>
 
-Report findings in this YAML format:
-
-\`\`\`yaml
-status: SUCCESS
+      <XmlBlock name="expected-output">
+{`status: SUCCESS
 test_results:
   merge_updates_multiple_fields: true   # Test 1: 3 fields updated in one merge
   unspecified_fields_preserved: true    # name, author preserved through merges
@@ -203,15 +197,15 @@ validation:
     version_updated_to_2_0_0: true
     status_has_dynamic_value: true
     lastUpdated_has_timestamp: true
-message: "WriteState merge test passed - partial updates work correctly"
-\`\`\`
+message: "WriteState merge test passed - partial updates work correctly"`}
+      </XmlBlock>
 
-## Runtime Evaluation Required
+      <h2>Runtime Evaluation Required</h2>
 
-Claude must execute the state-read and state-write skill calls to complete this test.
-The state is stored in \`.state/merge-test-state.json\`.
-`}
-      </Markdown>
+      <p>
+        Claude must execute the state-read and state-write skill calls to complete this test.
+        The state is stored in <code>.state/merge-test-state.json</code>.
+      </p>
     </Command>
   );
 }

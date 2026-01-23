@@ -8,7 +8,7 @@
  * Output: .claude/commands/3.5-variable-interpolation.md
  */
 
-import { Command, Assign, useVariable, Markdown } from '../../jsx.js';
+import { Command, Assign, useVariable, XmlBlock } from '../../jsx.js';
 
 // Declare variables at module level
 const currentDate = useVariable<string>("CURRENT_DATE");
@@ -63,15 +63,15 @@ echo "Dir: $PROJECT_DIR"
 
       <h2>Test 5: Variables in Markdown Table</h2>
 
-      <Markdown>
-{`The build was created by **$USER_NAME** on **$CURRENT_DATE**.
+      <p>The build was created by <strong>$USER_NAME</strong> on <strong>$CURRENT_DATE</strong>.</p>
 
-| Variable | Reference | Expected |
-|----------|-----------|----------|
-| Date | $CURRENT_DATE | Today's date |
-| User | $USER_NAME | Your username |
-| Directory | $PROJECT_DIR | Working dir |`}
-      </Markdown>
+      <XmlBlock name="variable-table">
+        | Variable | Reference | Expected |
+        |----------|-----------|----------|
+        | Date | $CURRENT_DATE | Today's date |
+        | User | $USER_NAME | Your username |
+        | Directory | $PROJECT_DIR | Working dir |
+      </XmlBlock>
 
       <h2>Your Task</h2>
 

@@ -13,7 +13,7 @@ import {
   useStateRef,
   WriteState,
   ReadState,
-  Markdown,
+  XmlBlock,
 } from '../../jsx.js';
 
 // Define typed schema with nested structure for testing
@@ -49,20 +49,19 @@ export default function ReadStateSpecificField() {
       name="6.3-readstate-specific-field"
       description="Test ReadState with field parameter for specific field reading"
     >
-      <Markdown>
-{`# ReadState Specific Field Test
+      <h1>ReadState Specific Field Test</h1>
 
-This command validates that \`<ReadState field="...">\` correctly reads specific fields from state.
+      <p>
+        This command validates that <code>&lt;ReadState field="..."&gt;</code> correctly reads specific fields from state.
+      </p>
 
-## Test Setup
+      <h2>Test Setup</h2>
 
-First, we'll initialize the state with known values, then read specific fields.
+      <p>First, we'll initialize the state with known values, then read specific fields.</p>
 
-### Step 1: Initialize Test State
+      <h3>Step 1: Initialize Test State</h3>
 
-Create the state file with test data by running:
-`}
-      </Markdown>
+      <p>Create the state file with test data by running:</p>
 
       {/* Initialize state with known nested structure */}
       <WriteState
@@ -83,86 +82,64 @@ Create the state file with test data by running:
         }}
       />
 
-      <Markdown>
-{`
-### Step 2: Read Top-Level Fields
+      <h3>Step 2: Read Top-Level Fields</h3>
 
-**Test 1: Read 'name' field (string)**
-`}
-      </Markdown>
+      <p><strong>Test 1: Read 'name' field (string)</strong></p>
 
       <ReadState state={testState} into={nameResult} field="name" />
 
-      <Markdown>
-{`
-**Test 2: Read 'count' field (number)**
-`}
-      </Markdown>
+      <p><strong>Test 2: Read 'count' field (number)</strong></p>
 
       <ReadState state={testState} into={countResult} field="count" />
 
-      <Markdown>
-{`
-### Step 3: Read Nested Fields
+      <h3>Step 3: Read Nested Fields</h3>
 
-**Test 3: Read 'config.timeout' (nested number)**
-`}
-      </Markdown>
+      <p><strong>Test 3: Read 'config.timeout' (nested number)</strong></p>
 
       <ReadState state={testState} into={timeoutResult} field="config.timeout" />
 
-      <Markdown>
-{`
-**Test 4: Read 'config.mode' (nested string)**
-`}
-      </Markdown>
+      <p><strong>Test 4: Read 'config.mode' (nested string)</strong></p>
 
       <ReadState state={testState} into={modeResult} field="config.mode" />
 
-      <Markdown>
-{`
-**Test 5: Read 'metadata.author' (nested string)**
-`}
-      </Markdown>
+      <p><strong>Test 5: Read 'metadata.author' (nested string)</strong></p>
 
       <ReadState state={testState} into={authorResult} field="metadata.author" />
 
-      <Markdown>
-{`
-### Step 4: Compare with Full State Read
+      <h3>Step 4: Compare with Full State Read</h3>
 
-**Test 6: Read entire state (no field parameter)**
-`}
-      </Markdown>
+      <p><strong>Test 6: Read entire state (no field parameter)</strong></p>
 
       <ReadState state={testState} into={fullStateResult} />
 
-      <Markdown>
-{`
-## Expected Results
+      <h2>Expected Results</h2>
 
-| Test | Field Path | Expected Value | Variable |
-|------|------------|----------------|----------|
-| 1 | name | "test-project" | NAME_RESULT |
-| 2 | count | 42 | COUNT_RESULT |
-| 3 | config.timeout | 5000 | TIMEOUT_RESULT |
-| 4 | config.mode | "production" | MODE_RESULT |
-| 5 | metadata.author | "test-user" | AUTHOR_RESULT |
-| 6 | (full state) | {entire object} | FULL_STATE_RESULT |
+      <XmlBlock name="expected-results-table">
+        | Test | Field Path | Expected Value | Variable |
+        |------|------------|----------------|----------|
+        | 1 | name | "test-project" | NAME_RESULT |
+        | 2 | count | 42 | COUNT_RESULT |
+        | 3 | config.timeout | 5000 | TIMEOUT_RESULT |
+        | 4 | config.mode | "production" | MODE_RESULT |
+        | 5 | metadata.author | "test-user" | AUTHOR_RESULT |
+        | 6 | (full state) | &#123;entire object&#125; | FULL_STATE_RESULT |
+      </XmlBlock>
 
-## Validation Instructions
+      <h2>Validation Instructions</h2>
 
-After running this command, verify:
+      <p>After running this command, verify:</p>
 
-1. **Field reads return only that field's value**, not the entire state object
-2. **Nested field paths** (like config.timeout) correctly navigate the object structure
-3. **Full state read** (Test 6) returns the complete object for comparison
-4. **Different types** work: strings (name, mode), numbers (count, timeout)
+      <ol>
+        <li><strong>Field reads return only that field's value</strong>, not the entire state object</li>
+        <li><strong>Nested field paths</strong> (like config.timeout) correctly navigate the object structure</li>
+        <li><strong>Full state read</strong> (Test 6) returns the complete object for comparison</li>
+        <li><strong>Different types</strong> work: strings (name, mode), numbers (count, timeout)</li>
+      </ol>
 
-Report findings in this YAML format:
+      <p>Report findings in this YAML format:</p>
 
-\`\`\`yaml
-status: SUCCESS
+      <XmlBlock name="expected-output">
+{`status: SUCCESS
 test_results:
   test_1_name:
     field_path: "name"
@@ -196,12 +173,12 @@ criteria_validation:
   field_reads_specific_value: true  # ReadState with field returns only that field
   nested_paths_work: true           # config.timeout, metadata.author work
   result_is_value_not_object: true  # Field read returns value, not entire state
-message: "All ReadState field access tests passed"
-\`\`\`
+message: "All ReadState field access tests passed"`}
+      </XmlBlock>
 
-**IMPORTANT**: Execute each state-read skill call and capture the results. The state file should exist after the WriteState merge operation.
-`}
-      </Markdown>
+      <p>
+        <strong>IMPORTANT</strong>: Execute each state-read skill call and capture the results. The state file should exist after the WriteState merge operation.
+      </p>
     </Command>
   );
 }

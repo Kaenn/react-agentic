@@ -14,7 +14,7 @@ import {
   Assign,
   ReadState,
   WriteState,
-  Markdown,
+  XmlBlock,
 } from '../../jsx.js';
 
 // Define typed schema for the test state
@@ -41,27 +41,28 @@ export default function WriteStateSingleField() {
       name="6.4-writestate-single-field"
       description="Test WriteState component for single field updates"
     >
-      <Markdown>
-{`# WriteState Single Field Test
+      <h1>WriteState Single Field Test</h1>
 
-This command validates that \`<WriteState field="..." value="...">\` correctly writes a single field while preserving others.
+      <p>
+        This command validates that <code>&lt;WriteState field="..." value="..."&gt;</code> correctly writes a single field while preserving others.
+      </p>
 
-## Test Criteria
+      <h2>Test Criteria</h2>
 
-1. **Single Field Update**: WriteState with field prop updates only that field
-2. **Field Preservation**: Other fields in state are preserved after write
-3. **Variable References**: Variable references work as values
-4. **Execution**: Claude executes the write operation correctly
+      <ol>
+        <li><strong>Single Field Update</strong>: WriteState with field prop updates only that field</li>
+        <li><strong>Field Preservation</strong>: Other fields in state are preserved after write</li>
+        <li><strong>Variable References</strong>: Variable references work as values</li>
+        <li><strong>Execution</strong>: Claude executes the write operation correctly</li>
+      </ol>
 
-## Setup Phase
+      <h2>Setup Phase</h2>
 
-First, we need to establish initial state with multiple fields to verify preservation.
+      <p>First, we need to establish initial state with multiple fields to verify preservation.</p>
 
-### Step 1: Initialize State
+      <h3>Step 1: Initialize State</h3>
 
-Use the state-write skill to create initial state with all three fields:
-`}
-      </Markdown>
+      <p>Use the state-write skill to create initial state with all three fields:</p>
 
       {/* Write initial state with all fields */}
       <WriteState
@@ -69,25 +70,17 @@ Use the state-write skill to create initial state with all three fields:
         merge={{ fieldA: "initial-A", fieldB: "initial-B", fieldC: 42 }}
       />
 
-      <Markdown>
-{`
-### Step 2: Read Initial State
+      <h3>Step 2: Read Initial State</h3>
 
-Verify the initial state was written correctly:
-`}
-      </Markdown>
+      <p>Verify the initial state was written correctly:</p>
 
       <ReadState state={testState} into={fullState} />
 
-      <Markdown>
-{`
-The \`$FULL_STATE\` variable should now contain all three fields: fieldA, fieldB, fieldC.
+      <p>The <code>$FULL_STATE</code> variable should now contain all three fields: fieldA, fieldB, fieldC.</p>
 
-## Test 1: Single Field Update with Literal Value
+      <h2>Test 1: Single Field Update with Literal Value</h2>
 
-Now update ONLY fieldA with a new value:
-`}
-      </Markdown>
+      <p>Now update ONLY fieldA with a new value:</p>
 
       {/* Criterion 1: WriteState with field updates only that field */}
       <WriteState
@@ -96,35 +89,25 @@ Now update ONLY fieldA with a new value:
         value="updated-A"
       />
 
-      <Markdown>
-{`
-### Verify Test 1
+      <h3>Verify Test 1</h3>
 
-Read the state again and verify:
-- fieldA is now "updated-A"
-- fieldB is still "initial-B" (preserved)
-- fieldC is still 42 (preserved)
-`}
-      </Markdown>
+      <p>Read the state again and verify:</p>
+      <ul>
+        <li>fieldA is now "updated-A"</li>
+        <li>fieldB is still "initial-B" (preserved)</li>
+        <li>fieldC is still 42 (preserved)</li>
+      </ul>
 
       <ReadState state={testState} into={fullState} />
 
-      <Markdown>
-{`
-## Test 2: Single Field Update with Variable Reference
+      <h2>Test 2: Single Field Update with Variable Reference</h2>
 
-First, capture a dynamic value:
-`}
-      </Markdown>
+      <p>First, capture a dynamic value:</p>
 
       {/* Criterion 3: Variable references work as values */}
       <Assign var={dynamicValue} bash={`date +%Y-%m-%d`} />
 
-      <Markdown>
-{`
-Now write fieldB using the variable reference:
-`}
-      </Markdown>
+      <p>Now write fieldB using the variable reference:</p>
 
       <WriteState
         state={testState}
@@ -132,38 +115,30 @@ Now write fieldB using the variable reference:
         value={dynamicValue}
       />
 
-      <Markdown>
-{`
-### Verify Test 2
+      <h3>Verify Test 2</h3>
 
-Read the state again and verify:
-- fieldA is still "updated-A" (preserved from Test 1)
-- fieldB is now the date value from \`$DYNAMIC_VALUE\`
-- fieldC is still 42 (preserved)
-`}
-      </Markdown>
+      <p>Read the state again and verify:</p>
+      <ul>
+        <li>fieldA is still "updated-A" (preserved from Test 1)</li>
+        <li>fieldB is now the date value from <code>$DYNAMIC_VALUE</code></li>
+        <li>fieldC is still 42 (preserved)</li>
+      </ul>
 
       <ReadState state={testState} into={fullState} />
 
-      <Markdown>
-{`
-## Test 3: Read Individual Fields
+      <h2>Test 3: Read Individual Fields</h2>
 
-Verify we can read individual fields after partial updates:
-`}
-      </Markdown>
+      <p>Verify we can read individual fields after partial updates:</p>
 
       <ReadState state={testState} into={fieldAValue} field="fieldA" />
       <ReadState state={testState} into={fieldBValue} field="fieldB" />
 
-      <Markdown>
-{`
-## Expected Output Format
+      <h2>Expected Output Format</h2>
 
-After running all tests, report your findings in this YAML format:
+      <p>After running all tests, report your findings in this YAML format:</p>
 
-\`\`\`yaml
-status: SUCCESS
+      <XmlBlock name="expected-output">
+{`status: SUCCESS
 test_results:
   single_field_update: true    # fieldA was updated to "updated-A"
   field_preservation: true     # fieldB and fieldC unchanged after first update
@@ -185,17 +160,14 @@ values_observed:
   individual_reads:
     fieldA_value: "updated-A"
     fieldB_value: "<date value>"
-message: "All WriteState single field criteria validated successfully"
-\`\`\`
+message: "All WriteState single field criteria validated successfully"`}
+      </XmlBlock>
 
-## Cleanup
+      <h2>Cleanup</h2>
 
-After validation, you may delete the test state file:
-\`\`\`bash
-rm -f .state/test-6-4-state.json
-\`\`\`
-`}
-      </Markdown>
+      <p>After validation, you may delete the test state file:</p>
+
+      <pre><code className="language-bash">rm -f .state/test-6-4-state.json</code></pre>
     </Command>
   );
 }

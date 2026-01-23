@@ -9,7 +9,7 @@
  *
  * Prerequisites: Run /test-state.init first to create the table
  */
-import { Command, Markdown, XmlBlock } from '../../jsx.js';
+import { Command, XmlBlock } from '../../jsx.js';
 
 export default function GeneratedWriteSkillTest() {
   return (
@@ -32,79 +32,69 @@ export default function GeneratedWriteSkillTest() {
       <XmlBlock name="test-sequence">
         <h2>Test 1: Read Initial State</h2>
         <p>First, read the current state to establish baseline values:</p>
-        <Markdown>{`
-Run: \`/test-state.read\`
-
-Record the initial values:
-- counter: (should be a number)
-- lastUpdated: (should be a timestamp)
-- status: (should be 'active', 'inactive', or 'pending')
-- description: (should be a string)
-`}</Markdown>
+        <p>Run: <code>/test-state.read</code></p>
+        <p>Record the initial values:</p>
+        <ul>
+          <li>counter: (should be a number)</li>
+          <li>lastUpdated: (should be a timestamp)</li>
+          <li>status: (should be 'active', 'inactive', or 'pending')</li>
+          <li>description: (should be a string)</li>
+        </ul>
 
         <h2>Test 2: Write Single Field</h2>
         <p>Update the description field using the write skill:</p>
-        <Markdown>{`
-Run: \`/test-state.write --field description --value "Updated via 7.4 test"\`
-
-**Expected behavior:**
-- Command executes successfully
-- Returns JSON with updated state
-- description field shows "Updated via 7.4 test"
-`}</Markdown>
+        <p>Run: <code>/test-state.write --field description --value "Updated via 7.4 test"</code></p>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+          <li>Command executes successfully</li>
+          <li>Returns JSON with updated state</li>
+          <li>description field shows "Updated via 7.4 test"</li>
+        </ul>
 
         <h2>Test 3: Verify Field Was Applied</h2>
         <p>Read the state again to confirm the update:</p>
-        <Markdown>{`
-Run: \`/test-state.read --field description\`
-
-**Expected result:**
-- Returns "Updated via 7.4 test"
-`}</Markdown>
+        <p>Run: <code>/test-state.read --field description</code></p>
+        <p><strong>Expected result:</strong></p>
+        <ul>
+          <li>Returns "Updated via 7.4 test"</li>
+        </ul>
 
         <h2>Test 4: Verify Other Fields Preserved</h2>
         <p>Confirm that unwritten fields still have their original values:</p>
-        <Markdown>{`
-Run: \`/test-state.read\`
-
-**Expected behavior:**
-- counter: unchanged from Test 1
-- status: unchanged from Test 1
-- lastUpdated: unchanged from Test 1
-- description: "Updated via 7.4 test" (the only changed field)
-`}</Markdown>
+        <p>Run: <code>/test-state.read</code></p>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+          <li>counter: unchanged from Test 1</li>
+          <li>status: unchanged from Test 1</li>
+          <li>lastUpdated: unchanged from Test 1</li>
+          <li>description: "Updated via 7.4 test" (the only changed field)</li>
+        </ul>
 
         <h2>Test 5: Write Different Field</h2>
         <p>Update the status field to verify write works for enum fields:</p>
-        <Markdown>{`
-Run: \`/test-state.write --field status --value "active"\`
-
-**Expected behavior:**
-- Command executes successfully
-- status field updated to "active"
-- Other fields (counter, lastUpdated, description) preserved
-`}</Markdown>
+        <p>Run: <code>/test-state.write --field status --value "active"</code></p>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+          <li>Command executes successfully</li>
+          <li>status field updated to "active"</li>
+          <li>Other fields (counter, lastUpdated, description) preserved</li>
+        </ul>
 
         <h2>Test 6: Persistence Check</h2>
         <p>Verify updates persist by reading directly from SQLite:</p>
-        <Markdown>{`
-Run this bash command:
-\`\`\`bash
-sqlite3 .state/test.db "SELECT * FROM \"test-state\" WHERE rowid = 1"
-\`\`\`
-
-**Expected behavior:**
-- Shows the row with all current values
-- description = "Updated via 7.4 test"
-- status = "active"
-`}</Markdown>
+        <p>Run this bash command:</p>
+        <pre><code className="language-bash">sqlite3 .state/test.db "SELECT * FROM \"test-state\" WHERE rowid = 1"</code></pre>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+          <li>Shows the row with all current values</li>
+          <li>description = "Updated via 7.4 test"</li>
+          <li>status = "active"</li>
+        </ul>
       </XmlBlock>
 
       <XmlBlock name="validation-output">
         <p>After completing all tests, provide a summary in this format:</p>
-        <Markdown>{`
-\`\`\`yaml
-scenario: 7.4-generated-write-skill
+        <pre><code className="language-yaml">{`scenario: 7.4-generated-write-skill
 status: PASSED | FAILED
 
 test_results:
@@ -122,9 +112,7 @@ validation:
   updates_persisted: true | false
 
 notes: |
-  Any observations or issues encountered
-\`\`\`
-`}</Markdown>
+  Any observations or issues encountered`}</code></pre>
       </XmlBlock>
     </Command>
   );

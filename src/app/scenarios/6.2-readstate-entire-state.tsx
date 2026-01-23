@@ -13,7 +13,7 @@ import {
   useStateRef,
   ReadState,
   WriteState,
-  Markdown,
+  XmlBlock,
   If,
   notEmpty,
 } from '../../jsx.js';
@@ -44,23 +44,24 @@ export default function ReadStateEntireState() {
       name="6.2-readstate-entire-state"
       description="Test ReadState without field to read entire state object"
     >
-      <Markdown>
-{`# ReadState Entire State Test
+      <h1>ReadState Entire State Test</h1>
 
-This command validates that \`<ReadState>\` without a \`field\` prop reads the entire state object.
+      <p>
+        This command validates that <code>&lt;ReadState&gt;</code> without a <code>field</code> prop reads the entire state object.
+      </p>
 
-## Test Criteria
+      <h2>Test Criteria</h2>
 
-1. **ReadState without field reads entire state**: The into variable receives all fields
-2. **Claude executes read operation correctly**: state-read skill is invoked properly
-3. **Result is valid JSON object**: The state is parseable JSON
-4. **Variable contains all state fields**: All schema properties are present
+      <ol>
+        <li><strong>ReadState without field reads entire state</strong>: The into variable receives all fields</li>
+        <li><strong>Claude executes read operation correctly</strong>: state-read skill is invoked properly</li>
+        <li><strong>Result is valid JSON object</strong>: The state is parseable JSON</li>
+        <li><strong>Variable contains all state fields</strong>: All schema properties are present</li>
+      </ol>
 
-## Setup Phase
+      <h2>Setup Phase</h2>
 
-First, we'll write a known state so we have data to read.
-`}
-      </Markdown>
+      <p>First, we'll write a known state so we have data to read.</p>
 
       {/* Write initial state data for testing */}
       <WriteState
@@ -77,60 +78,54 @@ First, we'll write a known state so we have data to read.
         }}
       />
 
-      <Markdown>
-{`
-## Test 1: Read Entire State (No Field Parameter)
+      <h2>Test 1: Read Entire State (No Field Parameter)</h2>
 
-Now read the entire state into a variable WITHOUT specifying a field:
-`}
-      </Markdown>
+      <p>Now read the entire state into a variable WITHOUT specifying a field:</p>
 
       {/* Core test: ReadState without field */}
       <ReadState state={testState} into={entireState} />
 
-      <Markdown>
-{`
-## Verification Phase
+      <h2>Verification Phase</h2>
 
-The ENTIRE_STATE variable should now contain the full JSON object.
+      <p>The ENTIRE_STATE variable should now contain the full JSON object.</p>
 
-### Expected State Structure
+      <h3>Expected State Structure</h3>
 
-The state should contain:
-- \`projectName\`: "test-project"
-- \`version\`: "1.0.0"
-- \`buildCount\`: 42
-- \`lastBuildDate\`: "2026-01-22"
-- \`config.debug\`: true
-- \`config.environment\`: "testing"
+      <p>The state should contain:</p>
+      <ul>
+        <li><code>projectName</code>: "test-project"</li>
+        <li><code>version</code>: "1.0.0"</li>
+        <li><code>buildCount</code>: 42</li>
+        <li><code>lastBuildDate</code>: "2026-01-22"</li>
+        <li><code>config.debug</code>: true</li>
+        <li><code>config.environment</code>: "testing"</li>
+      </ul>
 
-### Test 2: Verify Individual Fields Exist
+      <h3>Test 2: Verify Individual Fields Exist</h3>
 
-Read specific fields to compare against entire state:
-`}
-      </Markdown>
+      <p>Read specific fields to compare against entire state:</p>
 
       {/* Read specific fields for comparison */}
       <ReadState state={testState} into={verifyProjectName} field="projectName" />
       <ReadState state={testState} into={verifyVersion} field="version" />
 
-      <Markdown>
-{`
-## Validation Instructions
+      <h2>Validation Instructions</h2>
 
-After executing this command, Claude should:
+      <p>After executing this command, Claude should:</p>
 
-1. **Check ENTIRE_STATE is JSON**: Parse the value and verify it's a valid JSON object
-2. **Verify all fields present**: The JSON should have projectName, version, buildCount, lastBuildDate, config
-3. **Check nested object**: config should have debug and environment sub-fields
-4. **Compare with field reads**: VERIFY_PROJECT_NAME should match entireState.projectName
+      <ol>
+        <li><strong>Check ENTIRE_STATE is JSON</strong>: Parse the value and verify it's a valid JSON object</li>
+        <li><strong>Verify all fields present</strong>: The JSON should have projectName, version, buildCount, lastBuildDate, config</li>
+        <li><strong>Check nested object</strong>: config should have debug and environment sub-fields</li>
+        <li><strong>Compare with field reads</strong>: VERIFY_PROJECT_NAME should match entireState.projectName</li>
+      </ol>
 
-## Expected Output Format
+      <h2>Expected Output Format</h2>
 
-Report findings in this YAML format:
+      <p>Report findings in this YAML format:</p>
 
-\`\`\`yaml
-status: SUCCESS
+      <XmlBlock name="expected-output">
+{`status: SUCCESS
 test_results:
   readstate_no_field_works: true   # ReadState without field executed
   result_is_valid_json: true       # ENTIRE_STATE parsed as JSON successfully
@@ -144,15 +139,15 @@ state_read:
     version: "1.0.0"
 validation:
   entire_matches_field_reads: true  # entireState.projectName == VERIFY_PROJECT_NAME
-message: "ReadState entire state test passed - all fields accessible"
-\`\`\`
+message: "ReadState entire state test passed - all fields accessible"`}
+      </XmlBlock>
 
-## Runtime Evaluation Required
+      <h2>Runtime Evaluation Required</h2>
 
-Claude must execute the state-read and state-write skill calls to complete this test.
-The state is stored in \`.state/test-entire-state.json\`.
-`}
-      </Markdown>
+      <p>
+        Claude must execute the state-read and state-write skill calls to complete this test.
+        The state is stored in <code>.state/test-entire-state.json</code>.
+      </p>
     </Command>
   );
 }
