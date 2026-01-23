@@ -503,7 +503,7 @@ export function dirExists(varRef: VariableRef): string {
  * Generate shell test for empty string
  *
  * @param varRef - Variable reference from useVariable
- * @returns Shell test expression: [ -z $VAR_NAME ]
+ * @returns Shell test expression: [ -z "$VAR_NAME" ]
  *
  * @example
  * const result = useVariable("RESULT");
@@ -512,14 +512,14 @@ export function dirExists(varRef: VariableRef): string {
  * </If>
  */
 export function isEmpty(varRef: VariableRef): string {
-  return `[ -z $${varRef.name} ]`;
+  return `[ -z "$${varRef.name}" ]`;
 }
 
 /**
  * Generate shell test for non-empty string
  *
  * @param varRef - Variable reference from useVariable
- * @returns Shell test expression: [ -n $VAR_NAME ]
+ * @returns Shell test expression: [ -n "$VAR_NAME" ]
  *
  * @example
  * const result = useVariable("RESULT");
@@ -528,7 +528,7 @@ export function isEmpty(varRef: VariableRef): string {
  * </If>
  */
 export function notEmpty(varRef: VariableRef): string {
-  return `[ -n $${varRef.name} ]`;
+  return `[ -n "$${varRef.name}" ]`;
 }
 
 /**

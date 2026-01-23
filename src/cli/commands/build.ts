@@ -88,6 +88,15 @@ function validateSpawnAgents(
 
     // Extract interface properties and prompt placeholders
     const properties = extractInterfaceProperties(resolved.interface);
+
+    // When using input prop instead of prompt, validation is handled differently:
+    // - Object literal: check if properties match interface (done at transform time)
+    // - Variable ref: runtime validation only
+    // Only validate prompt-based SpawnAgent calls
+    if (!child.prompt) {
+      continue; // Skip validation for input-based SpawnAgent
+    }
+
     const placeholders = extractPromptPlaceholders(child.prompt);
 
     // Check for missing required properties
@@ -256,16 +265,18 @@ async function runBuild(
           size: Buffer.byteLength(markdown, 'utf8'),
         });
       } else if (doc.kind === 'stateDocument') {
-        // State: multi-file output to .claude/skills/
+        // State: multi-file output to .claude/skills/{skill-name}/SKILL.md
         const stateDoc = doc as StateDocumentNode;
         const result = await emitState(stateDoc);
 
         // Track state name for main init generation
         allStateNames.push(result.stateName);
 
-        // Write all skill files
+        // Write all skill files as directories (Claude Code expects skill directories)
         for (const skill of result.skills) {
-          const skillPath = `.claude/skills/${skill.filename}`;
+          // Convert "task-state.init.md" to "task-state.init/SKILL.md"
+          const skillName = skill.filename.replace(/\.md$/, '');
+          const skillPath = `.claude/skills/${skillName}/SKILL.md`;
           results.push({
             inputFile,
             outputPath: skillPath,
@@ -288,9 +299,11 @@ async function runBuild(
   // Generate main init skill if any states were processed
   if (allStateNames.length > 0) {
     const mainInit = generateMainInitSkill(allStateNames);
+    // Convert "init.all.md" to "init.all/SKILL.md"
+    const skillName = mainInit.filename.replace(/\.md$/, '');
     results.push({
       inputFile: 'generated',
-      outputPath: `.claude/skills/${mainInit.filename}`,
+      outputPath: `.claude/skills/${skillName}/SKILL.md`,
       content: mainInit.content,
       size: Buffer.byteLength(mainInit.content, 'utf8'),
     });
@@ -307,19 +320,19 @@ async function runBuild(
     }
 
     if (!options.dryRun) {
-      await mergeSettings('.claude/settings.json', allServers);
+      await mergeSettings('.mcp.json', allServers);
     }
 
     // Log success for MCP configs
     for (const { inputFile } of mcpConfigs) {
-      logSuccess(inputFile, '.claude/settings.json');
+      logSuccess(inputFile, '.mcp.json');
     }
 
     // Add to results for tree display (file already written by mergeSettings)
     const settingsContent = JSON.stringify(allServers, null, 2);
     results.push({
       inputFile: mcpConfigs.map(c => c.inputFile).join(', '),
-      outputPath: '.claude/settings.json',
+      outputPath: '.mcp.json',
       content: settingsContent,
       size: Buffer.byteLength(settingsContent, 'utf8'),
       skipWrite: true,  // Already written by mergeSettings

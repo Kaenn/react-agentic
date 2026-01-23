@@ -1,8 +1,11 @@
 /**
- * Settings.json Emitter - MCP configuration to Claude Code settings
+ * MCP Configuration Emitter - MCP configuration to Claude Code .mcp.json
  *
  * Converts MCPConfigDocumentNode to JSON format and handles
- * merging with existing settings.json content.
+ * merging with existing .mcp.json content.
+ *
+ * Output: .mcp.json in project root (project-level MCP configuration)
+ * Format: { "mcpServers": { "name": { command, args, env } } }
  */
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
@@ -21,18 +24,23 @@ interface MCPServerConfig {
 }
 
 /**
- * Convert MCPServerNode to settings.json config format
+ * Convert MCPServerNode to .mcp.json config format
+ *
+ * Note: For stdio servers (the default), we omit the `type` field
+ * to match Claude Code's expected format.
  */
 function serverNodeToConfig(node: MCPServerNode): MCPServerConfig {
-  const config: MCPServerConfig = {
-    type: node.type,
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config: any = {};
 
-  // Stdio-specific
+  // Stdio-specific (type field omitted - stdio is the default)
   if (node.command) config.command = node.command;
   if (node.args && node.args.length > 0) config.args = node.args;
 
-  // HTTP/SSE-specific
+  // HTTP/SSE-specific - these need the type field
+  if (node.type === 'http' || node.type === 'sse') {
+    config.type = node.type;
+  }
   if (node.url) config.url = node.url;
   if (node.headers && Object.keys(node.headers).length > 0) {
     config.headers = node.headers;
@@ -43,7 +51,7 @@ function serverNodeToConfig(node: MCPServerNode): MCPServerConfig {
     config.env = node.env;
   }
 
-  return config;
+  return config as MCPServerConfig;
 }
 
 /**
@@ -65,26 +73,26 @@ export function emitSettings(
 }
 
 /**
- * Merge MCP servers into existing settings.json
+ * Merge MCP servers into existing .mcp.json
  *
  * Read-modify-write pattern:
- * 1. Read existing settings.json (or start fresh)
+ * 1. Read existing .mcp.json (or start fresh)
  * 2. Update only mcpServers section
  * 3. Write back with pretty formatting
  *
- * @param settingsPath - Path to settings.json
+ * @param mcpPath - Path to .mcp.json (typically in project root)
  * @param servers - New mcpServers to merge
  */
 export async function mergeSettings(
-  settingsPath: string,
+  mcpPath: string,
   servers: Record<string, MCPServerConfig>
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let existing: Record<string, any> = {};
 
-  // Read existing settings if present
+  // Read existing .mcp.json if present
   try {
-    const content = await readFile(settingsPath, 'utf-8');
+    const content = await readFile(mcpPath, 'utf-8');
     existing = JSON.parse(content);
   } catch (error) {
     // File doesn't exist or invalid JSON - start fresh
@@ -97,10 +105,12 @@ export async function mergeSettings(
     ...servers,
   };
 
-  // Ensure directory exists
-  const dir = path.dirname(settingsPath);
-  await mkdir(dir, { recursive: true });
+  // Ensure directory exists (for nested paths, no-op for project root)
+  const dir = path.dirname(mcpPath);
+  if (dir && dir !== '.') {
+    await mkdir(dir, { recursive: true });
+  }
 
   // Write back with pretty formatting (2-space indent)
-  await writeFile(settingsPath, JSON.stringify(existing, null, 2) + '\n', 'utf-8');
+  await writeFile(mcpPath, JSON.stringify(existing, null, 2) + '\n', 'utf-8');
 }

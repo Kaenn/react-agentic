@@ -28,3 +28,10 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+
+# SQLITE
+.state
+
+# MCP
+.mcp.json

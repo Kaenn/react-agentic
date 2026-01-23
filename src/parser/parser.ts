@@ -201,8 +201,8 @@ type TsMorphNode = import('ts-morph').Node;
  * Supports:
  * - fileExists(varRef) -> [ -f $VAR_NAME ]
  * - dirExists(varRef) -> [ -d $VAR_NAME ]
- * - isEmpty(varRef) -> [ -z $VAR_NAME ]
- * - notEmpty(varRef) -> [ -n $VAR_NAME ]
+ * - isEmpty(varRef) -> [ -z "$VAR_NAME" ]
+ * - notEmpty(varRef) -> [ -n "$VAR_NAME" ]
  * - equals(varRef, "value") -> [ $VAR_NAME = value ]
  * - and(...tests) -> test1 && test2 && ...
  * - or(...tests) -> test1 || test2 || ...
@@ -234,11 +234,11 @@ function evaluateTestHelperCall(
     }
     case 'isEmpty': {
       const varName = resolveVariableArg(args[0], variables);
-      return varName ? `[ -z $${varName} ]` : undefined;
+      return varName ? `[ -z "$${varName}" ]` : undefined;
     }
     case 'notEmpty': {
       const varName = resolveVariableArg(args[0], variables);
-      return varName ? `[ -n $${varName} ]` : undefined;
+      return varName ? `[ -n "$${varName}" ]` : undefined;
     }
     case 'equals': {
       const varName = resolveVariableArg(args[0], variables);
