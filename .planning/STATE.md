@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 21 of 24 (Structured Props)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-26 — Completed 21-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-26 — Completed 21-02-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [###       ] v2.0: 3/13 plans
-Next: Execute 21-02 (parser/emitter implementation)
+Progress: [####################] v1.8 COMPLETE | [####      ] v2.0: 4/13 plans
+Next: Phase 22 (Semantic Props - planned)
 
 ## Milestone History
 
@@ -53,7 +53,7 @@ Next: Execute 21-02 (parser/emitter implementation)
 | 18 | 4/4 | ~15m | ~3m 45s |
 | 19 | 4/4 | 11m 19s | 2m 50s |
 | 20 | 2/2 | 5m | 2m 30s |
-| 21 | 1/2 | 2m 23s | 2m 23s |
+| 21 | 2/2 | 7m 45s | 3m 52s |
 
 *Updated after each plan completion*
 
@@ -76,11 +76,14 @@ Phase 20 decisions (complete):
 - jsx.ts uses explicit named re-exports (not export *) for tree-shaking and API control
 - Type-only exports marked with type keyword per TypeScript 5.x best practices
 
-Phase 21 decisions (in progress):
+Phase 21 decisions (complete):
 - TableNode headers optional: Enables both header+data tables and data-only tables
 - ListNode.start property: Enables custom numbered list start (e.g., "5. First item")
 - Emitter stub approach: Throw stub instead of TODO ensures explicit code path until Plan 02
 - structured.ts location: Follows Phase 20 pattern (primitives/ for basic markdown components)
+- Numeric literal parsing: Custom parsing for start={5} since getAttributeValue only handles strings
+- Pipe escaping: Use \| in table cells to prevent markdown table syntax breakage
+- Newline handling: Convert newlines to spaces in table cells (markdown tables don't support multi-line)
 
 ### Pending Todos
 
@@ -93,5 +96,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 21-01-PLAN.md (TableNode IR and component stubs)
-Resume with: Execute 21-02 (parser/emitter implementation)
+Stopped at: Completed 21-02-PLAN.md (Table/List transformation and emission)
+Resume with: Phase 22 (Semantic Props) or next v2.0 phase
