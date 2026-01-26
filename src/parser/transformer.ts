@@ -1118,8 +1118,19 @@ export class Transformer {
     const items = getArrayAttributeValue(opening, 'items') ?? [];
     const ordered = getAttributeValue(opening, 'ordered') === 'true' ||
                     opening.getAttribute('ordered') !== undefined; // Handle boolean attr
-    const startAttr = getAttributeValue(opening, 'start');
-    const start = startAttr ? parseInt(startAttr, 10) : undefined;
+
+    // Parse start attribute (numeric)
+    let start: number | undefined = undefined;
+    const startAttr = opening.getAttribute('start');
+    if (startAttr && Node.isJsxAttribute(startAttr)) {
+      const init = startAttr.getInitializer();
+      if (init && Node.isJsxExpression(init)) {
+        const expr = init.getExpression();
+        if (expr && Node.isNumericLiteral(expr)) {
+          start = expr.getLiteralValue();
+        }
+      }
+    }
 
     // Convert items to ListItemNode[]
     const listItems: ListItemNode[] = items.map(item => ({
