@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.8 Scoped State Skills - ARCHIVED
+**Current focus:** v2.0 TSX Syntax Improvements - ACTIVE
 
 ## Current Position
 
-Phase: 19 (complete) → Next milestone TBD
-Plan: N/A (milestone archived)
-Status: Ready for next milestone
-Last activity: 2026-01-26 - v1.8 milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-26 — Milestone v2.0 started
 
-Progress: [##########] v1.8: SHIPPED
-Next: Use `/gsd:new-milestone` to plan next version
+Progress: [          ] v2.0: REQUIREMENTS
+Next: Define requirements and create roadmap
 
 ## Milestone History
 

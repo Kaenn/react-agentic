@@ -64,9 +64,21 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 
 ### Active
 
-**Current State:** v1.8 shipped. Ready for next milestone planning.
+## Current Milestone: v2.0 TSX Syntax Improvements
 
-**Potential v2.0 features:**
+**Goal:** Improve TSX authoring ergonomics by adopting better syntax patterns from Tentative 2 while preserving the ts-morph compile-time foundation.
+
+**Target features:**
+- Module restructure — Split jsx.ts (1044 lines) into primitives/ and workflow/ modules
+- Semantic components — ExecutionContext, SuccessCriteria, DeviationRules, CommitRules, etc.
+- Structured props — Table with headers/rows arrays, List with items array
+- Render props pattern — Optional {(ctx) => ...} for Command/Agent context access
+- Typed routes — OfferNext component with typed route objects
+- Explicit generics — Allow visible type constraints on Bash, Loop, etc.
+
+**Reference:** `/Users/glenninizan/workspace/react-agentic/gsd-bkp/compare-tentatives.md`
+
+**Potential future features (deferred):**
 - Additional providers (localfile, supabase, postgres)
 - State migration tooling
 - Config file support for build options
@@ -138,4 +150,4 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | JSX `{' '}` pattern | Standard JSX whitespace behavior, not a bug | ✓ Good — documented in example |
 
 ---
-*Last updated: 2026-01-26 after v1.8 milestone*
+*Last updated: 2026-01-26 after v2.0 milestone start*
