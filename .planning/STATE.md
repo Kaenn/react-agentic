@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.0 TSX Syntax Improvements - Phase 20 (Module Restructure)
+**Current focus:** v2.0 TSX Syntax Improvements - Phase 21 (Structured Props)
 
 ## Current Position
 
-Phase: 20 of 24 (Module Restructure)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-26 — Completed 20-02-PLAN.md
+Phase: 21 of 24 (Structured Props)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-01-26 — Phase 20 verified and complete
 
 Progress: [####################] v1.8 COMPLETE | [##        ] v2.0: 2/13 plans
-Next: Begin Phase 21 (Prop Normalization - PROP-01)
+Next: `/gsd:discuss-phase 21` or `/gsd:plan-phase 21`
 
 ## Milestone History
 
@@ -33,7 +33,7 @@ Next: Begin Phase 21 (Prop Normalization - PROP-01)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 57 (v1.0-v1.8, v2.0 in progress)
+- Total plans completed: 58 (v1.0-v1.8, v2.0 in progress)
 - Average duration: ~3m
 - Total execution time: ~3 hours
 
@@ -86,5 +86,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 20-02-PLAN.md (Module Restructure - jsx.ts rewrite)
-Resume with: Begin Phase 21 with Plan PROP-01 (Prop Normalization)
+Stopped at: Phase 20 verified and complete
+Resume with: `/gsd:discuss-phase 21` for context gathering, or `/gsd:plan-phase 21` to plan directly
