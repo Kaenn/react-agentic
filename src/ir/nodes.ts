@@ -143,6 +143,32 @@ export interface TableNode {
 }
 
 /**
+ * ExecutionContext - emits <execution_context> XML with file paths
+ */
+export interface ExecutionContextNode {
+  kind: 'executionContext';
+  paths: string[];                                        // File paths to reference
+  prefix: string;                                         // Path prefix (default: '@')
+  children: BlockNode[];                                  // Optional additional content
+}
+
+/**
+ * SuccessCriteria item data
+ */
+export interface SuccessCriteriaItemData {
+  text: string;
+  checked: boolean;
+}
+
+/**
+ * SuccessCriteria - emits <success_criteria> XML with checkbox list
+ */
+export interface SuccessCriteriaNode {
+  kind: 'successCriteria';
+  items: SuccessCriteriaItemData[];                       // Checkbox items
+}
+
+/**
  * XML-style block element (e.g., <example>content</example>)
  * Used for Claude Code's special sections
  */
@@ -302,6 +328,8 @@ export type BlockNode =
   | BlockquoteNode
   | ThematicBreakNode
   | TableNode
+  | ExecutionContextNode
+  | SuccessCriteriaNode
   | XmlBlockNode
   | RawMarkdownNode
   | SpawnAgentNode
