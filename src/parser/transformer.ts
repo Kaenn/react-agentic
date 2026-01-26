@@ -49,8 +49,25 @@ import type {
   OperationNode,
   StateSchema,
   TableNode,
+  ExecutionContextNode,
+  SuccessCriteriaNode,
+  SuccessCriteriaItemData,
+  OfferNextNode,
+  OfferNextRouteData,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, type ExtractedVariable } from './parser.js';
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Convert PascalCase component name to snake_case XML tag name
+ * Example: DeviationRules -> deviation_rules
+ */
+function toSnakeCase(name: string): string {
+  return name.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+}
 
 // ============================================================================
 // Element Classification
@@ -69,7 +86,14 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List']);
+const SPECIAL_COMPONENTS = new Set([
+  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus',
+  'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
+  'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
+  // Semantic workflow components
+  'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling'
+]);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -634,6 +658,27 @@ export class Transformer {
       return this.transformPropList(node);
     }
 
+    // Semantic workflow components
+    if (name === 'ExecutionContext') {
+      return this.transformExecutionContext(node);
+    }
+
+    if (name === 'SuccessCriteria') {
+      return this.transformSuccessCriteria(node);
+    }
+
+    if (name === 'OfferNext') {
+      return this.transformOfferNext(node);
+    }
+
+    if (name === 'XmlSection') {
+      return this.transformXmlSection(node);
+    }
+
+    if (name === 'DeviationRules' || name === 'CommitRules' || name === 'WaveExecution' || name === 'CheckpointHandling') {
+      return this.transformXmlWrapper(name, node);
+    }
+
     // Markdown passthrough
     if (name === 'Markdown') {
       return this.transformMarkdown(node);
@@ -1146,6 +1191,119 @@ export class Transformer {
       ordered,
       items: listItems,
       start,
+    };
+  }
+
+  // ============================================================================
+  // Semantic Workflow Components
+  // ============================================================================
+
+  private transformExecutionContext(node: JsxElement | JsxSelfClosingElement): ExecutionContextNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const paths = getArrayAttributeValue(opening, 'paths') ?? [];
+    const prefix = getAttributeValue(opening, 'prefix') ?? '@';
+
+    // Transform children if present
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return {
+      kind: 'executionContext',
+      paths,
+      prefix,
+      children,
+    };
+  }
+
+  private transformSuccessCriteria(node: JsxElement | JsxSelfClosingElement): SuccessCriteriaNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const itemsRaw = getArrayAttributeValue(opening, 'items') ?? [];
+
+    // Parse items: string shorthand or {text, checked} objects
+    const items: SuccessCriteriaItemData[] = itemsRaw.map(item => {
+      if (typeof item === 'string') {
+        return { text: item, checked: false };
+      }
+      // Assume it's an object with text and optional checked
+      const obj = item as any;
+      return {
+        text: String(obj.text || ''),
+        checked: Boolean(obj.checked),
+      };
+    });
+
+    return {
+      kind: 'successCriteria',
+      items,
+    };
+  }
+
+  private transformOfferNext(node: JsxElement | JsxSelfClosingElement): OfferNextNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const routesRaw = getArrayAttributeValue(opening, 'routes') ?? [];
+
+    // Parse routes: objects with name, path, description?
+    const routes: OfferNextRouteData[] = routesRaw.map(route => {
+      const obj = route as any;
+      return {
+        name: String(obj.name || ''),
+        path: String(obj.path || ''),
+        description: obj.description ? String(obj.description) : undefined,
+      };
+    });
+
+    return {
+      kind: 'offerNext',
+      routes,
+    };
+  }
+
+  private transformXmlSection(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const name = getAttributeValue(opening, 'name') ?? 'section';
+
+    // Transform children
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return {
+      kind: 'xmlBlock',
+      name,
+      children,
+    };
+  }
+
+  private transformXmlWrapper(componentName: string, node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
+    // Convert component name to snake_case for XML tag
+    const tagName = toSnakeCase(componentName);
+
+    // Transform children
+    const children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      for (const child of node.getJsxChildren()) {
+        const block = this.transformToBlock(child);
+        if (block) children.push(block);
+      }
+    }
+
+    return {
+      kind: 'xmlBlock',
+      name: tagName,
+      children,
     };
   }
 
