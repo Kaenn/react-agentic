@@ -31,6 +31,7 @@ import type {
   SkillFrontmatterNode,
   SpawnAgentInput,
   SpawnAgentNode,
+  TableNode,
   TypeReference,
   WriteStateNode,
   XmlBlockNode,
@@ -217,8 +218,7 @@ export class MarkdownEmitter {
       case 'thematicBreak':
         return '---';
       case 'table':
-        // TODO: Implement table emission in Phase 21 Plan 02
-        throw new Error('Table emission not yet implemented');
+        return this.emitTable(node);
       case 'xmlBlock':
         return this.emitXmlBlock(node);
       case 'raw':
@@ -354,7 +354,10 @@ export class MarkdownEmitter {
    * Emit list - uses listStack for nesting context
    */
   private emitList(node: ListNode): string {
-    this.listStack.push({ ordered: node.ordered, index: 1 });
+    this.listStack.push({
+      ordered: node.ordered,
+      index: node.start ?? 1  // Use start if provided, default to 1
+    });
 
     const items = node.items.map((item) => this.emitListItem(item));
 
@@ -428,6 +431,87 @@ export class MarkdownEmitter {
       .split('\n')
       .map((line) => (line ? `> ${line}` : '>'))
       .join('\n');
+  }
+
+  /**
+   * Emit TableNode as markdown table
+   *
+   * Output format:
+   * | Header1 | Header2 |
+   * | :--- | :---: |
+   * | Cell1 | Cell2 |
+   */
+  private emitTable(node: TableNode): string {
+    const { headers, rows, align, emptyCell = '' } = node;
+
+    // Empty table: no headers and no rows
+    if (!headers?.length && rows.length === 0) return '';
+
+    // Determine column count from headers or first row
+    const columnCount = headers?.length ?? rows[0]?.length ?? 0;
+    if (columnCount === 0) return '';
+
+    // Build alignments array (default to 'left')
+    const alignments = align ?? [];
+    const getAlign = (i: number): 'left' | 'center' | 'right' =>
+      alignments[i] ?? 'left';
+
+    const lines: string[] = [];
+
+    // Header row (if present)
+    if (headers?.length) {
+      const headerCells = headers.map(h => this.escapeTableCell(h, emptyCell));
+      lines.push('| ' + headerCells.join(' | ') + ' |');
+    }
+
+    // Separator row with alignment markers
+    const separators: string[] = [];
+    for (let i = 0; i < columnCount; i++) {
+      const a = getAlign(i);
+      switch (a) {
+        case 'left':
+          separators.push(':---');
+          break;
+        case 'center':
+          separators.push(':---:');
+          break;
+        case 'right':
+          separators.push('---:');
+          break;
+      }
+    }
+    lines.push('| ' + separators.join(' | ') + ' |');
+
+    // Data rows
+    for (const row of rows) {
+      // Pad row to column count if needed
+      const cells: string[] = [];
+      for (let i = 0; i < columnCount; i++) {
+        const value = row[i] ?? '';
+        cells.push(this.escapeTableCell(String(value), emptyCell));
+      }
+      lines.push('| ' + cells.join(' | ') + ' |');
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Escape table cell content
+   * - Strips newlines (converts to space)
+   * - Escapes pipe characters
+   * - Replaces empty with emptyCell value
+   */
+  private escapeTableCell(content: string, emptyCell: string): string {
+    if (!content) return emptyCell;
+
+    // Strip newlines (convert to single space)
+    let escaped = content.replace(/\n/g, ' ');
+
+    // Escape pipe characters
+    escaped = escaped.replace(/\|/g, '\\|');
+
+    return escaped || emptyCell;
   }
 
   /**
