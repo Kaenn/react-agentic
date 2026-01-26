@@ -64,11 +64,11 @@ See: .planning/ROADMAP.md history or milestone archives
   3. `workflow/sections/` subdirectory exists for semantic XML wrapper components
   4. All existing imports continue to work (no breaking changes)
   5. Build passes with no TypeScript errors
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: Directory structure and file organization
-- [ ] 20-02: Component migration and re-exports
+- [ ] 20-01-PLAN.md - Create primitives/ and workflow/ directories with all component files
+- [ ] 20-02-PLAN.md - Rewrite jsx.ts with re-exports and verify build/tests pass
 
 ### Phase 21: Structured Props
 **Goal**: Add Table and List components that accept structured array props instead of manual JSX children
@@ -155,7 +155,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
 | 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
 | 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-26 |
-| 20. Module Restructure | v2.0 | 0/2 | Not started | - |
+| 20. Module Restructure | v2.0 | 0/2 | Planned | - |
 | 21. Structured Props | v2.0 | 0/2 | Not started | - |
 | 22. Semantic Components | v2.0 | 0/3 | Not started | - |
 | 23. Context Access Patterns | v2.0 | 0/3 | Not started | - |
