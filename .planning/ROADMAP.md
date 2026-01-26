@@ -47,7 +47,7 @@ See: .planning/ROADMAP.md history or milestone archives
 **Milestone Goal:** Improve TSX authoring ergonomics with better module organization, semantic components for common patterns, structured props for tables/lists, and render props pattern for context access.
 
 - [x] **Phase 20: Module Restructure** - Split jsx.ts into primitives/ and workflow/ directories (complete 2026-01-26)
-- [ ] **Phase 21: Structured Props** - Table and List components with array-based props
+- [x] **Phase 21: Structured Props** - Table and List components with array-based props (complete 2026-01-26)
 - [ ] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections
 - [ ] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component
 - [ ] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests
@@ -82,8 +82,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 21-01-PLAN.md - Table and List IR nodes and JSX types
-- [ ] 21-02-PLAN.md - Table and List transformer and emitter implementation
+- [x] 21-01-PLAN.md - Table and List IR nodes and JSX types
+- [x] 21-02-PLAN.md - Table and List transformer and emitter implementation
 
 ### Phase 22: Semantic Components
 **Goal**: Add semantic section components that emit XML-wrapped content for common Claude Code patterns
@@ -156,7 +156,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
 | 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-26 |
 | 20. Module Restructure | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 21. Structured Props | v2.0 | 0/2 | Not started | - |
+| 21. Structured Props | v2.0 | 2/2 | Complete | 2026-01-26 |
 | 22. Semantic Components | v2.0 | 0/3 | Not started | - |
 | 23. Context Access Patterns | v2.0 | 0/3 | Not started | - |
 | 24. Parser/Emitter Integration | v2.0 | 0/3 | Not started | - |

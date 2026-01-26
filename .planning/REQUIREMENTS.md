@@ -18,8 +18,8 @@
 
 ## Structured Props
 
-- [ ] **PROP-01**: Table component accepts `headers: string[]` and `rows: string[][]` props and emits markdown table
-- [ ] **PROP-02**: List component accepts `items: string[]` prop and emits markdown bullet list
+- [x] **PROP-01**: Table component accepts `headers: string[]` and `rows: string[][]` props and emits markdown table
+- [x] **PROP-02**: List component accepts `items: string[]` prop and emits markdown bullet list
 
 ## Context Access
 
@@ -66,8 +66,8 @@
 | SEM-05 | 22 | — | Pending |
 | SEM-06 | 22 | — | Pending |
 | SEM-07 | 22 | — | Pending |
-| PROP-01 | 21 | — | Pending |
-| PROP-02 | 21 | — | Pending |
+| PROP-01 | 21 | 21-01, 21-02 | Complete |
+| PROP-02 | 21 | 21-01, 21-02 | Complete |
 | CTX-01 | 23 | — | Pending |
 | CTX-02 | 23 | — | Pending |
 | CTX-03 | 23 | — | Pending |

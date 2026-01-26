@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.0 TSX Syntax Improvements - Phase 21 (Structured Props)
+**Current focus:** v2.0 TSX Syntax Improvements - Phase 22 (Semantic Components)
 
 ## Current Position
 
-Phase: 21 of 24 (Structured Props)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-26 — Completed 21-02-PLAN.md
+Phase: 22 of 24 (Semantic Components)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-01-26 — Phase 21 verified and complete
 
 Progress: [####################] v1.8 COMPLETE | [####      ] v2.0: 4/13 plans
-Next: Phase 22 (Semantic Props - planned)
+Next: `/gsd:discuss-phase 22` or `/gsd:plan-phase 22`
 
 ## Milestone History
 
@@ -96,5 +96,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 21-02-PLAN.md (Table/List transformation and emission)
-Resume with: Phase 22 (Semantic Props) or next v2.0 phase
+Stopped at: Phase 21 verified and complete
+Resume with: `/gsd:discuss-phase 22` for context gathering, or `/gsd:plan-phase 22` to plan directly
