@@ -95,12 +95,12 @@ Plans:
   3. `<OfferNext routes={[{name: "x", description: "y", path: "z"}]} />` emits typed navigation section
   4. `<DeviationRules>`, `<CommitRules>`, `<WaveExecution>`, `<CheckpointHandling>` emit named XML sections with children
   5. All semantic components work inside Command and Agent bodies
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 22-01: ExecutionContext and SuccessCriteria components
-- [ ] 22-02: OfferNext component with typed routes
-- [ ] 22-03: XML wrapper section components (DeviationRules, CommitRules, WaveExecution, CheckpointHandling)
+- [ ] 22-01-PLAN.md - ExecutionContext, SuccessCriteria, XmlSection components and IR nodes
+- [ ] 22-02-PLAN.md - OfferNext component with typed routes and XML wrapper components
+- [ ] 22-03-PLAN.md - Transformer and emitter implementation for all semantic components
 
 ### Phase 23: Context Access Patterns
 **Goal**: Enable render props pattern for context access and explicit generics on workflow components
