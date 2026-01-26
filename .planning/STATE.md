@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 22 of 24 (Semantic Components)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-26 — Completed 22-01-PLAN.md
+Last activity: 2026-01-26 — Completed 22-02-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [#####     ] v2.0: 5/13 plans
-Next: Continue with 22-02 (Transformer) or 22-03 (Emitter)
+Progress: [####################] v1.8 COMPLETE | [######    ] v2.0: 6/13 plans
+Next: Continue with 22-03 (Transformers) or 22-04 (Emitters)
 
 ## Milestone History
 
@@ -54,7 +54,7 @@ Next: Continue with 22-02 (Transformer) or 22-03 (Emitter)
 | 19 | 4/4 | 11m 19s | 2m 50s |
 | 20 | 2/2 | 5m | 2m 30s |
 | 21 | 2/2 | 7m 45s | 3m 52s |
-| 22 | 1/3 | 3m | 3m |
+| 22 | 2/3 | 6m | 3m |
 
 *Updated after each plan completion*
 
@@ -91,6 +91,8 @@ Phase 22 decisions (in progress):
 - ExecutionContext prefix prop: Allows customization (default '@') for different reference syntax
 - SuccessCriteria flexible input: String shorthand or {text, checked} objects for checkbox state
 - Emitter stubs explicit: Following Phase 21 pattern, throw Error (not TODO) pointing to Plan 02
+- XML wrapper components use XmlBlockNode: DeviationRules, CommitRules, WaveExecution, CheckpointHandling don't need separate IR node types
+- OfferNext route structure: name (required), path (required), description (optional) for inline documentation
 
 ### Pending Todos
 
@@ -103,5 +105,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 22-01-PLAN.md
-Resume with: Continue Phase 22 with Plan 02 (Transformer) or Plan 03 (Emitter)
+Stopped at: Completed 22-02-PLAN.md
+Resume with: Continue Phase 22 with Plan 03 (Transformers) or Plan 04 (Emitters)
