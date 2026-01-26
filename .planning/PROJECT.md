@@ -12,6 +12,7 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 
 ### Validated
 
+**v1.0 MVP:**
 - ✓ TSX → AST → MD transpilation pipeline — v1.0
 - ✓ `<Command>` component with typed props (name, description, allowedTools) that become YAML frontmatter — v1.0
 - ✓ HTML-like elements: h1-h6, b, i, code, a, p, ul, ol, li, blockquote, pre, br, hr — v1.0
@@ -25,18 +26,52 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - ✓ Source-located errors with file:line:col format — v1.0
 - ✓ Colored terminal output (NO_COLOR aware) — v1.0
 
+**v1.1 Agent Framework:**
+- ✓ `<Agent>` component transpiles to Claude Code agent markdown — v1.1
+- ✓ `<SpawnAgent>` component for Commands to invoke Agents — v1.1
+- ✓ Shared interface definitions (Agent owns contract, Command imports it) — v1.1
+- ✓ TypeScript type safety across command → agent boundary — v1.1
+- ✓ Output format matches GSD (get-shit-done) exactly — v1.1
+
+**v1.2 Type-Safe Communication:**
+- ✓ SpawnAgent `input` prop with VariableRef/object literal support — v1.2
+- ✓ Auto-generated prompts from Agent interface contracts — v1.2
+
+**v1.3 Conditional Logic:**
+- ✓ `<If>` / `<Else>` components for conditional execution — v1.3
+- ✓ Variable interpolation in test expressions — v1.3
+
+**v1.4 Agent Output Management:**
+- ✓ `AgentStatus` type and `BaseOutput` interface — v1.4
+- ✓ `useOutput` hook and `<OnStatus>` component — v1.4
+- ✓ Auto-generated `<structured_returns>` section — v1.4
+
+**v1.5 Skill System:**
+- ✓ `<Skill>` component with `<SkillFile>` and `<SkillStatic>` — v1.5
+
+**v1.6 State System:**
+- ✓ `useStateRef<TSchema>` / `<ReadState>` / `<WriteState>` — v1.6
+- ✓ FileAdapter with JSON persistence — v1.6
+
+**v1.7 MCP Configuration:**
+- ✓ `<MCPServer>` component for settings.json generation — v1.7
+
+**v1.8 Scoped State Skills:**
+- ✓ `<State<TSchema>>` component with provider binding — v1.8
+- ✓ SQLite provider with auto-generated CRUD skills — v1.8
+- ✓ `<Operation>` for custom semantic operations — v1.8
+- ✓ TypeScript → SQL schema mapping — v1.8
+
 ### Active
 
-**Current Milestone: v1.1 Agent Framework**
+**Current State:** v1.8 shipped. Ready for next milestone planning.
 
-**Goal:** Enable Commands to spawn typed Agents with shared input/output contracts — the foundation for agentic TSX programming.
-
-**Target features:**
-- `<Agent>` component that transpiles to Claude Code agent markdown
-- `<SpawnAgent>` component for Commands to invoke Agents with typed input
-- Shared interface definitions (Agent owns contract, Command imports it)
-- TypeScript type safety across command → agent boundary
-- Output format matches GSD (get-shit-done) exactly
+**Potential v2.0 features:**
+- Additional providers (localfile, supabase, postgres)
+- State migration tooling
+- Config file support for build options
+- Incremental compilation
+- Parallel processing
 
 ### Out of Scope
 
@@ -103,4 +138,4 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | JSX `{' '}` pattern | Standard JSX whitespace behavior, not a bug | ✓ Good — documented in example |
 
 ---
-*Last updated: 2026-01-21 after v1.1 milestone started*
+*Last updated: 2026-01-26 after v1.8 milestone*

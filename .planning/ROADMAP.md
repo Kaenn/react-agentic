@@ -10,7 +10,7 @@
 - **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
 - **v1.6 State System** - Phase 17 (shipped 2026-01-22)
 - **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
-- **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-22)
+- ✅ **v1.8 Scoped State Skills** — Phase 19 (shipped 2026-01-26) → [archive](milestones/v1.8-ROADMAP.md)
 
 ## Phases
 
@@ -355,90 +355,14 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 1
 | 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
 | 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-22 |
 
-### v1.8 Scoped State Skills (Complete)
+<details>
+<summary>✅ v1.8 Scoped State Skills (Phase 19) — SHIPPED 2026-01-26</summary>
 
-**Milestone Goal:** Refactor state system to use provider-agnostic, scoped skills — each State definition generates namespaced CRUD skills with code-driven execution.
+See: [.planning/milestones/v1.8-ROADMAP.md](milestones/v1.8-ROADMAP.md)
 
-- [x] **Phase 19: Scoped State Skills** - State/Operation components, provider templates, auto-generated scoped skills
+- [x] Phase 19: Scoped State Skills (4/4 plans) — completed 2026-01-22
 
-### Phase 19: Scoped State Skills
-**Goal**: Refactor state to use scoped skills per state definition with provider-agnostic code templates
-**Depends on**: Phase 18
-**Requirements**: SSTATE-01, SSTATE-02, SSTATE-03, SSTATE-04, SSTATE-05, SSTATE-06, SSTATE-07, SSTATE-08
-**Success Criteria** (what must be TRUE):
-  1. `<State name="releases" provider="sqlite" config={{...}}>` defines a state with provider binding
-  2. State component auto-generates CRUD skills: `releases.init`, `releases.read`, `releases.write`, `releases.delete`
-  3. `<Operation name="record">` defines custom semantic operations with SQL templates
-  4. Each skill emits deterministic bash/SQL code with no AI interpretation required
-  5. SQLite provider generates sqlite3 CLI skills with JSON output
-  6. Skills are self-contained with argument parsing and error handling
-  7. Build process outputs to `.claude/skills/{state-name}.{operation}.md`
-  8. TypeScript interface defines state shape for SQL schema generation
-**Plans:** 4 plans
-
-Plans:
-- [x] 19-01-PLAN.md — IR and JSX type extensions for State/Operation
-- [x] 19-02-PLAN.md — Provider templates (SQLite only for this phase)
-- [x] 19-03-PLAN.md — State parser and transformer
-- [x] 19-04-PLAN.md — Emitter and CLI multi-skill output
-
-**Details:**
-Core objectives:
-- Centralize provider logic — remove MCP boilerplate from commands
-- Type-safe state — TypeScript interface defines state shape at compile time
-- SQLite provider — bash + sqlite3 CLI for all generated code
-- Scoped skills — each state generates namespaced skills (/releases:read, /config:write)
-- Code-driven execution — skills contain deterministic code, not AI interpretation
-- Low context loading — generated skills are self-contained
-- Auto-generated CRUD — every state gets init, read, write, delete automatically
-- Custom operations — define semantic operations (/releases:record) beyond basic CRUD
-
-Component API:
-```tsx
-interface ReleasesState {
-  lastVersion: string;
-  bumpType: 'major' | 'minor' | 'patch';
-  updatedAt: string;
-}
-
-export default function ReleasesState() {
-  return (
-    <State<ReleasesState>
-      name="releases"
-      provider="sqlite"
-      config={{ database: ".state/state.db" }}
-    >
-      <Operation name="record">
-        {`UPDATE releases SET lastVersion = '$version', bumpType = '$bump_type' WHERE rowid = 1`}
-      </Operation>
-    </State>
-  );
-}
-```
-
-Output structure:
-```
-.claude/skills/
-├── releases.init.md    # Auto: CREATE TABLE
-├── releases.read.md    # Auto: SQLite SELECT
-├── releases.write.md   # Auto: SQLite UPDATE
-├── releases.delete.md  # Auto: Reset to defaults
-└── releases.record.md  # Custom operation
-```
-
-File structure:
-```
-src/
-├── jsx.ts                    # Add State, Operation exports
-├── ir/nodes.ts               # Add StateDocumentNode, StateNode, OperationNode
-├── parser/transformer.ts     # Add transformState, transformOperation
-├── providers/
-│   ├── index.ts              # Provider registry and interface
-│   └── sqlite.ts             # SQLite code templates
-├── emitter/state-emitter.ts  # Emit skills from StateDocumentNode
-└── app/state/
-    └── releases.state.tsx    # Example state definition
-```
+</details>
 
 ---
 *Roadmap created: 2026-01-21*

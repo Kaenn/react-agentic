@@ -2,20 +2,20 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-21)
+See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v1.8 Scoped State Skills - COMPLETE
+**Current focus:** v1.8 Scoped State Skills - ARCHIVED
 
 ## Current Position
 
-Phase: 19 (Scoped State Skills)
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 19-04-PLAN.md (State Emitter)
+Phase: 19 (complete) → Next milestone TBD
+Plan: N/A (milestone archived)
+Status: Ready for next milestone
+Last activity: 2026-01-26 - v1.8 milestone archived
 
-Progress: [##########] Phase 19: 100%
-Next: Phase 19 complete. Ready for documentation and user testing.
+Progress: [##########] v1.8: SHIPPED
+Next: Use `/gsd:new-milestone` to plan next version
 
 ## Milestone History
 
