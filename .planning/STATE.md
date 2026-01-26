@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 20 of 24 (Module Restructure)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-01-26 — Roadmap created for v2.0 milestone
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-26 — Completed 20-01-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [          ] v2.0: 0/13 plans
-Next: `/gsd:plan-phase 20`
+Progress: [####################] v1.8 COMPLETE | [#         ] v2.0: 1/13 plans
+Next: Continue Phase 20 with Plan 02
 
 ## Milestone History
 
@@ -33,11 +33,11 @@ Next: `/gsd:plan-phase 20`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 56 (v1.0-v1.8)
+- Total plans completed: 57 (v1.0-v1.8, v2.0 in progress)
 - Average duration: ~3m
 - Total execution time: ~3 hours
 
-**By Phase (v1.1-v1.8):**
+**By Phase (v1.1-v1.8, v2.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
@@ -52,6 +52,7 @@ Next: `/gsd:plan-phase 20`
 | 17 | 6/6 | ~12m | ~2m |
 | 18 | 4/4 | ~15m | ~3m 45s |
 | 19 | 4/4 | 11m 19s | 2m 50s |
+| 20 | 1/2 | 3m 24s | 3m 24s |
 
 *Updated after each plan completion*
 
@@ -66,6 +67,12 @@ v2.0 roadmap decisions:
 - Structured Props before Semantic: PROP-01/02 simpler, validates pattern before larger SEM batch
 - Parser/Emitter last: Integration phase after all components defined
 
+Phase 20-01 decisions:
+- primitives/ uses lowercase filenames (markdown.ts, control.ts) to match html-like primitive naming
+- workflow/ uses PascalCase filenames (Command.ts, Agent.ts) to match React component convention
+- Command.ts placed at workflow/ level (not in subdirectory) as single top-level entry point
+- sections/index.ts created as placeholder with empty export for Phase 22
+
 ### Pending Todos
 
 None.
@@ -77,5 +84,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Created v2.0 roadmap with phases 20-24
-Resume with: `/gsd:plan-phase 20` to plan Module Restructure
+Stopped at: Completed 20-01-PLAN.md (Module Restructure - Directory Creation)
+Resume with: Continue Phase 20 with Plan 02 (jsx.ts rewrite)
