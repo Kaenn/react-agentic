@@ -45,6 +45,15 @@ export {
   type ElseProps,
 } from './primitives/control.js';
 
+// Structured data components
+export {
+  Table,
+  List,
+  type TableProps,
+  type ListProps,
+  type TableAlignment,
+} from './primitives/structured.js';
+
 // ============================================================================
 // Workflow - Framework Helpers for Agentic Flows
 // ============================================================================
