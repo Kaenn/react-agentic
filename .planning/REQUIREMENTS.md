@@ -54,24 +54,24 @@
 
 ## Traceability
 
-| REQ-ID | Phase | Plan |
-|--------|-------|------|
-| ORG-01 | — | — |
-| ORG-02 | — | — |
-| ORG-03 | — | — |
-| SEM-01 | — | — |
-| SEM-02 | — | — |
-| SEM-03 | — | — |
-| SEM-04 | — | — |
-| SEM-05 | — | — |
-| SEM-06 | — | — |
-| SEM-07 | — | — |
-| PROP-01 | — | — |
-| PROP-02 | — | — |
-| CTX-01 | — | — |
-| CTX-02 | — | — |
-| CTX-03 | — | — |
-| CTX-04 | — | — |
-| PAR-01 | — | — |
-| PAR-02 | — | — |
-| PAR-03 | — | — |
+| REQ-ID | Phase | Plan | Status |
+|--------|-------|------|--------|
+| ORG-01 | 20 | — | Pending |
+| ORG-02 | 20 | — | Pending |
+| ORG-03 | 20 | — | Pending |
+| SEM-01 | 22 | — | Pending |
+| SEM-02 | 22 | — | Pending |
+| SEM-03 | 22 | — | Pending |
+| SEM-04 | 22 | — | Pending |
+| SEM-05 | 22 | — | Pending |
+| SEM-06 | 22 | — | Pending |
+| SEM-07 | 22 | — | Pending |
+| PROP-01 | 21 | — | Pending |
+| PROP-02 | 21 | — | Pending |
+| CTX-01 | 23 | — | Pending |
+| CTX-02 | 23 | — | Pending |
+| CTX-03 | 23 | — | Pending |
+| CTX-04 | 23 | — | Pending |
+| PAR-01 | 24 | — | Pending |
+| PAR-02 | 24 | — | Pending |
+| PAR-03 | 24 | — | Pending |
