@@ -223,6 +223,8 @@ export class MarkdownEmitter {
         throw new Error('ExecutionContextNode emitter stub - implement in Phase 22 Plan 02');
       case 'successCriteria':
         throw new Error('SuccessCriteriaNode emitter stub - implement in Phase 22 Plan 02');
+      case 'offerNext':
+        throw new Error('OfferNextNode emitter stub - implement in Phase 22 Plan 02');
       case 'xmlBlock':
         return this.emitXmlBlock(node);
       case 'raw':

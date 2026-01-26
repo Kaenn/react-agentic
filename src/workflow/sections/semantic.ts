@@ -170,3 +170,102 @@ export interface XmlSectionProps {
 export function XmlSection(_props: XmlSectionProps): null {
   return null;
 }
+
+// ============================================================================
+// OfferNext
+// ============================================================================
+
+/**
+ * Route definition for OfferNext
+ */
+export interface OfferNextRoute {
+  name: string;
+  description?: string;
+  path: string;
+}
+
+/**
+ * Props for the OfferNext component
+ */
+export interface OfferNextProps {
+  routes: OfferNextRoute[];
+}
+
+/**
+ * OfferNext component - emits route navigation section
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ *
+ * @example
+ * <OfferNext routes={[
+ *   { name: "Execute", description: "Run the plan", path: "/gsd:execute-phase" },
+ *   { name: "Revise", path: "/gsd:plan-phase --revise" }
+ * ]} />
+ *
+ * Outputs:
+ * <offer_next>
+ * - **Execute**: Run the plan
+ *   `/gsd:execute-phase`
+ * - **Revise**
+ *   `/gsd:plan-phase --revise`
+ * </offer_next>
+ */
+export function OfferNext(_props: OfferNextProps): null {
+  return null;
+}
+
+// ============================================================================
+// XML Wrapper Components
+// ============================================================================
+
+/**
+ * Common props for XML wrapper components
+ */
+export interface XmlWrapperProps {
+  children: ReactNode;
+}
+
+/**
+ * DeviationRules component - emits deviation_rules XML section
+ * Used in GSD workflows for handling plan deviations
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ */
+export function DeviationRules(_props: XmlWrapperProps): null {
+  return null;
+}
+
+/**
+ * CommitRules component - emits commit_rules XML section
+ * Used in GSD workflows for git commit guidelines
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ */
+export function CommitRules(_props: XmlWrapperProps): null {
+  return null;
+}
+
+/**
+ * WaveExecution component - emits wave_execution XML section
+ * Used in GSD workflows for parallel execution patterns
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ */
+export function WaveExecution(_props: XmlWrapperProps): null {
+  return null;
+}
+
+/**
+ * CheckpointHandling component - emits checkpoint_handling XML section
+ * Used in GSD workflows for verification checkpoints
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ */
+export function CheckpointHandling(_props: XmlWrapperProps): null {
+  return null;
+}

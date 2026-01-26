@@ -169,6 +169,23 @@ export interface SuccessCriteriaNode {
 }
 
 /**
+ * OfferNext route data
+ */
+export interface OfferNextRouteData {
+  name: string;
+  description?: string;
+  path: string;
+}
+
+/**
+ * OfferNext - emits <offer_next> XML with route bullet list
+ */
+export interface OfferNextNode {
+  kind: 'offerNext';
+  routes: OfferNextRouteData[];                           // Route navigation items
+}
+
+/**
  * XML-style block element (e.g., <example>content</example>)
  * Used for Claude Code's special sections
  */
@@ -330,6 +347,7 @@ export type BlockNode =
   | TableNode
   | ExecutionContextNode
   | SuccessCriteriaNode
+  | OfferNextNode
   | XmlBlockNode
   | RawMarkdownNode
   | SpawnAgentNode
