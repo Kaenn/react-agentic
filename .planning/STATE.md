@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 20 of 24 (Module Restructure)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-26 — Completed 20-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-26 — Completed 20-02-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [#         ] v2.0: 1/13 plans
-Next: Continue Phase 20 with Plan 02
+Progress: [####################] v1.8 COMPLETE | [##        ] v2.0: 2/13 plans
+Next: Begin Phase 21 (Prop Normalization - PROP-01)
 
 ## Milestone History
 
@@ -52,7 +52,7 @@ Next: Continue Phase 20 with Plan 02
 | 17 | 6/6 | ~12m | ~2m |
 | 18 | 4/4 | ~15m | ~3m 45s |
 | 19 | 4/4 | 11m 19s | 2m 50s |
-| 20 | 1/2 | 3m 24s | 3m 24s |
+| 20 | 2/2 | 5m | 2m 30s |
 
 *Updated after each plan completion*
 
@@ -67,11 +67,13 @@ v2.0 roadmap decisions:
 - Structured Props before Semantic: PROP-01/02 simpler, validates pattern before larger SEM batch
 - Parser/Emitter last: Integration phase after all components defined
 
-Phase 20-01 decisions:
+Phase 20 decisions (complete):
 - primitives/ uses lowercase filenames (markdown.ts, control.ts) to match html-like primitive naming
 - workflow/ uses PascalCase filenames (Command.ts, Agent.ts) to match React component convention
 - Command.ts placed at workflow/ level (not in subdirectory) as single top-level entry point
 - sections/index.ts created as placeholder with empty export for Phase 22
+- jsx.ts uses explicit named re-exports (not export *) for tree-shaking and API control
+- Type-only exports marked with type keyword per TypeScript 5.x best practices
 
 ### Pending Todos
 
@@ -84,5 +86,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 20-01-PLAN.md (Module Restructure - Directory Creation)
-Resume with: Continue Phase 20 with Plan 02 (jsx.ts rewrite)
+Stopped at: Completed 20-02-PLAN.md (Module Restructure - jsx.ts rewrite)
+Resume with: Begin Phase 21 with Plan PROP-01 (Prop Normalization)
