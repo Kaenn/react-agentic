@@ -79,11 +79,11 @@ Plans:
   2. `<List items={["item1", "item2"]} />` emits markdown bullet list
   3. Components accept optional props for styling (ordered list vs bullet, etc.)
   4. TypeScript enforces prop types at compile time
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 21-01: Table and List IR nodes and JSX types
-- [ ] 21-02: Table and List emitters
+- [ ] 21-01-PLAN.md - Table and List IR nodes and JSX types
+- [ ] 21-02-PLAN.md - Table and List transformer and emitter implementation
 
 ### Phase 22: Semantic Components
 **Goal**: Add semantic section components that emit XML-wrapped content for common Claude Code patterns
