@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 21 of 24 (Structured Props)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-01-26 — Phase 20 verified and complete
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-26 — Completed 21-01-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [##        ] v2.0: 2/13 plans
-Next: `/gsd:discuss-phase 21` or `/gsd:plan-phase 21`
+Progress: [####################] v1.8 COMPLETE | [###       ] v2.0: 3/13 plans
+Next: Execute 21-02 (parser/emitter implementation)
 
 ## Milestone History
 
@@ -53,6 +53,7 @@ Next: `/gsd:discuss-phase 21` or `/gsd:plan-phase 21`
 | 18 | 4/4 | ~15m | ~3m 45s |
 | 19 | 4/4 | 11m 19s | 2m 50s |
 | 20 | 2/2 | 5m | 2m 30s |
+| 21 | 1/2 | 2m 23s | 2m 23s |
 
 *Updated after each plan completion*
 
@@ -75,6 +76,12 @@ Phase 20 decisions (complete):
 - jsx.ts uses explicit named re-exports (not export *) for tree-shaking and API control
 - Type-only exports marked with type keyword per TypeScript 5.x best practices
 
+Phase 21 decisions (in progress):
+- TableNode headers optional: Enables both header+data tables and data-only tables
+- ListNode.start property: Enables custom numbered list start (e.g., "5. First item")
+- Emitter stub approach: Throw stub instead of TODO ensures explicit code path until Plan 02
+- structured.ts location: Follows Phase 20 pattern (primitives/ for basic markdown components)
+
 ### Pending Todos
 
 None.
@@ -86,5 +93,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Phase 20 verified and complete
-Resume with: `/gsd:discuss-phase 21` for context gathering, or `/gsd:plan-phase 21` to plan directly
+Stopped at: Completed 21-01-PLAN.md (TableNode IR and component stubs)
+Resume with: Execute 21-02 (parser/emitter implementation)
