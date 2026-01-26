@@ -114,3 +114,18 @@ export {
   type MCPHTTPServerProps,
   type MCPConfigProps,
 } from './workflow/mcp/index.js';
+
+// ============================================================================
+// Sections - Semantic XML Wrapper Components
+// ============================================================================
+
+// Semantic section components
+export {
+  ExecutionContext,
+  SuccessCriteria,
+  XmlSection,
+  type ExecutionContextProps,
+  type SuccessCriteriaProps,
+  type SuccessCriteriaItem,
+  type XmlSectionProps,
+} from './workflow/sections/index.js';

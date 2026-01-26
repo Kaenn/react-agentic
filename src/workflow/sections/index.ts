@@ -1,10 +1,15 @@
 /**
- * Placeholder for Phase 22 semantic components
+ * Semantic wrapper components for Claude Code patterns
  *
- * This file will re-export semantic wrapper components like:
- * - <Objective>, <Context>, <Process>, <Verification>
- * - <Task>, <Step>, <Examples>
- * - Other structured content components
+ * This file re-exports components from semantic.ts
  */
 
-export {};
+export {
+  ExecutionContext,
+  SuccessCriteria,
+  XmlSection,
+  type ExecutionContextProps,
+  type SuccessCriteriaProps,
+  type SuccessCriteriaItem,
+  type XmlSectionProps,
+} from './semantic.js';

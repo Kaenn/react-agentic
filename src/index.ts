@@ -17,8 +17,8 @@ export * from './emitter/index.js';
 export * from './parser/index.js';
 
 // JSX components and types
-export { Agent, Assign, Command, If, Else, Markdown, MCPConfig, MCPServer, MCPStdioServer, MCPHTTPServer, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, useOutput, useVariable, useStateRef, ReadState, WriteState, XmlBlock, State, Operation } from './jsx.js';
-export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ElseProps, IfProps, MarkdownProps, MCPConfigProps, MCPServerProps, MCPStdioServerProps, MCPHTTPServerProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, VariableRef, WriteStateProps, XmlBlockProps, StateProps, OperationProps, SQLiteConfig } from './jsx.js';
+export { Agent, Assign, Command, ExecutionContext, If, Else, List, Markdown, MCPConfig, MCPServer, MCPStdioServer, MCPHTTPServer, OnStatus, Skill, SkillFile, SkillStatic, SpawnAgent, SuccessCriteria, Table, useOutput, useVariable, useStateRef, ReadState, WriteState, XmlBlock, XmlSection, State, Operation } from './jsx.js';
+export type { AgentProps, AgentStatus, AssignProps, BaseOutput, CommandProps, ExecutionContextProps, ElseProps, IfProps, ListProps, MarkdownProps, MCPConfigProps, MCPServerProps, MCPStdioServerProps, MCPHTTPServerProps, OnStatusProps, OutputRef, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, SuccessCriteriaProps, SuccessCriteriaItem, TableProps, TableAlignment, VariableRef, WriteStateProps, XmlBlockProps, XmlSectionProps, StateProps, OperationProps, SQLiteConfig } from './jsx.js';
 
 // Provider templates for State component
 export { getProvider, getProviderAsync, type ProviderTemplate, type GeneratedSkill } from './providers/index.js';
