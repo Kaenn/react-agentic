@@ -216,6 +216,9 @@ export class MarkdownEmitter {
         return this.emitBlockquote(node);
       case 'thematicBreak':
         return '---';
+      case 'table':
+        // TODO: Implement table emission in Phase 21 Plan 02
+        throw new Error('Table emission not yet implemented');
       case 'xmlBlock':
         return this.emitXmlBlock(node);
       case 'raw':

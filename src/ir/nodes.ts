@@ -104,6 +104,7 @@ export interface ListNode {
   kind: 'list';
   ordered: boolean;
   items: ListItemNode[];
+  start?: number;                                         // Start number for ordered lists
 }
 
 /**
@@ -128,6 +129,17 @@ export interface BlockquoteNode {
  */
 export interface ThematicBreakNode {
   kind: 'thematicBreak';
+}
+
+/**
+ * Markdown table with optional headers and column alignment
+ */
+export interface TableNode {
+  kind: 'table';
+  headers?: string[];                                    // Optional header row
+  rows: string[][];                                       // Data rows (can be empty)
+  align?: ('left' | 'center' | 'right')[];               // Per-column alignment
+  emptyCell?: string;                                     // Empty cell content (default: "")
 }
 
 /**
@@ -289,6 +301,7 @@ export type BlockNode =
   | CodeBlockNode
   | BlockquoteNode
   | ThematicBreakNode
+  | TableNode
   | XmlBlockNode
   | RawMarkdownNode
   | SpawnAgentNode
