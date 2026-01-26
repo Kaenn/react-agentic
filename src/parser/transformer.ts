@@ -48,6 +48,7 @@ import type {
   StateNode,
   OperationNode,
   StateSchema,
+  TableNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, type ExtractedVariable } from './parser.js';
 
@@ -68,7 +69,7 @@ const HTML_ELEMENTS = new Set([
 /**
  * Special component names that are NOT custom user components
  */
-const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation']);
+const SPECIAL_COMPONENTS = new Set(['Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus', 'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List']);
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -623,6 +624,16 @@ export class Transformer {
       return this.transformWriteState(node);
     }
 
+    // Table component - structured props
+    if (name === 'Table') {
+      return this.transformTable(node);
+    }
+
+    // List component - structured props
+    if (name === 'List') {
+      return this.transformPropList(node);
+    }
+
     // Markdown passthrough
     if (name === 'Markdown') {
       return this.transformMarkdown(node);
@@ -1033,6 +1044,97 @@ export class Transformer {
       kind: 'xmlBlock',
       name: nameAttr,
       children,
+    };
+  }
+
+  /**
+   * Transform Table component to TableNode IR
+   */
+  private transformTable(node: JsxElement | JsxSelfClosingElement): TableNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Parse array props
+    const headers = getArrayAttributeValue(opening, 'headers');
+    const rows = this.parseRowsAttribute(opening);
+    const alignRaw = getArrayAttributeValue(opening, 'align');
+    const emptyCell = getAttributeValue(opening, 'emptyCell');
+
+    // Convert align strings to typed array
+    const align = alignRaw?.map(a => {
+      if (a === 'left' || a === 'center' || a === 'right') return a;
+      return 'left'; // Default invalid values to left
+    }) as ('left' | 'center' | 'right')[] | undefined;
+
+    return {
+      kind: 'table',
+      headers: headers?.length ? headers : undefined,
+      rows: rows,
+      align: align,
+      emptyCell: emptyCell || undefined,
+    };
+  }
+
+  /**
+   * Parse rows attribute (array of arrays)
+   */
+  private parseRowsAttribute(opening: JsxOpeningElement | JsxSelfClosingElement): string[][] {
+    const attr = opening.getAttribute('rows');
+    if (!attr || !Node.isJsxAttribute(attr)) return [];
+
+    const init = attr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) return [];
+
+    const expr = init.getExpression();
+    if (!expr || !Node.isArrayLiteralExpression(expr)) return [];
+
+    const rows: string[][] = [];
+    for (const element of expr.getElements()) {
+      if (Node.isArrayLiteralExpression(element)) {
+        const row: string[] = [];
+        for (const cell of element.getElements()) {
+          // Handle string literals, numbers, and expressions
+          if (Node.isStringLiteral(cell)) {
+            row.push(cell.getLiteralValue());
+          } else if (Node.isNumericLiteral(cell)) {
+            row.push(cell.getLiteralValue().toString());
+          } else {
+            row.push(cell.getText());
+          }
+        }
+        rows.push(row);
+      }
+    }
+    return rows;
+  }
+
+  /**
+   * Transform List component (prop-based) to ListNode IR
+   * This is separate from HTML <ul>/<ol> transformation
+   */
+  private transformPropList(node: JsxElement | JsxSelfClosingElement): ListNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Parse props
+    const items = getArrayAttributeValue(opening, 'items') ?? [];
+    const ordered = getAttributeValue(opening, 'ordered') === 'true' ||
+                    opening.getAttribute('ordered') !== undefined; // Handle boolean attr
+    const startAttr = getAttributeValue(opening, 'start');
+    const start = startAttr ? parseInt(startAttr, 10) : undefined;
+
+    // Convert items to ListItemNode[]
+    const listItems: ListItemNode[] = items.map(item => ({
+      kind: 'listItem' as const,
+      children: [{
+        kind: 'paragraph' as const,
+        children: [{ kind: 'text' as const, value: String(item) }]
+      }]
+    }));
+
+    return {
+      kind: 'list',
+      ordered,
+      items: listItems,
+      start,
     };
   }
 
