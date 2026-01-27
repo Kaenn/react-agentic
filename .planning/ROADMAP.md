@@ -149,10 +149,12 @@ Plans:
   4. Render props pattern demonstrated in at least one Command and Agent
   5. All files build successfully with `npm run build`
   6. Tests serve as working documentation for v2.0 features
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 25-01: TBD (run /gsd:plan-phase 25 to break down)
+- [ ] 25-01-PLAN.md — Update scenario files with Table and List components
+- [ ] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
+- [ ] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
 
 ## Progress
 
@@ -178,7 +180,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 | 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
 | 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 25. TSX Test Modernization | v2.0 | 0/? | Not started | - |
+| 25. TSX Test Modernization | v2.0 | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-21*
