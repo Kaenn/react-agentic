@@ -16,6 +16,7 @@ import type {
   CodeBlockNode,
   DocumentNode,
   ElseNode,
+  ExecutionContextNode,
   FrontmatterNode,
   HeadingNode,
   IfNode,
@@ -23,6 +24,7 @@ import type {
   InputPropertyValue,
   ListItemNode,
   ListNode,
+  OfferNextNode,
   OnStatusNode,
   ParagraphNode,
   ReadStateNode,
@@ -31,6 +33,7 @@ import type {
   SkillFrontmatterNode,
   SpawnAgentInput,
   SpawnAgentNode,
+  SuccessCriteriaNode,
   TableNode,
   TypeReference,
   WriteStateNode,
@@ -220,11 +223,11 @@ export class MarkdownEmitter {
       case 'table':
         return this.emitTable(node);
       case 'executionContext':
-        throw new Error('ExecutionContextNode emitter stub - implement in Phase 22 Plan 02');
+        return this.emitExecutionContext(node);
       case 'successCriteria':
-        throw new Error('SuccessCriteriaNode emitter stub - implement in Phase 22 Plan 02');
+        return this.emitSuccessCriteria(node);
       case 'offerNext':
-        throw new Error('OfferNextNode emitter stub - implement in Phase 22 Plan 02');
+        return this.emitOfferNext(node);
       case 'xmlBlock':
         return this.emitXmlBlock(node);
       case 'raw':
@@ -829,6 +832,81 @@ export class MarkdownEmitter {
     }
     // For complex types, show placeholder
     return `<${type.replace(/['"]/g, '')}>`;
+  }
+
+  /**
+   * Emit ExecutionContext as XML with @-prefixed paths
+   *
+   * Output:
+   * <execution_context>
+   * @path/to/file1.md
+   * @path/to/file2.md
+   * </execution_context>
+   */
+  private emitExecutionContext(node: ExecutionContextNode): string {
+    const lines: string[] = ['<execution_context>'];
+
+    // Add paths with prefix
+    for (const path of node.paths) {
+      lines.push(`${node.prefix}${path}`);
+    }
+
+    // Add children if present
+    if (node.children.length > 0) {
+      lines.push('');
+      for (const child of node.children) {
+        lines.push(this.emitBlock(child));
+      }
+    }
+
+    lines.push('</execution_context>');
+    return lines.join('\n');
+  }
+
+  /**
+   * Emit SuccessCriteria as XML with checkbox list
+   *
+   * Output:
+   * <success_criteria>
+   * - [ ] First criterion
+   * - [x] Pre-checked item
+   * </success_criteria>
+   */
+  private emitSuccessCriteria(node: SuccessCriteriaNode): string {
+    const lines: string[] = ['<success_criteria>'];
+
+    for (const item of node.items) {
+      const checkbox = item.checked ? '[x]' : '[ ]';
+      lines.push(`- ${checkbox} ${item.text}`);
+    }
+
+    lines.push('</success_criteria>');
+    return lines.join('\n');
+  }
+
+  /**
+   * Emit OfferNext as XML with route bullet list
+   *
+   * Output:
+   * <offer_next>
+   * - **Route Name**: Description
+   *   `/path/to/command`
+   * </offer_next>
+   */
+  private emitOfferNext(node: OfferNextNode): string {
+    const lines: string[] = ['<offer_next>'];
+
+    for (const route of node.routes) {
+      if (route.description) {
+        lines.push(`- **${route.name}**: ${route.description}`);
+      } else {
+        lines.push(`- **${route.name}**`);
+      }
+      lines.push(`  \`${route.path}\``);
+    }
+
+    lines.push('</offer_next>');
+    return lines.join('\n');
   }
 
   /**
