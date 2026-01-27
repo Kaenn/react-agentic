@@ -5,7 +5,7 @@
  * Functions that recurse into other transforms are in dispatch.ts.
  */
 
-import type { Node } from 'ts-morph';
+import { Node } from 'ts-morph';
 import type { BlockNode, InlineNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getElementName, extractText } from '../parser.js';
