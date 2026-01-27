@@ -10,12 +10,14 @@ import type { VariableRef } from './variables.js';
 
 /**
  * Props for the If component
+ * @typeParam T - Optional type for compile-time context (e.g., config shape)
  */
-export interface IfProps {
+export interface IfProps<T = unknown> {
   /** Shell test expression (e.g., "[ -f config.json ]") */
   test: string;
   /** "then" block content */
   children?: ReactNode;
+  // T is compile-time only - used for type-safe context access
 }
 
 /**
@@ -32,7 +34,9 @@ export interface ElseProps {
  * This is a compile-time component transformed by react-agentic.
  * It's never executed at runtime. Emits as **If {test}:** pattern.
  *
+ * @typeParam T - Optional type parameter for compile-time validation
  * @example
+ * // Basic usage (no generic)
  * <If test="[ -f config.json ]">
  *   <p>Config found, loading...</p>
  * </If>
@@ -43,8 +47,14 @@ export interface ElseProps {
  * <If test={`[ -z ${phaseDir.ref} ]`}>
  *   <p>No phase directory found.</p>
  * </If>
+ *
+ * @example with explicit generic for type context
+ * interface ProjectConfig { debug: boolean; }
+ * <If<ProjectConfig> test="[ -f config.json ]">
+ *   <p>Config will have debug property when loaded.</p>
+ * </If>
  */
-export function If(_props: IfProps): null {
+export function If<T = unknown>(_props: IfProps<T>): null {
   return null;
 }
 
