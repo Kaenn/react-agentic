@@ -55,7 +55,7 @@ import type {
   OfferNextNode,
   OfferNextRouteData,
 } from '../ir/index.js';
-import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, type ExtractedVariable } from './parser.js';
+import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
 // ============================================================================
 // Utility Functions
@@ -286,10 +286,19 @@ export class Transformer {
 
     const frontmatter: FrontmatterNode = { kind: 'frontmatter', data };
 
-    // Transform children as body blocks (with If/Else sibling detection)
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
+    // Transform children - check for render props pattern
+    let children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      const renderPropsInfo = analyzeRenderPropsChildren(node);
+
+      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction) {
+        // Render props pattern: transform arrow function body
+        children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
+      } else {
+        // Regular children pattern
+        children = this.transformBlockChildren(node.getJsxChildren());
+      }
+    }
 
     return { kind: 'document', frontmatter, children };
   }
@@ -348,10 +357,19 @@ export class Transformer {
       ...(outputType && { outputType }),
     };
 
-    // Transform children as body blocks (with If/Else sibling detection)
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
+    // Transform children - check for render props pattern
+    let children: BlockNode[] = [];
+    if (Node.isJsxElement(node)) {
+      const renderPropsInfo = analyzeRenderPropsChildren(node);
+
+      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction) {
+        // Render props pattern: transform arrow function body
+        children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
+      } else {
+        // Regular children pattern
+        children = this.transformBlockChildren(node.getJsxChildren());
+      }
+    }
 
     return { kind: 'agentDocument', frontmatter, children };
   }
@@ -540,6 +558,68 @@ export class Transformer {
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
     // Use helper for If/Else sibling detection
     return this.transformBlockChildren(node.getJsxChildren());
+  }
+
+  /**
+   * Transform arrow function body to IR blocks
+   * Handles both block body { return ... } and expression body
+   */
+  private transformArrowFunctionBody(arrowFn: import('ts-morph').ArrowFunction): BlockNode[] {
+    const body = arrowFn.getBody();
+
+    // Handle block body: { return <div>...</div>; }
+    if (Node.isBlock(body)) {
+      const returnStmt = body.getStatements()
+        .find(stmt => Node.isReturnStatement(stmt));
+
+      if (returnStmt && Node.isReturnStatement(returnStmt)) {
+        const returnExpr = returnStmt.getExpression();
+        if (returnExpr) {
+          // Check if it's JSX
+          if (Node.isJsxElement(returnExpr) || Node.isJsxSelfClosingElement(returnExpr)) {
+            const block = this.transformToBlock(returnExpr);
+            return block ? [block] : [];
+          }
+          if (Node.isJsxFragment(returnExpr)) {
+            return this.transformFragmentChildren(returnExpr);
+          }
+          // Handle parenthesized JSX: return (<div>...</div>)
+          if (Node.isParenthesizedExpression(returnExpr)) {
+            const inner = returnExpr.getExpression();
+            if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
+              const block = this.transformToBlock(inner);
+              return block ? [block] : [];
+            }
+            if (Node.isJsxFragment(inner)) {
+              return this.transformFragmentChildren(inner);
+            }
+          }
+        }
+      }
+      return [];
+    }
+
+    // Handle expression body: (ctx) => <div>...</div>
+    if (Node.isJsxElement(body) || Node.isJsxSelfClosingElement(body)) {
+      const block = this.transformToBlock(body);
+      return block ? [block] : [];
+    }
+    if (Node.isJsxFragment(body)) {
+      return this.transformFragmentChildren(body);
+    }
+    // Handle parenthesized expression body: (ctx) => (<div>...</div>)
+    if (Node.isParenthesizedExpression(body)) {
+      const inner = body.getExpression();
+      if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
+        const block = this.transformToBlock(inner);
+        return block ? [block] : [];
+      }
+      if (Node.isJsxFragment(inner)) {
+        return this.transformFragmentChildren(inner);
+      }
+    }
+
+    return [];
   }
 
   private transformToBlock(node: Node): BlockNode | null {
