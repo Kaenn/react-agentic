@@ -49,21 +49,11 @@ export default function OutputFieldInterpolationCommand() {
         The agent will return structured output with multiple fields:
       </p>
 
-      <SpawnAgent<object, OutputAgentOutput>
+      <SpawnAgent
         agent="5.7-output-agent"
         model="haiku"
         description="Generate structured output for interpolation testing"
-        prompt={`You are being spawned to test output field interpolation.
-
-Your task:
-1. Return a structured YAML response with all required fields
-2. Include: status, message, count, timestamp, data, confidence
-3. Use realistic values that can be verified
-
-This validates that:
-- The agent returns typed output
-- The calling command can interpolate field values
-- Multiple fields can be accessed from the same output`}
+        prompt="Return structured YAML with status, message, count, timestamp, data, and confidence fields."
       />
 
       <h2>Step 2: Handle Agent Output</h2>

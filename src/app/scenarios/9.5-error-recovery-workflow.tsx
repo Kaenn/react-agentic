@@ -65,18 +65,11 @@ export default function ErrorRecoveryWorkflowCommand() {
         <strong>This agent is designed to fail</strong> to test error recovery:
       </p>
 
-      <SpawnAgent<FailingAgentInput, FailingAgentOutput>
+      <SpawnAgent
         agent="9.5-failing-agent"
         model="haiku"
         description="Spawn primary agent that will fail"
-        prompt={`You are being spawned as the primary agent for error recovery testing.
-
-Your input:
-task: Process data using primary method
-attempt: 1
-
-IMPORTANT: Return ERROR status to trigger the error recovery workflow.
-Follow your agent instructions exactly.`}
+        prompt="Process the task 'Process data using primary method' (attempt 1). Return ERROR status to trigger recovery workflow."
       />
 
       <h2>Step 3: Handle Agent Status</h2>
@@ -128,7 +121,7 @@ Follow your agent instructions exactly.`}
           Pass the error context so the recovery agent understands what failed:
         </p>
 
-        <SpawnAgent<RecoveryAgentInput, RecoveryAgentOutput>
+        <SpawnAgent<RecoveryAgentOutput>
           agent="9.5-recovery-agent"
           model="haiku"
           description="Spawn recovery agent after primary failure"

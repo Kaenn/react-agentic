@@ -25,11 +25,9 @@ import {
   Loop,
   Step,
   useVariable,
-  fileExists,
 } from '../../jsx.js';
 
 // Module-level variable declarations
-const mode = useVariable<string>("MODE");
 const tasks = useVariable<string[]>("TASKS");
 
 export default function IntegrationV2() {
@@ -101,9 +99,9 @@ export default function IntegrationV2() {
             <p>Execute each task in the task list:</p>
 
             <Loop items={tasks} as="task">
-              <p>Executing task: {task}</p>
+              <p>Executing task: $task</p>
 
-              <If test="[ -n ${task} ]">
+              <If test="[ -n $task ]">
                 <p>Task is valid, proceeding with execution</p>
               </If>
             </Loop>
@@ -111,7 +109,7 @@ export default function IntegrationV2() {
             <p>Fallback: If no tasks specified, run default task:</p>
 
             <Loop items={["compile", "test", "bundle"]} as="defaultTask">
-              <p>Running default task: {defaultTask}</p>
+              <p>Running default task: $defaultTask</p>
             </Loop>
           </Step>
 

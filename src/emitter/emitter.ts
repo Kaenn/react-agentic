@@ -11,6 +11,7 @@ import type {
   AgentDocumentNode,
   AgentFrontmatterNode,
   AssignNode,
+  AssignGroupNode,
   BlockNode,
   BlockquoteNode,
   CodeBlockNode,
@@ -18,6 +19,7 @@ import type {
   ElseNode,
   ExecutionContextNode,
   FrontmatterNode,
+  GroupNode,
   HeadingNode,
   IfNode,
   InlineNode,
@@ -233,12 +235,16 @@ export class MarkdownEmitter {
         return this.emitOfferNext(node);
       case 'xmlBlock':
         return this.emitXmlBlock(node);
+      case 'group':
+        return this.emitGroup(node);
       case 'raw':
         return node.content;
       case 'spawnAgent':
         return this.emitSpawnAgent(node);
       case 'assign':
         return this.emitAssign(node);
+      case 'assignGroup':
+        return this.emitAssignGroup(node);
       case 'if':
         return this.emitIf(node);
       case 'else':
@@ -568,10 +574,18 @@ export class MarkdownEmitter {
   /**
    * Emit SpawnAgent as GSD Task() syntax
    *
-   * Output format:
+   * Output format (standard):
    * Task(
    *   prompt="...",
-   *   subagent_type="...",
+   *   subagent_type="agent-name",
+   *   model="...",
+   *   description="..."
+   * )
+   *
+   * Output format (with loadFromFile):
+   * Task(
+   *   prompt="First, read {path} for your role and instructions.\n\n...",
+   *   subagent_type="general-purpose",
    *   model="...",
    *   description="..."
    * )
@@ -598,9 +612,22 @@ export class MarkdownEmitter {
       promptContent = promptContent + '\n\n' + node.extraInstructions;
     }
 
+    // Handle loadFromFile pattern
+    // When present, prefix prompt with agent file loading instruction
+    // and use "general-purpose" as the subagent type
+    let finalPrompt = promptContent;
+    let subagentType = node.agent;
+
+    if (node.loadFromFile) {
+      // Prepend the "First, read..." instruction (GSD pattern)
+      finalPrompt = `First, read ${node.loadFromFile} for your role and instructions.\n\n${promptContent}`;
+      // Override to general-purpose
+      subagentType = 'general-purpose';
+    }
+
     return `Task(
-  prompt="${escapeQuotes(promptContent)}",
-  subagent_type="${escapeQuotes(node.agent)}",
+  prompt="${escapeQuotes(finalPrompt)}",
+  subagent_type="${escapeQuotes(subagentType)}",
   model="${escapeQuotes(node.model)}",
   description="${escapeQuotes(node.description)}"
 )`;
@@ -625,8 +652,12 @@ export class MarkdownEmitter {
    * VAR_NAME=$ENV_VAR
    * ```
    */
-  private emitAssign(node: AssignNode): string {
-    const { variableName, assignment } = node;
+  /**
+   * Generate assignment line for a single AssignNode (without code fence)
+   * Used by both emitAssign and emitAssignGroup
+   */
+  private emitAssignmentLine(node: AssignNode): string {
+    const { variableName, assignment, comment } = node;
 
     let line: string;
     switch (assignment.type) {
@@ -648,7 +679,34 @@ export class MarkdownEmitter {
         break;
     }
 
+    // Prepend comment if present
+    if (comment) {
+      return `# ${comment}\n${line}`;
+    }
+    return line;
+  }
+
+  private emitAssign(node: AssignNode): string {
+    const line = this.emitAssignmentLine(node);
     return `\`\`\`bash\n${line}\n\`\`\``;
+  }
+
+  /**
+   * Emit AssignGroup node as single bash code block
+   * with all assignments grouped together
+   *
+   * Output format:
+   * ```bash
+   * # Comment 1
+   * VAR1=$(command1)
+   *
+   * # Comment 2
+   * VAR2=$(command2)
+   * ```
+   */
+  private emitAssignGroup(node: AssignGroupNode): string {
+    const lines = node.assignments.map(assign => this.emitAssignmentLine(assign));
+    return `\`\`\`bash\n${lines.join('\n\n')}\n\`\`\``;
   }
 
   /**
@@ -1015,6 +1073,15 @@ export class MarkdownEmitter {
     const innerContent = node.children.map((child) => this.emitBlock(child)).join('\n\n');
 
     return `<${node.name}${attrs}>\n${innerContent}\n</${node.name}>`;
+  }
+
+  /**
+   * Emit Group - invisible container with tight spacing (single newlines)
+   * No wrapper output, just children with single newlines between them
+   */
+  private emitGroup(node: GroupNode): string {
+    // Join with single newline for tight spacing (vs double for normal blocks)
+    return node.children.map((child) => this.emitBlock(child)).join('\n');
   }
 }
 

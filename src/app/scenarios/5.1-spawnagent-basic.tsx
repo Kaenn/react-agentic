@@ -52,21 +52,11 @@ export default function SpawnAgentBasicCommand() {
         This tests the basic SpawnAgent invocation pattern:
       </p>
 
-      <SpawnAgent<object, EchoAgentOutput>
+      <SpawnAgent
         agent="5.1-echo-agent"
         model="haiku"
         description="Test basic SpawnAgent invocation"
-        prompt={`You are being spawned to test the basic SpawnAgent pattern.
-
-Your task:
-1. Confirm you received this prompt
-2. Report the subagent_type you are running as
-3. Return a structured response confirming success
-
-This validates that:
-- SpawnAgent rendered as Task() syntax
-- The agent name (5.1-echo-agent) was passed as subagent_type
-- This prompt text was received as the prompt parameter`}
+        prompt="Confirm you received this prompt, report your agent type, and return a structured response confirming success."
       />
 
       <h2>Validation</h2>

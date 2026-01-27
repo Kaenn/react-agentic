@@ -7,7 +7,8 @@ import {
   DeviationRules,
   CommitRules,
   WaveExecution,
-  CheckpointHandling
+  CheckpointHandling,
+  List
 } from '../../jsx.js';
 
 export default function TestSemanticComponents() {

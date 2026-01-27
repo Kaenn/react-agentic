@@ -26,8 +26,10 @@ export {
 export {
   useVariable,
   Assign,
+  AssignGroup,
   type VariableRef,
   type AssignProps,
+  type AssignGroupProps,
 } from './primitives/variables.js';
 
 // Conditional logic and test builders
@@ -80,6 +82,10 @@ export {
   SpawnAgent,
   OnStatus,
   useOutput,
+  defineAgent,
+  isAgentRef,
+  getAgentName,
+  getAgentPath,
   type AgentProps,
   type SpawnAgentProps,
   type OnStatusProps,
@@ -87,6 +93,8 @@ export {
   type AgentStatus,
   type BaseOutput,
   type AgentContext,
+  type AgentRef,
+  type DefineAgentConfig,
 } from './workflow/agents/index.js';
 
 // State management

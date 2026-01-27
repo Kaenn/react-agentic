@@ -2,19 +2,36 @@ import {
   Command,
   XmlBlock,
   Markdown,
-  SpawnAgent,
-  If,
-  Else,
   Assign,
+  AssignGroup,
   useVariable,
-  useOutput,
-  OnStatus,
 } from '../../jsx.js';
-import type { PhaseResearcherInput, PhaseResearcherOutput } from './gsd-phase-researcher.js';
+
+// Agent file paths (GSD pattern - agents live in ~/.claude/agents/)
+const AGENT_PATHS = {
+  researcher: '/Users/glenninizan/.claude/agents/gsd-phase-researcher.md',
+  planner: '/Users/glenninizan/.claude/agents/gsd-planner.md',
+  checker: '/Users/glenninizan/.claude/agents/gsd-plan-checker.md',
+} as const;
+
+// Declare shell variables for the orchestrator
+const modelProfile = useVariable<string>("MODEL_PROFILE");
+const phaseDesc = useVariable<string>("PHASE_DESC");
+const requirements = useVariable<string>("REQUIREMENTS");
+const decisions = useVariable<string>("DECISIONS");
+const phaseContext = useVariable<string>("PHASE_CONTEXT");
+const workflowResearch = useVariable<string>("WORKFLOW_RESEARCH");
+const workflowPlanCheck = useVariable<string>("WORKFLOW_PLAN_CHECK");
+const stateContent = useVariable<string>("STATE_CONTENT");
+const roadmapContent = useVariable<string>("ROADMAP_CONTENT");
+const requirementsContent = useVariable<string>("REQUIREMENTS_CONTENT");
+const contextContent = useVariable<string>("CONTEXT_CONTENT");
+const researchContent = useVariable<string>("RESEARCH_CONTENT");
+const verificationContent = useVariable<string>("VERIFICATION_CONTENT");
+const uatContent = useVariable<string>("UAT_CONTENT");
+const plansContent = useVariable<string>("PLANS_CONTENT");
 
 export default function PlanPhaseCommand() {
-  // Track researcher agent output for status-based handling
-  const researchOutput = useOutput<PhaseResearcherOutput>("gsd-phase-researcher");
 
   return (
     <Command
@@ -26,7 +43,7 @@ export default function PlanPhaseCommand() {
     >
       <XmlBlock name="execution_context">
         <Markdown>
-@~/.claude/get-shit-done/references/ui-brand.md
+@/Users/glenninizan/.claude/get-shit-done/references/ui-brand.md 
         </Markdown>
       </XmlBlock>
 
@@ -54,7 +71,7 @@ export default function PlanPhaseCommand() {
         <pre><code className="language-bash">{`ls .planning/ 2>/dev/null`}</code></pre>
         <p><b>If not found:</b> Error - user should run <code>/gsd:new-project</code> first.</p>
         <p><b>Resolve model profile for agent spawning:</b></p>
-        <pre><code className="language-bash">{`MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")`}</code></pre>
+        <Assign var={modelProfile} bash={`cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced"`} />
         <p>Default to "balanced" if not set.</p>
         <p><b>Model lookup table:</b></p>
         <Markdown>{`
@@ -105,18 +122,21 @@ fi`}</code></pre>
         <p><b>If <code>--gaps</code> flag:</b> Skip research (gap closure uses VERIFICATION.md instead).</p>
         <p><b>If <code>--skip-research</code> flag:</b> Skip to step 6.</p>
         <p><b>Check config for research setting:</b></p>
-        <pre><code className="language-bash">{`WORKFLOW_RESEARCH=$(cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true")`}</code></pre>
+        <Assign var={workflowResearch} bash={`cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
         <p><b>If <code>workflow.research</code> is <code>false</code> AND <code>--research</code> flag NOT set:</b> Skip to step 6.</p>
         <p><b>Otherwise:</b></p>
         <p>Check for existing research:</p>
         <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}</code></pre>
-        <p><b>If RESEARCH.md exists AND <code>--research</code> flag NOT set:</b></p>
-        <ul>
-          <li>Display: <code>{'Using existing research: ${PHASE_DIR}/${PHASE}-RESEARCH.md'}</code></li>
-          <li>Skip to step 6</li>
-        </ul>
+        <div>
+          <b>If RESEARCH.md exists AND <code>--research</code> flag NOT set:</b>
+          <ul>
+            <li>Display: <code>{'Using existing research: ${PHASE_DIR}/${PHASE}-RESEARCH.md'}</code></li>
+            <li>Skip to step 6</li>
+          </ul>
+        </div>
         <p><b>If RESEARCH.md missing OR <code>--research</code> flag set:</b></p>
-        <p>Display stage banner:</p>
+        <div>
+          Display stage banner:
         <Markdown>{`
 \`\`\`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -126,59 +146,72 @@ fi`}</code></pre>
 ◆ Spawning researcher...
 \`\`\`
 `}</Markdown>
+        </div>
         <p>Proceed to spawn researcher</p>
 
         <h3>Spawn gsd-phase-researcher</h3>
         <p>Gather context for research prompt:</p>
-        <pre><code className="language-bash">{`# Get phase description from roadmap
-PHASE_DESC=$(grep -A3 "Phase \${PHASE}:" .planning/ROADMAP.md)
-
-# Get requirements if they exist
-REQUIREMENTS=$(cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50)
-
-# Get prior decisions from STATE.md
-DECISIONS=$(grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null)
-
-# Get phase context if exists
-PHASE_CONTEXT=$(cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null)`}</code></pre>
+        <AssignGroup>
+          <Assign var={phaseDesc} bash={`grep -A3 "Phase \${PHASE}:" .planning/ROADMAP.md`} comment="Get phase description from roadmap" />
+          <Assign var={requirements} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50`} comment="Get requirements if they exist" />
+          <Assign var={decisions} bash={`grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null`} comment="Get prior decisions from STATE.md" />
+          <Assign var={phaseContext} bash={`cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null`} comment="Get phase context if exists" />
+        </AssignGroup>
         <p>Fill research prompt and spawn:</p>
 
-        <SpawnAgent<PhaseResearcherInput>
-          agent="gsd-phase-researcher"
-          model="{researcher_model}"
-          description="Research Phase {phase}"
-          input={{
-            phase: "{phase}",
-            phaseName: "{phase_name}",
-            phaseDescription: "{phase_description}",
-            requirements: "{requirements}",
-            decisions: "{decisions}",
-            phaseContext: "{phase_context}",
-            outputDir: "{phase_dir}",
-          }}
-        >
-          Research how to implement this phase well.
-          Answer: "What do I need to know to PLAN this phase well?"
-        </SpawnAgent>
+        <Markdown>{`
+\`\`\`markdown
+<objective>
+Research how to implement Phase {phase_number}: {phase_name}
+
+Answer: "What do I need to know to PLAN this phase well?"
+</objective>
+
+<context>
+**Phase description:**
+{phase_description}
+
+**Requirements (if any):**
+{requirements}
+
+**Prior decisions:**
+{decisions}
+
+**Phase context (if any):**
+{phase_context}
+</context>
+
+<output>
+Write research findings to: {phase_dir}/{phase}-RESEARCH.md
+</output>
+\`\`\`
+`}</Markdown>
+
+        <Markdown>{`
+\`\`\`
+Task(
+  prompt="First, read ` + AGENT_PATHS.researcher + ` for your role and instructions.\\n\\n" + research_prompt,
+  subagent_type="general-purpose",
+  model="{researcher_model}",
+  description="Research Phase {phase}"
+)
+\`\`\`
+`}</Markdown>
 
         <h3>Handle Researcher Return</h3>
 
-        <OnStatus output={researchOutput} status="SUCCESS">
-          <p>Research complete with {researchOutput.field('confidence')} confidence.</p>
-          <p>Display: <code>Research complete. Proceeding to planning...</code></p>
-          <p>Continue to step 6.</p>
-        </OnStatus>
+        <p><b><code>## RESEARCH COMPLETE</code>:</b></p>
+        <ul>
+          <li>Display: <code>Research complete. Proceeding to planning...</code></li>
+          <li>Continue to step 6</li>
+        </ul>
 
-        <OnStatus output={researchOutput} status="BLOCKED">
-          <p>Research blocked by: {researchOutput.field('blockedBy')}</p>
-          <p>Display blocker information.</p>
-          <p>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</p>
-          <p>Wait for user response.</p>
-        </OnStatus>
-
-        <OnStatus output={researchOutput} status="ERROR">
-          <p>Research failed. Check error details and retry.</p>
-        </OnStatus>
+        <p><b><code>## RESEARCH BLOCKED</code>:</b></p>
+        <ul>
+          <li>Display blocker information</li>
+          <li>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</li>
+          <li>Wait for user response</li>
+        </ul>
 
         <h2>6. Check Existing Plans</h2>
         <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`}</code></pre>
@@ -186,18 +219,15 @@ PHASE_CONTEXT=$(cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null)`}</code></
 
         <h2>7. Read Context Files</h2>
         <p>Read and store context file contents for the planner agent. The <code>@</code> syntax does not work across Task() boundaries - content must be inlined.</p>
-        <pre><code className="language-bash">{`# Read required files
-STATE_CONTENT=$(cat .planning/STATE.md)
-ROADMAP_CONTENT=$(cat .planning/ROADMAP.md)
-
-# Read optional files (empty string if missing)
-REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
-CONTEXT_CONTENT=$(cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null)
-RESEARCH_CONTENT=$(cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)
-
-# Gap closure files (only if --gaps mode)
-VERIFICATION_CONTENT=$(cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null)
-UAT_CONTENT=$(cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null)`}</code></pre>
+        <AssignGroup>
+          <Assign var={stateContent} bash={`cat .planning/STATE.md`} comment="Read project state" />
+          <Assign var={roadmapContent} bash={`cat .planning/ROADMAP.md`} comment="Read roadmap" />
+          <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Read requirements (optional)" />
+          <Assign var={contextContent} bash={`cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null`} comment="Read phase context (optional)" />
+          <Assign var={researchContent} bash={`cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`} comment="Read research (optional)" />
+          <Assign var={verificationContent} bash={`cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null`} comment="Gap closure: verification (if --gaps)" />
+          <Assign var={uatContent} bash={`cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null`} comment="Gap closure: UAT (if --gaps)" />
+        </AssignGroup>
 
         <h2>8. Spawn gsd-planner Agent</h2>
         <p>Display stage banner:</p>
@@ -264,8 +294,8 @@ Before returning PLANNING COMPLETE:
         <Markdown>{`
 \`\`\`
 Task(
-  prompt=filled_prompt,
-  subagent_type="gsd-planner",
+  prompt="First, read ` + AGENT_PATHS.planner + ` for your role and instructions.\\n\\n" + filled_prompt,
+  subagent_type="general-purpose",
   model="{planner_model}",
   description="Plan Phase {phase}"
 )
@@ -278,7 +308,10 @@ Task(
         <ul>
           <li>Display: <code>{'Planner created {N} plan(s). Files on disk.'}</code></li>
           <li>If <code>--skip-verify</code>: Skip to step 13</li>
-          <li>Check config: <code>{'WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o \'"plan_check"[[:space:]]*:[[:space:]]*[^,}]*\' | grep -o \'true\\|false\' || echo "true")'}</code></li>
+          <li>Check config:</li>
+        </ul>
+        <Assign var={workflowPlanCheck} bash={`cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
+        <ul>
           <li>If <code>workflow.plan_check</code> is <code>false</code>: Skip to step 13</li>
           <li>Otherwise: Proceed to step 10</li>
         </ul>
@@ -305,11 +338,8 @@ Task(
 \`\`\`
 `}</Markdown>
         <p>Read plans and requirements for the checker:</p>
-        <pre><code className="language-bash">{`# Read all plans in phase directory
-PLANS_CONTENT=$(cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
-
-# Read requirements (reuse from step 7 if available)
-REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)`}</code></pre>
+        <Assign var={plansContent} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
+        <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} />
         <p>Fill checker prompt with inlined content and spawn:</p>
         <Markdown>{`
 \`\`\`markdown
@@ -336,8 +366,8 @@ Return one of:
         <Markdown>{`
 \`\`\`
 Task(
-  prompt=checker_prompt,
-  subagent_type="gsd-plan-checker",
+  prompt="First, read ` + AGENT_PATHS.checker + ` for your role and instructions.\\n\\n" + checker_prompt,
+  subagent_type="general-purpose",
   model="{checker_model}",
   description="Verify Phase {phase} plans"
 )
@@ -363,7 +393,7 @@ Task(
         <p><b>If iteration_count {'< '}3:</b></p>
         <p>Display: <code>{'Sending back to planner for revision... (iteration {N}/3)'}</code></p>
         <p>Read current plans for revision context:</p>
-        <pre><code className="language-bash">{`PLANS_CONTENT=$(cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null)`}</code></pre>
+        <Assign var={plansContent} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
         <p>Spawn gsd-planner with revision prompt:</p>
         <Markdown>{`
 \`\`\`markdown
@@ -390,8 +420,8 @@ Return what changed.
         <Markdown>{`
 \`\`\`
 Task(
-  prompt=revision_prompt,
-  subagent_type="gsd-planner",
+  prompt="First, read ` + AGENT_PATHS.planner + ` for your role and instructions.\\n\\n" + revision_prompt,
+  subagent_type="general-purpose",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
 )

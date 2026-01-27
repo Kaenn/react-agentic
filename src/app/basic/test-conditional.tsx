@@ -13,13 +13,9 @@ import { Command, XmlBlock, If, Else, Assign, useVariable, equals, isEmpty } fro
 
 export default function TestConditional() {
 
-  const configExists = useVariable("CONFIG_EXISTS", {
-    bash: `[ -f .planning/config.json ] && echo "true" || echo "false"`
-  });
+  const configExists = useVariable("CONFIG_EXISTS");
 
-  const phaseDir = useVariable("PHASE_DIR", {
-    bash: `ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`
-  });
+  const phaseDir = useVariable("PHASE_DIR");
 
   return (
     <Command name="test-conditional" description="Test conditional logic components">
@@ -29,7 +25,7 @@ export default function TestConditional() {
 
       <XmlBlock name="process">
         <h3>Step 1: Check Configuration</h3>
-        <Assign var={configExists} />
+        <Assign var={configExists} bash={`[ -f .planning/config.json ] && echo "true" || echo "false"`} />
 
         <If test={equals(configExists, "'true'")}>
           <p>Configuration found. Loading settings from config file.</p>
@@ -39,7 +35,7 @@ export default function TestConditional() {
         </Else>
 
         <h3>Step 2: Find Phase Directory</h3>
-        <Assign var={phaseDir} />
+        <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`} />
 
         <If test={isEmpty(phaseDir)}>
           <p>Phase directory not found. Creating new directory.</p>

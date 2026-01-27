@@ -51,21 +51,14 @@ export default function MultipleOnStatusCommand() {
 
       <p>Execute this Task() call to spawn the multi-status agent requesting SUCCESS:</p>
 
-      <SpawnAgent<MultiStatusAgentInput, MultiStatusAgentOutput>
+      <SpawnAgent<MultiStatusAgentInput>
         agent="5.6-multi-status-agent"
         model="haiku"
         description="Test OnStatus routing with SUCCESS status"
-        prompt={`You are being spawned to test OnStatus handler routing.
-
-Your task:
-1. Return status: SUCCESS
-2. Include the confirmation field
-
-This tests that the SUCCESS OnStatus handler is correctly triggered.
-
-Input:
-requestedStatus: SUCCESS
-context: Testing multiple OnStatus handlers`}
+        input={{
+          requestedStatus: 'SUCCESS',
+          context: 'Testing multiple OnStatus handlers',
+        }}
       />
 
       <h2>Status Handlers</h2>

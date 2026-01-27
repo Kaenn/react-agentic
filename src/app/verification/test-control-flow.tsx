@@ -29,7 +29,7 @@ export default function TestControlFlow() {
       <p>Loop through a literal array of strings:</p>
 
       <Loop items={["item1", "item2", "item3"]} as="item">
-        <p>Processing: {item}</p>
+        <p>Processing: $item</p>
       </Loop>
 
       <h2>Test 2: Loop with Custom Parameter Name</h2>
@@ -37,8 +37,8 @@ export default function TestControlFlow() {
       <p>Loop through files with custom iteration variable:</p>
 
       <Loop items={["a.ts", "b.ts", "c.ts"]} as="file">
-        <p>Building: {file}</p>
-        <p>Output: {file}.js</p>
+        <p>Building: $file</p>
+        <p>Output: $file.js</p>
       </Loop>
 
       <h2>Test 3: Loop with Variable Reference</h2>
@@ -46,7 +46,7 @@ export default function TestControlFlow() {
       <p>Loop through a variable-referenced array:</p>
 
       <Loop items={files} as="f">
-        <p>Processing file: {f}</p>
+        <p>Processing file: $f</p>
       </Loop>
 
       <h2>Test 4: OnStatus SUCCESS Handler</h2>
@@ -58,12 +58,11 @@ export default function TestControlFlow() {
         model="claude-sonnet-4-5"
         description="Test agent for OnStatus verification"
         input={{ data: "test" }}
-        output={output}
       />
 
       <OnStatus output={output} status="SUCCESS">
         <p>Agent completed successfully</p>
-        <p>Result available in: {output}</p>
+        <p>Result message: {output.field('message')}</p>
       </OnStatus>
 
       <h2>Test 5: OnStatus ERROR Handler</h2>
@@ -72,7 +71,7 @@ export default function TestControlFlow() {
 
       <OnStatus output={output} status="ERROR">
         <p>Agent encountered an error</p>
-        <p>Review error details in: {output}</p>
+        <p>Error details: {output.field('message')}</p>
       </OnStatus>
 
       <h2>Test 6: Multiple OnStatus Handlers</h2>

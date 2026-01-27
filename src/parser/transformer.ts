@@ -14,6 +14,9 @@ import {
   JsxSpreadAttribute,
   SourceFile,
   TemplateExpression,
+  PropertyAccessExpression,
+  ObjectLiteralExpression,
+  BinaryExpression,
 } from 'ts-morph';
 import { TranspileError, getNodeLocation, getSourceCode } from '../cli/errors.js';
 import type {
@@ -29,10 +32,12 @@ import type {
   LinkNode,
   FrontmatterNode,
   XmlBlockNode,
+  GroupNode,
   SpawnAgentNode,
   SpawnAgentInput,
   TypeReference,
   AssignNode,
+  AssignGroupNode,
   IfNode,
   ElseNode,
   LoopNode,
@@ -87,10 +92,24 @@ const HTML_ELEMENTS = new Set([
 ]);
 
 /**
+ * Inline HTML elements that should be wrapped in paragraphs when at block level
+ */
+const INLINE_ELEMENTS = new Set([
+  'a', 'b', 'i', 'strong', 'em', 'code', 'span', 'br',
+]);
+
+/**
+ * Check if a tag name represents an inline element
+ */
+function isInlineElement(tagName: string): boolean {
+  return INLINE_ELEMENTS.has(tagName);
+}
+
+/**
  * Special component names that are NOT custom user components
  */
 const SPECIAL_COMPONENTS = new Set([
-  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'Loop', 'OnStatus',
+  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus',
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
@@ -130,6 +149,16 @@ function isValidXmlName(name: string): boolean {
   return true;
 }
 
+/**
+ * Context values available for render props interpolation
+ */
+interface RenderPropsContext {
+  /** Parameter name used in arrow function (e.g., 'ctx') */
+  paramName: string;
+  /** Context values that can be interpolated */
+  values: Record<string, string>;
+}
+
 export class Transformer {
   /** Source file for component resolution (optional - only needed for composition) */
   private sourceFile: SourceFile | undefined;
@@ -141,6 +170,8 @@ export class Transformer {
   private outputs: Map<string, string> = new Map();
   /** Extracted useStateRef declarations: identifier name -> state key */
   private stateRefs: Map<string, string> = new Map();
+  /** Current render props context for interpolation (set during Command/Agent transformation) */
+  private renderPropsContext: RenderPropsContext | undefined;
 
   /**
    * Create a TranspileError with source location context from a node
@@ -296,9 +327,28 @@ export class Transformer {
     if (Node.isJsxElement(node)) {
       const renderPropsInfo = analyzeRenderPropsChildren(node);
 
-      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction) {
+      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction && renderPropsInfo.paramName) {
+        // Build context values for interpolation
+        // outputPath and sourcePath use placeholders - they're computed at build time
+        const sourcePath = this.sourceFile?.getFilePath() ?? '';
+        // Output path follows convention: .claude/commands/{name}.md
+        const outputPath = `.claude/commands/${name}.md`;
+
+        this.renderPropsContext = {
+          paramName: renderPropsInfo.paramName,
+          values: {
+            name,
+            description,
+            outputPath,
+            sourcePath,
+          },
+        };
+
         // Render props pattern: transform arrow function body
         children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
+
+        // Clear context after transformation
+        this.renderPropsContext = undefined;
       } else {
         // Regular children pattern
         children = this.transformBlockChildren(node.getJsxChildren());
@@ -367,9 +417,27 @@ export class Transformer {
     if (Node.isJsxElement(node)) {
       const renderPropsInfo = analyzeRenderPropsChildren(node);
 
-      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction) {
+      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction && renderPropsInfo.paramName) {
+        // Build context values for interpolation
+        const sourcePath = this.sourceFile?.getFilePath() ?? '';
+        // Output path follows convention: .claude/agents/{name}.md
+        const outputPath = `.claude/agents/${name}.md`;
+
+        this.renderPropsContext = {
+          paramName: renderPropsInfo.paramName,
+          values: {
+            name,
+            description,
+            outputPath,
+            sourcePath,
+          },
+        };
+
         // Render props pattern: transform arrow function body
         children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
+
+        // Clear context after transformation
+        this.renderPropsContext = undefined;
       } else {
         // Regular children pattern
         children = this.transformBlockChildren(node.getJsxChildren());
@@ -708,6 +776,11 @@ export class Transformer {
       return this.transformAssign(node);
     }
 
+    // AssignGroup block element (grouped variable assignments)
+    if (name === 'AssignGroup') {
+      return this.transformAssignGroup(node);
+    }
+
     // If component - conditional block
     if (name === 'If') {
       return this.transformIf(node);
@@ -1043,6 +1116,23 @@ export class Transformer {
         }
       }
 
+      // Property access expressions: ctx.name, ctx.outputPath, etc.
+      if (Node.isPropertyAccessExpression(expr)) {
+        const objExpr = expr.getExpression();
+        const propName = expr.getName();
+
+        // Check if accessing render props context (e.g., ctx.name)
+        if (Node.isIdentifier(objExpr) && this.renderPropsContext) {
+          const objName = objExpr.getText();
+          if (objName === this.renderPropsContext.paramName) {
+            const value = this.renderPropsContext.values[propName];
+            if (value !== undefined) {
+              return { kind: 'text', value };
+            }
+          }
+        }
+      }
+
       // Other expressions are ignored
       return null;
     }
@@ -1112,17 +1202,30 @@ export class Transformer {
     return { kind: 'link', url: href, children };
   }
 
-  private transformDiv(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
+  private transformDiv(node: JsxElement | JsxSelfClosingElement): XmlBlockNode | GroupNode {
     const openingElement = Node.isJsxElement(node)
       ? node.getOpeningElement()
       : node;
 
-    // Get name attribute (optional - if missing, output as <div>)
+    // Get name attribute (optional - if missing, create invisible group)
     const nameAttr = getAttributeValue(openingElement, 'name');
-    const tagName = nameAttr || 'div';
 
-    // Validate XML name if custom name provided
-    if (nameAttr && !isValidXmlName(nameAttr)) {
+    // Transform children as mixed content (inline elements get wrapped in paragraphs)
+    const children = Node.isJsxElement(node)
+      ? this.transformMixedChildren(node.getJsxChildren())
+      : [];
+
+    // No name attribute: invisible grouping container with tight spacing
+    if (!nameAttr) {
+      return {
+        kind: 'group',
+        children,
+      };
+    }
+
+    // Has name attribute: XML block with wrapper tags
+    // Validate XML name
+    if (!isValidXmlName(nameAttr)) {
       throw this.createError(
         `Invalid XML tag name '${nameAttr}' - must start with letter/underscore, contain only letters, digits, underscores, hyphens, or periods, and not start with 'xml'`,
         node
@@ -1143,17 +1246,108 @@ export class Transformer {
       }
     }
 
-    // Transform children as blocks (with If/Else sibling detection)
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
     return {
       kind: 'xmlBlock',
-      name: tagName,
+      name: nameAttr,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
       children,
     };
+  }
+
+  /**
+   * Transform mixed children (inline + block elements)
+   * Consecutive inline elements and text are wrapped in a single paragraph
+   * Block elements are transformed normally
+   */
+  private transformMixedChildren(jsxChildren: Node[]): BlockNode[] {
+    const blocks: BlockNode[] = [];
+    let inlineAccumulator: Node[] = [];
+
+    const flushInline = () => {
+      if (inlineAccumulator.length > 0) {
+        // Transform accumulated inline content as a paragraph
+        const inlineNodes = this.transformInlineNodes(inlineAccumulator);
+        if (inlineNodes.length > 0) {
+          blocks.push({ kind: 'paragraph', children: inlineNodes });
+        }
+        inlineAccumulator = [];
+      }
+    };
+
+    for (const child of jsxChildren) {
+      // Check if this is an inline element or text
+      if (Node.isJsxText(child)) {
+        const text = extractText(child);
+        if (text) {
+          inlineAccumulator.push(child);
+        }
+        // Skip whitespace-only text if accumulator is empty
+        continue;
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const name = getElementName(child);
+
+        if (isInlineElement(name)) {
+          // Accumulate inline elements
+          inlineAccumulator.push(child);
+        } else {
+          // Flush any accumulated inline content before block element
+          flushInline();
+          // Transform block element
+          const block = this.transformToBlock(child);
+          if (block) blocks.push(block);
+        }
+      } else if (Node.isJsxExpression(child)) {
+        // JSX expressions treated as inline
+        inlineAccumulator.push(child);
+      }
+    }
+
+    // Flush remaining inline content
+    flushInline();
+
+    return blocks;
+  }
+
+  /**
+   * Transform a list of nodes to inline nodes
+   * Used by transformMixedChildren for inline accumulation
+   */
+  private transformInlineNodes(nodes: Node[]): InlineNode[] {
+    const result: InlineNode[] = [];
+
+    for (const node of nodes) {
+      if (Node.isJsxText(node)) {
+        const text = extractText(node);
+        if (text) {
+          result.push({ kind: 'text', value: text });
+        }
+      } else if (Node.isJsxElement(node)) {
+        const name = getElementName(node);
+        const inlineNode = this.transformInlineElement(name, node);
+        if (inlineNode) result.push(inlineNode);
+      } else if (Node.isJsxSelfClosingElement(node)) {
+        // Handle self-closing inline elements (like <br />)
+        const name = getElementName(node);
+        if (name === 'br') {
+          result.push({ kind: 'lineBreak' });
+        }
+      } else if (Node.isJsxExpression(node)) {
+        // Extract text from JSX expression
+        const expr = node.getExpression();
+        if (expr) {
+          const text = expr.getText();
+          // Remove surrounding quotes if it's a string literal
+          const cleaned = text.replace(/^['"`]|['"`]$/g, '');
+          if (cleaned) {
+            result.push({ kind: 'text', value: cleaned });
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   private transformXmlBlock(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
@@ -1237,6 +1431,10 @@ export class Transformer {
             row.push(cell.getLiteralValue());
           } else if (Node.isNumericLiteral(cell)) {
             row.push(cell.getLiteralValue().toString());
+          } else if (Node.isPropertyAccessExpression(cell)) {
+            // Handle context property access (e.g., ctx.name)
+            const interpolated = this.interpolatePropertyAccess(cell);
+            row.push(interpolated ?? cell.getText());
           } else {
             row.push(cell.getText());
           }
@@ -1245,6 +1443,26 @@ export class Transformer {
       }
     }
     return rows;
+  }
+
+  /**
+   * Interpolate a PropertyAccessExpression if it references render props context
+   * Returns the interpolated value or null if not a context access
+   */
+  private interpolatePropertyAccess(expr: PropertyAccessExpression): string | null {
+    const objExpr = expr.getExpression();
+    const propName = expr.getName();
+
+    if (Node.isIdentifier(objExpr) && this.renderPropsContext) {
+      const objName = objExpr.getText();
+      if (objName === this.renderPropsContext.paramName) {
+        const value = this.renderPropsContext.values[propName];
+        if (value !== undefined) {
+          return value;
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -1646,6 +1864,19 @@ export class Transformer {
             // JSX splits ${var} into "$" + {var}, so reconstruct as {var}
             // which preserves the intent for code blocks
             parts.push(`{${expr.getText()}}`);
+          } else if (Node.isBinaryExpression(expr)) {
+            // Binary expression: string concatenation like `text ` + var + ` more`
+            const concat = this.evaluateStringConcatenation(expr);
+            if (concat !== null) {
+              parts.push(concat);
+            }
+          } else if (Node.isPropertyAccessExpression(expr)) {
+            // Property access: obj.prop (like AGENT_PATHS.researcher)
+            // Try to resolve the value from a const declaration
+            const value = this.resolvePropertyAccess(expr);
+            if (value !== null) {
+              parts.push(value);
+            }
           }
           // Other expressions (function calls, etc.) cannot be evaluated at transpile time
         }
@@ -1718,16 +1949,23 @@ export class Transformer {
    * Supports two modes:
    * 1. prompt prop (deprecated): Manual prompt string
    * 2. input prop (preferred): Typed input - VariableRef or object literal
+   *
+   * Also supports:
+   * - agent={AgentRef} for type-safe agent references
+   * - loadFromFile prop for "load from file" pattern
    */
   private transformSpawnAgent(node: JsxElement | JsxSelfClosingElement): SpawnAgentNode {
     const openingElement = Node.isJsxElement(node)
       ? node.getOpeningElement()
       : node;
 
-    // Extract required props
-    const agent = getAttributeValue(openingElement, 'agent');
+    // Extract agent prop - can be string OR AgentRef identifier
+    const { agentName, agentPath } = this.extractAgentProp(openingElement);
     const model = getAttributeValue(openingElement, 'model');
     const description = getAttributeValue(openingElement, 'description');
+
+    // Extract loadFromFile prop
+    const loadFromFile = this.extractLoadFromFileProp(openingElement, agentPath);
 
     // Extract prompt and input props
     const prompt = this.extractPromptProp(openingElement);
@@ -1739,7 +1977,7 @@ export class Transformer {
       : undefined;
 
     // Validate required props
-    if (!agent) {
+    if (!agentName) {
       throw this.createError('SpawnAgent requires agent prop', openingElement);
     }
     if (!model) {
@@ -1784,14 +2022,261 @@ export class Transformer {
 
     return {
       kind: 'spawnAgent',
-      agent,
+      agent: agentName,
       model,
       description,
       ...(prompt && { prompt }),
       ...(input && { input }),
       ...(extraInstructions && { extraInstructions }),
       ...(inputType && { inputType }),
+      ...(loadFromFile && { loadFromFile }),
     };
+  }
+
+  /**
+   * Extract agent prop - handles string OR AgentRef identifier
+   *
+   * Returns:
+   * - agentName: The agent name string (required)
+   * - agentPath: The agent's file path (if AgentRef with path)
+   */
+  private extractAgentProp(
+    element: JsxOpeningElement | JsxSelfClosingElement
+  ): { agentName: string | undefined; agentPath: string | undefined } {
+    const attr = element.getAttribute('agent');
+    if (!attr || !Node.isJsxAttribute(attr)) {
+      return { agentName: undefined, agentPath: undefined };
+    }
+
+    const init = attr.getInitializer();
+
+    // Case 1: String literal - agent="my-agent"
+    if (init && Node.isStringLiteral(init)) {
+      return { agentName: init.getLiteralValue(), agentPath: undefined };
+    }
+
+    // Case 2: JSX expression - agent={AgentRef}
+    if (init && Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+
+      // Case 2a: Identifier referencing an AgentRef (e.g., agent={PhaseResearcher})
+      if (expr && Node.isIdentifier(expr)) {
+        const identName = expr.getText();
+
+        // Try to resolve the identifier to find AgentRef properties
+        const agentRef = this.resolveAgentRef(identName);
+        if (agentRef) {
+          return { agentName: agentRef.name, agentPath: agentRef.path };
+        }
+
+        // If not resolvable as AgentRef, treat identifier text as agent name
+        // This allows for dynamic agent names from variables
+        return { agentName: identName, agentPath: undefined };
+      }
+
+      // Case 2b: String literal in expression - agent={"my-agent"}
+      if (expr && Node.isStringLiteral(expr)) {
+        return { agentName: expr.getLiteralValue(), agentPath: undefined };
+      }
+    }
+
+    return { agentName: undefined, agentPath: undefined };
+  }
+
+  /**
+   * Try to resolve an identifier to an AgentRef definition
+   *
+   * Looks for:
+   * 1. Imported AgentRef (from defineAgent call in source file)
+   * 2. Local AgentRef constant
+   */
+  private resolveAgentRef(
+    identName: string
+  ): { name: string; path?: string } | undefined {
+    if (!this.sourceFile) return undefined;
+
+    // Find the symbol for this identifier
+    const symbol = this.sourceFile.getLocal(identName);
+    if (!symbol) return undefined;
+
+    // Get the declaration
+    const declarations = symbol.getDeclarations();
+    if (!declarations || declarations.length === 0) return undefined;
+
+    for (const decl of declarations) {
+      // Check for import declaration
+      if (Node.isImportSpecifier(decl)) {
+        // Trace through import to find the defineAgent call in source file
+        const resolved = this.resolveImportedAgentRef(decl, identName);
+        if (resolved) return resolved;
+        continue;
+      }
+
+      // Check for variable declaration with defineAgent call
+      if (Node.isVariableDeclaration(decl)) {
+        const init = decl.getInitializer();
+        if (init && Node.isCallExpression(init)) {
+          const callExpr = init.getExpression();
+          if (callExpr && callExpr.getText() === 'defineAgent') {
+            // Extract the config object from defineAgent({...})
+            const args = init.getArguments();
+            if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+              return this.extractAgentRefFromObject(args[0]);
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Resolve an imported AgentRef by tracing to its source file
+   */
+  private resolveImportedAgentRef(
+    importSpec: Node,
+    identName: string
+  ): { name: string; path?: string } | undefined {
+    // Navigate up the tree to find ImportDeclaration
+    // ImportSpecifier -> NamedImports -> ImportClause -> ImportDeclaration
+    let current: Node | undefined = importSpec;
+    while (current && !Node.isImportDeclaration(current)) {
+      current = current.getParent();
+    }
+
+    if (!current || !Node.isImportDeclaration(current)) {
+      return undefined;
+    }
+
+    const importDecl = current;
+
+    // Resolve the source file
+    const resolvedSourceFile = importDecl.getModuleSpecifierSourceFile();
+    if (!resolvedSourceFile) {
+      return undefined;
+    }
+
+    // Find the exported variable with the same name
+    const exportedVar = resolvedSourceFile.getVariableDeclaration(identName);
+    if (!exportedVar) {
+      return undefined;
+    }
+
+    // Check if it's a defineAgent call
+    const init = exportedVar.getInitializer();
+    if (init && Node.isCallExpression(init)) {
+      const callExpr = init.getExpression();
+      if (callExpr && callExpr.getText() === 'defineAgent') {
+        const args = init.getArguments();
+        if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+          return this.extractAgentRefFromObject(args[0]);
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract AgentRef properties from defineAgent config object
+   */
+  private extractAgentRefFromObject(
+    obj: ObjectLiteralExpression
+  ): { name: string; path?: string } | undefined {
+    let name: string | undefined;
+    let path: string | undefined;
+
+    for (const prop of obj.getProperties()) {
+      if (Node.isPropertyAssignment(prop)) {
+        const propName = prop.getName();
+        const init = prop.getInitializer();
+
+        if (propName === 'name' && init && Node.isStringLiteral(init)) {
+          name = init.getLiteralValue();
+        }
+        if (propName === 'path' && init && Node.isStringLiteral(init)) {
+          path = init.getLiteralValue();
+        }
+      }
+    }
+
+    if (name) {
+      return { name, path };
+    }
+    return undefined;
+  }
+
+  /**
+   * Extract loadFromFile prop
+   *
+   * Supports:
+   * - loadFromFile (boolean true shorthand)
+   * - loadFromFile={true}
+   * - loadFromFile="explicit/path.md"
+   *
+   * When true, uses agentPath from AgentRef.
+   * Returns resolved path string or undefined.
+   */
+  private extractLoadFromFileProp(
+    element: JsxOpeningElement | JsxSelfClosingElement,
+    agentPath: string | undefined
+  ): string | undefined {
+    const attr = element.getAttribute('loadFromFile');
+    if (!attr || !Node.isJsxAttribute(attr)) {
+      return undefined;
+    }
+
+    const init = attr.getInitializer();
+
+    // Case 1: Boolean shorthand - loadFromFile (no value = true)
+    if (!init) {
+      if (!agentPath) {
+        throw this.createError(
+          'loadFromFile={true} requires an AgentRef with a path property. ' +
+          'Either use agent={AgentRef} where AgentRef has a path, or provide an explicit path: loadFromFile="path/to/agent.md"',
+          element
+        );
+      }
+      return agentPath;
+    }
+
+    // Case 2: String literal - loadFromFile="path/to/agent.md"
+    if (Node.isStringLiteral(init)) {
+      return init.getLiteralValue();
+    }
+
+    // Case 3: JSX expression
+    if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+
+      // Case 3a: Boolean true - loadFromFile={true}
+      if (expr && expr.getText() === 'true') {
+        if (!agentPath) {
+          throw this.createError(
+            'loadFromFile={true} requires an AgentRef with a path property. ' +
+            'Either use agent={AgentRef} where AgentRef has a path, or provide an explicit path: loadFromFile="path/to/agent.md"',
+            element
+          );
+        }
+        return agentPath;
+      }
+
+      // Case 3b: Boolean false - loadFromFile={false}
+      if (expr && expr.getText() === 'false') {
+        return undefined;
+      }
+
+      // Case 3c: String literal - loadFromFile={"path/to/agent.md"}
+      if (expr && Node.isStringLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+    }
+
+    throw this.createError(
+      'loadFromFile must be a boolean or string path',
+      element
+    );
   }
 
   /**
@@ -2763,10 +3248,65 @@ export class Transformer {
       assignment = { type: 'env', content: envProp! };
     }
 
+    // Extract optional comment prop
+    const commentProp = this.extractAssignPropValue(openingElement, 'comment');
+
     return {
       kind: 'assign',
       variableName: variable.envName,
       assignment,
+      ...(commentProp && { comment: commentProp }),
+    };
+  }
+
+  /**
+   * Transform an AssignGroup element to AssignGroupNode
+   * AssignGroup collects Assign children into a single bash code block
+   */
+  private transformAssignGroup(node: JsxElement | JsxSelfClosingElement): AssignGroupNode {
+    // AssignGroup must have children
+    if (Node.isJsxSelfClosingElement(node)) {
+      throw this.createError('AssignGroup must have Assign children', node);
+    }
+
+    const children = node.getJsxChildren();
+    const assignments: AssignNode[] = [];
+
+    for (const child of children) {
+      // Skip whitespace text nodes
+      if (Node.isJsxText(child)) {
+        const text = child.getText().trim();
+        if (text === '') continue;
+        throw this.createError('AssignGroup can only contain Assign elements, not text', child);
+      }
+
+      // Must be JSX element
+      if (!Node.isJsxElement(child) && !Node.isJsxSelfClosingElement(child)) {
+        throw this.createError('AssignGroup can only contain Assign elements', child);
+      }
+
+      // Get element name
+      const opening = Node.isJsxElement(child) ? child.getOpeningElement() : child;
+      const tagNameNode = opening.getTagNameNode();
+      const name = tagNameNode.getText();
+
+      // Must be Assign
+      if (name !== 'Assign') {
+        throw this.createError(`AssignGroup can only contain Assign elements, found: ${name}`, child);
+      }
+
+      // Transform the Assign element
+      const assignNode = this.transformAssign(child);
+      assignments.push(assignNode);
+    }
+
+    if (assignments.length === 0) {
+      throw this.createError('AssignGroup must contain at least one Assign element', node);
+    }
+
+    return {
+      kind: 'assignGroup',
+      assignments,
     };
   }
 
@@ -3030,6 +3570,123 @@ export class Transformer {
       sqlTemplate,
       args
     };
+  }
+
+  /**
+   * Evaluate a binary expression that represents string concatenation.
+   * Handles chains like: `text ` + AGENT_PATHS.researcher + ` more`
+   * Returns the concatenated string or null if not evaluable.
+   */
+  private evaluateStringConcatenation(expr: BinaryExpression): string | null {
+    const operator = expr.getOperatorToken().getText();
+    if (operator !== '+') {
+      return null;
+    }
+
+    const left = expr.getLeft();
+    const right = expr.getRight();
+
+    const leftValue = this.evaluateStringExpression(left);
+    const rightValue = this.evaluateStringExpression(right);
+
+    if (leftValue === null || rightValue === null) {
+      return null;
+    }
+
+    return leftValue + rightValue;
+  }
+
+  /**
+   * Evaluate an expression that should resolve to a string value.
+   * Handles: string literals, template literals, property access, binary expressions.
+   */
+  private evaluateStringExpression(expr: Node): string | null {
+    if (Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+    if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+    if (Node.isTemplateExpression(expr)) {
+      // Template expression with substitutions - get the literal text
+      let result = expr.getHead().getLiteralText();
+      for (const span of expr.getTemplateSpans()) {
+        const spanExpr = span.getExpression();
+        // Try to evaluate the span expression
+        const spanValue = this.evaluateStringExpression(spanExpr);
+        if (spanValue !== null) {
+          result += spanValue;
+        } else if (Node.isIdentifier(spanExpr)) {
+          result += `\${${spanExpr.getText()}}`;
+        } else {
+          result += `\${${spanExpr.getText()}}`;
+        }
+        const literal = span.getLiteral();
+        if (Node.isTemplateMiddle(literal)) {
+          result += literal.getLiteralText();
+        } else if (Node.isTemplateTail(literal)) {
+          result += literal.getLiteralText();
+        }
+      }
+      return result;
+    }
+    if (Node.isPropertyAccessExpression(expr)) {
+      return this.resolvePropertyAccess(expr);
+    }
+    if (Node.isBinaryExpression(expr)) {
+      return this.evaluateStringConcatenation(expr);
+    }
+    if (Node.isParenthesizedExpression(expr)) {
+      return this.evaluateStringExpression(expr.getExpression());
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolve a property access expression (e.g., AGENT_PATHS.researcher) to its value.
+   * Only works for const declarations with object literals.
+   */
+  private resolvePropertyAccess(expr: PropertyAccessExpression): string | null {
+    const objectExpr = expr.getExpression();
+    const propertyName = expr.getName();
+
+    if (!Node.isIdentifier(objectExpr)) {
+      return null;
+    }
+
+    const objectName = objectExpr.getText();
+
+    // Find the variable declaration in the source file
+    const sourceFile = expr.getSourceFile();
+    const varDecls = sourceFile.getVariableDeclarations();
+
+    for (const varDecl of varDecls) {
+      if (varDecl.getName() === objectName) {
+        let initializer = varDecl.getInitializer();
+        // Unwrap AsExpression (from "as const" syntax)
+        if (initializer && Node.isAsExpression(initializer)) {
+          initializer = initializer.getExpression();
+        }
+        if (initializer && Node.isObjectLiteralExpression(initializer)) {
+          // Look for the property in the object literal
+          for (const prop of initializer.getProperties()) {
+            if (Node.isPropertyAssignment(prop) && prop.getName() === propertyName) {
+              const propInit = prop.getInitializer();
+              if (propInit && Node.isStringLiteral(propInit)) {
+                return propInit.getLiteralValue();
+              }
+              if (propInit && Node.isNoSubstitutionTemplateLiteral(propInit)) {
+                return propInit.getLiteralValue();
+              }
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    return null;
   }
 }
 

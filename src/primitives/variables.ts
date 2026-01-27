@@ -53,6 +53,8 @@ export interface AssignProps {
   value?: string;
   /** Environment variable to read: VAR=$ENV_VAR */
   env?: string;
+  /** Optional comment to emit above the assignment (e.g., "Get phase from roadmap") */
+  comment?: string;
 }
 
 /**
@@ -77,5 +79,41 @@ export interface AssignProps {
  * // Outputs: PHASE=$PHASE_NUMBER
  */
 export function Assign(_props: AssignProps): null {
+  return null;
+}
+
+import type { ReactNode } from 'react';
+
+/**
+ * Props for the AssignGroup component
+ * Groups multiple Assign children into a single bash code block
+ */
+export interface AssignGroupProps {
+  /** Assign children to group together */
+  children?: ReactNode;
+}
+
+/**
+ * AssignGroup component - groups multiple variable assignments into one bash block
+ *
+ * This is a compile-time component. It collects child Assign components
+ * and emits them as a single bash code block with optional comments.
+ *
+ * @example
+ * <AssignGroup>
+ *   <Assign var={phaseDesc} bash={`grep -A3 "Phase ${PHASE}:" .planning/ROADMAP.md`} comment="Get phase description" />
+ *   <Assign var={requirements} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Get requirements" />
+ * </AssignGroup>
+ *
+ * // Outputs:
+ * // ```bash
+ * // # Get phase description
+ * // PHASE_DESC=$(grep -A3 "Phase ${PHASE}:" .planning/ROADMAP.md)
+ * //
+ * // # Get requirements
+ * // REQUIREMENTS=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
+ * // ```
+ */
+export function AssignGroup(_props: AssignGroupProps): null {
   return null;
 }

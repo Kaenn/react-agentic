@@ -89,7 +89,7 @@ export default function ConditionalAgentSpawningCommand() {
           The file $TARGET_FILE exists. Spawn the Analyzer agent to examine it.
         </p>
 
-        <SpawnAgent<AnalyzerAgentInput, AnalyzerAgentOutput>
+        <SpawnAgent<AnalyzerAgentInput>
           agent="9.4-analyzer-agent"
           model="haiku"
           description="Analyze the existing file"
@@ -127,7 +127,7 @@ export default function ConditionalAgentSpawningCommand() {
           The file $TARGET_FILE does not exist. Spawn the Creator agent to plan creation.
         </p>
 
-        <SpawnAgent<CreatorAgentInput, CreatorAgentOutput>
+        <SpawnAgent<CreatorAgentInput>
           agent="9.4-creator-agent"
           model="haiku"
           description="Plan file creation for missing file"

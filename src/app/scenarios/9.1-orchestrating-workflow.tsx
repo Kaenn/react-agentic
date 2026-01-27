@@ -91,7 +91,7 @@ echo "Started: $START_TIMESTAMP"`}</code></pre>
           The agent should receive actual values, not shell variable references.
         </p>
 
-        <SpawnAgent<WorkflowAgentInput, WorkflowAgentOutput>
+        <SpawnAgent<WorkflowAgentInput>
           agent="9.1-workflow-agent"
           model="haiku"
           description="Process workflow with variable input"

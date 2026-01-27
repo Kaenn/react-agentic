@@ -78,26 +78,11 @@ export default function UseOutputTestCommand() {
         Spawn the data agent and use its output fields:
       </p>
 
-      <SpawnAgent<object, DataAgentOutput>
+      <SpawnAgent
         agent="5.4-data-agent"
         model="haiku"
         description="Generate data with specific output fields"
-        prompt={`You are being spawned to test the useOutput hook pattern.
-
-Your task:
-1. Process some test data (just simulate it)
-2. Return a structured YAML response with specific fields
-
-Return this EXACT format:
-\`\`\`yaml
-status: SUCCESS
-message: Data processing complete
-itemCount: 42
-lastItem: "final-item-xyz"
-processingTime: "150ms"
-\`\`\`
-
-This tests that the calling command can reference these fields.`}
+        prompt="Process test data and return structured YAML with itemCount, lastItem, and processingTime fields."
       />
 
       <h2>Test 4: Using Output Fields After Agent Returns</h2>

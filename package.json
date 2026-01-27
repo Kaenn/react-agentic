@@ -14,7 +14,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "watch": "node dist/cli/index.js build -w"
+    "watch": "node dist/cli/index.js build -w",
+    "build:agentic": "node dist/cli/index.js build"
   },
   "keywords": [
     "claude",

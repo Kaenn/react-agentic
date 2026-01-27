@@ -30,7 +30,7 @@ export default function SpawnAgentCommand() {
 
       <p>Launch the agent using the Task() syntax:</p>
 
-      <SpawnAgent<object, TimestampAgentOutput>
+      <SpawnAgent
         agent="1.3-timestamp-agent"
         model="haiku"
         description="Spawn timestamp agent to confirm invocation"

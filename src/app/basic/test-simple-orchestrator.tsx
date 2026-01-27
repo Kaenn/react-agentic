@@ -16,13 +16,9 @@ import { Command, XmlBlock, SpawnAgent, Assign, useVariable, useOutput, OnStatus
 import type { SimpleOrchestratorInput, SimpleOrchestratorOutput } from './simple-orchestrator-agent.js';
 
 // Declare shell variables with useVariable
-const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP", {
-  bash: `date -u +"%Y-%m-%dT%H:%M:%SZ"`
-});
+const commandTimestamp = useVariable<string>("COMMAND_TIMESTAMP");
 
-const outputFile = useVariable<string>("OUTPUT_FILE", {
-  value: "/tmp/gsd-test/agent-result.md"
-});
+const outputFile = useVariable<string>("OUTPUT_FILE");
 
 // Track agent output for status-based handling
 const agentOutput = useOutput<SimpleOrchestratorOutput>("basic/simple-orchestrator-agent");
@@ -56,8 +52,8 @@ export default function TestSimpleOrchestratorCommand() {
 mkdir -p /tmp/gsd-test
           </code></pre>
 
-          <Assign var={commandTimestamp} />
-          <Assign var={outputFile} />
+          <Assign var={commandTimestamp} bash={`date -u +"%Y-%m-%dT%H:%M:%SZ"`} />
+          <Assign var={outputFile} value="/tmp/gsd-test/agent-result.md" />
         </Step>
 
         <Step name="Spawn Agent" number={2}>

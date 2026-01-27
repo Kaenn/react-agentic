@@ -85,8 +85,8 @@ export function Else(_props: ElseProps): null {
  * @typeParam T - Type of items in the array (inferred or explicit)
  */
 export interface LoopProps<T = unknown> {
-  /** Array of items to iterate over - type-safe via generic */
-  items?: T[];
+  /** Array of items to iterate over - type-safe via generic, or a VariableRef to an array */
+  items?: T[] | VariableRef<T[]>;
   /** Variable name for the current item in iteration */
   as?: string;
   /** Loop body content */

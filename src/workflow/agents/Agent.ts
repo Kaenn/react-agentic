@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import type { VariableRef } from '../../primitives/variables.js';
 import type { AgentStatus, BaseOutput } from './types.js';
 import type { CommandContext } from '../Command.js';
+import type { AgentRef } from './AgentRef.js';
 
 /**
  * Context available in Agent render props pattern
@@ -60,12 +61,33 @@ type AllowVariableRefs<T> = {
  * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
  */
 export interface SpawnAgentProps<TInput = unknown> {
-  /** Agent name to spawn (e.g., 'gsd-researcher') */
-  agent: string;
+  /**
+   * Agent to spawn - either:
+   * - String: Agent name directly (e.g., 'gsd-researcher')
+   * - AgentRef: Type-safe reference from defineAgent()
+   *
+   * When using AgentRef with loadFromFile, the agent's path is used automatically.
+   */
+  agent: string | AgentRef<TInput>;
   /** Model to use - supports {variable} placeholders */
   model: string;
   /** Human-readable description of the task */
   description: string;
+  /**
+   * Enable "load from file" pattern for spawning.
+   *
+   * When true or a string path is provided:
+   * - subagent_type becomes "general-purpose"
+   * - Prompt is prefixed with "First, read {path} for your role..."
+   *
+   * Path resolution:
+   * - `loadFromFile={true}` uses AgentRef.path (requires AgentRef with path)
+   * - `loadFromFile="~/.claude/agents/my-agent.md"` uses explicit path
+   *
+   * This matches the GSD pattern where agent definitions live in
+   * separate markdown files that get loaded at runtime.
+   */
+  loadFromFile?: boolean | string;
   /**
    * @deprecated Use `input` prop with typed object or VariableRef instead.
    * Prompt content - supports multi-line and {variable} placeholders
@@ -131,16 +153,49 @@ export function Agent<TInput = unknown, TOutput = unknown>(_props: AgentProps<TI
  * It emits Task() function-call syntax, not markdown.
  *
  * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
- * @example
- * // Import the Agent's input type
- * import type { ResearcherInput } from './researcher.agent.js';
  *
- * // Use generic to validate against Agent's contract
+ * @example
+ * // Option 1: String agent name (basic usage)
  * <SpawnAgent<ResearcherInput>
  *   agent="gsd-researcher"
  *   model="{researcher_model}"
  *   description="Research phase requirements"
- *   prompt={`<context>Phase: {phase}</context>`}
+ *   input={{ phase: "{phase}", phaseName: "{name}" }}
+ * />
+ *
+ * @example
+ * // Option 2: AgentRef with loadFromFile (GSD pattern)
+ * import { PhaseResearcher } from './gsd-phase-researcher.js';
+ *
+ * <SpawnAgent
+ *   agent={PhaseResearcher}
+ *   loadFromFile  // Uses PhaseResearcher.path
+ *   model="{researcher_model}"
+ *   description="Research Phase {phase}"
+ *   input={{
+ *     phase: "{phase}",        // TypeScript validates these!
+ *     phaseName: "{name}",
+ *   }}
+ * >
+ *   Research how to implement this phase well.
+ * </SpawnAgent>
+ *
+ * // Emits:
+ * // Task(
+ * //   prompt="First, read ~/.claude/agents/gsd-phase-researcher.md for your role...\n\n<phase>...",
+ * //   subagent_type="general-purpose",
+ * //   model="{researcher_model}",
+ * //   description="Research Phase {phase}"
+ * // )
+ *
+ * @example
+ * // Option 3: Explicit loadFromFile path
+ * <SpawnAgent
+ *   agent="my-agent"
+ *   loadFromFile="~/.claude/agents/my-agent.md"
+ *   model="sonnet"
+ *   description="Do the thing"
+ *   input={{ task: "..." }}
  * />
  */
 export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput>): null {

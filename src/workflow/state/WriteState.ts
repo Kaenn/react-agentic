@@ -9,6 +9,14 @@ import type { VariableRef } from '../../primitives/variables.js';
 import type { StateRef } from './types.js';
 
 /**
+ * Utility type that allows each property to be either the original type or a VariableRef
+ * Enables: { key: "string" } OR { key: variableRef }
+ */
+type AllowVariableRefs<T> = {
+  [K in keyof T]?: T[K] | VariableRef<T[K]>;
+};
+
+/**
  * Props for the WriteState component
  * Specify exactly one of: field+value OR merge
  * @typeParam TSchema - State schema type for field path validation
@@ -20,8 +28,8 @@ export interface WriteStateProps<TSchema = unknown> {
   field?: string;
   /** Value to write - string literal or VariableRef */
   value?: string | VariableRef;
-  /** Partial object for merge write */
-  merge?: Partial<TSchema>;
+  /** Partial object for merge write - values can be literals or VariableRefs */
+  merge?: AllowVariableRefs<TSchema>;
 }
 
 /**

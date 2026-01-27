@@ -48,7 +48,7 @@ export default function OnStatusSuccessCommand() {
         The agent is designed to always return SUCCESS status:
       </p>
 
-      <SpawnAgent<object, OnStatusSuccessAgentOutput>
+      <SpawnAgent
         agent="5.5-onstatus-success-agent"
         model="haiku"
         description="Spawn agent to test OnStatus SUCCESS handling"

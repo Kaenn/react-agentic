@@ -16,8 +16,8 @@ export type TableAlignment = 'left' | 'center' | 'right';
 export interface TableProps {
   /** Optional header row */
   headers?: string[];
-  /** Data rows - each row is an array of cell values */
-  rows: (string | number)[][];
+  /** Data rows - each row is an array of cell values (null/undefined use emptyCell) */
+  rows: (string | number | null | undefined)[][];
   /** Per-column alignment (defaults to 'left' for all columns) */
   align?: TableAlignment[];
   /** Content for empty cells (defaults to empty string) */

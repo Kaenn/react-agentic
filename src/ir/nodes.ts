@@ -197,6 +197,15 @@ export interface XmlBlockNode {
 }
 
 /**
+ * Invisible grouping container for tight block spacing
+ * Used for <div> without name attribute - no wrapper output, single newlines between children
+ */
+export interface GroupNode {
+  kind: 'group';
+  children: BlockNode[];
+}
+
+/**
  * Raw markdown content passed through without transformation
  */
 export interface RawMarkdownNode {
@@ -240,6 +249,13 @@ export interface SpawnAgentNode {
   input?: SpawnAgentInput; // Typed input - either variable ref or object literal
   extraInstructions?: string; // Optional extra instructions from children (when using input prop)
   inputType?: TypeReference; // Optional: generic type parameter if provided (for validation)
+  /**
+   * Path to agent definition file for "load from file" pattern.
+   * When present, emitter will:
+   * - Use subagent_type="general-purpose"
+   * - Prepend "First, read {path}..." to the prompt
+   */
+  loadFromFile?: string;
 }
 
 /**
@@ -253,6 +269,16 @@ export interface AssignNode {
     type: 'bash' | 'value' | 'env';  // bash: VAR=$(...), value: VAR=..., env: VAR=$ENV
     content: string;                  // The bash command, static value, or env var name
   };
+  comment?: string;        // Optional inline comment (e.g., "Get phase from roadmap")
+}
+
+/**
+ * Group of shell variable assignments
+ * Emits as single bash code block with all assignments
+ */
+export interface AssignGroupNode {
+  kind: 'assignGroup';
+  assignments: AssignNode[];  // Child Assign nodes
 }
 
 /**
@@ -386,9 +412,11 @@ export type BlockNode =
   | SuccessCriteriaNode
   | OfferNextNode
   | XmlBlockNode
+  | GroupNode
   | RawMarkdownNode
   | SpawnAgentNode
   | AssignNode
+  | AssignGroupNode
   | IfNode
   | ElseNode
   | LoopNode

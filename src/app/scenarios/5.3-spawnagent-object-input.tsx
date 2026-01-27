@@ -47,7 +47,7 @@ export default function SpawnAgentObjectInputCommand() {
         <li>options: static string with spaces</li>
       </ul>
 
-      <SpawnAgent<ObjectReceiverInput, ObjectReceiverOutput>
+      <SpawnAgent<ObjectReceiverInput>
         agent="5.3-object-receiver-agent"
         model="haiku"
         description="Test object input with mixed variable and literal properties"
