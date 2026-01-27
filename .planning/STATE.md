@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 25 of 25 (TSX Test Modernization)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-01-27 — Phase 24 complete (3 plans, verified)
+Plan: 1 of ? in current phase
+Status: In progress
+Last activity: 2026-01-27 — Completed 25-01-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [##############] v2.0: 14/14+ plans
-Next: `/gsd:plan-phase 25`
+Progress: [####################] v1.8 COMPLETE | [###############] v2.0: 15/15+ plans
+Next: Plan 02 or phase completion
 
 ## Milestone History
 
@@ -57,6 +57,7 @@ Next: `/gsd:plan-phase 25`
 | 22 | 4/4 | 15m | 3m 45s |
 | 23 | 3/3 | 15m | 5m |
 | 24 | 3/3 | 7m 36s | 2m 32s |
+| 25 | 1/? | 2m 8s | 2m 8s |
 
 *Updated after each plan completion*
 
@@ -120,6 +121,10 @@ Phase 24 decisions (complete):
 - TSX → markdown transformation pairs throughout all docs
 - Render props documented as optional pattern (progressive disclosure)
 
+Phase 25 decisions (in progress):
+- Replace manual ul/ol with List component in scenario tests
+- Maintain original manual tests for comparison in 2.4-lists-rendering.tsx
+
 ### Roadmap Evolution
 
 - Phase 25 added: TSX Test Modernization - update all src/app/ test files to use v2.0 syntax features
@@ -135,5 +140,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Phase 24 complete and verified
-Resume with: `/gsd:plan-phase 25` to plan TSX Test Modernization
+Stopped at: Completed 25-01-PLAN.md
+Resume with: Plan 02 or phase completion review
