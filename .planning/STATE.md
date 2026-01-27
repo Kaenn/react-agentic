@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 26 (Parser Refactoring)
-Plan: 3 of ? in current phase
+Plan: 4 of ? in current phase
 Status: In progress
-Last activity: 2026-01-27 — Completed 26-01-PLAN.md (utils extraction)
+Last activity: 2026-01-27 — Completed 26-03-PLAN.md (transformer extraction wave 1)
 
-Progress: [####################] v2.0 COMPLETE | [###                 ] v2.1: 3 plans complete (26-01, 26-02)
-Next: Update parser.ts imports to use utils/ or continue with transformer plans
+Progress: [####################] v2.0 COMPLETE | [####                ] v2.1: 3 plans complete (26-01, 26-02, 26-03)
+Next: Complete dispatch.ts and wire up extracted transformers (26-04)
 
 ## Milestone History
 
@@ -58,7 +58,7 @@ Next: Update parser.ts imports to use utils/ or continue with transformer plans
 | 23 | 3/3 | 15m | 5m |
 | 24 | 3/3 | 7m 36s | 2m 32s |
 | 25 | 3/3 | ~9m | ~3m |
-| 26 | 3/? | 10m | 3m 20s |
+| 26 | 3/? | 17m 29s | 5m 50s |
 
 *Updated after each plan completion*
 
@@ -140,6 +140,9 @@ Phase 26 decisions (in progress):
 - Extract utilities without modifying parser.ts: Create clean foundation first, update imports in 26-02
 - Forward reference ExtractedVariable: Avoid circular import in jsx-traversal.ts, proper import through barrel export
 - Barrel export pattern: Single utils/index.ts provides convenient import point for all utilities
+- Error throw stubs in transformers: Use explicit errors (not TODOs) for incomplete recursive calls - ensures code paths explicit
+- Helper function co-location: Extract helpers alongside main transformers in same module for cohesion
+- Hook extraction helpers in control.ts: extractOutputDeclarations/extractStateRefDeclarations placed with OnStatus transformer
 
 ### Roadmap Evolution
 
@@ -158,5 +161,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 26-01-PLAN.md (utils extraction)
-Resume with: Update parser.ts imports or continue with transformer plans (26-03/26-04)
+Stopped at: Completed 26-03-PLAN.md (transformer extraction wave 1)
+Resume with: Complete dispatch.ts implementation and wire up extracted transformers (26-04)
