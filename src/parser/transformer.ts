@@ -1224,20 +1224,7 @@ export class Transformer {
   private transformSuccessCriteria(node: JsxElement | JsxSelfClosingElement): SuccessCriteriaNode {
     const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
 
-    const itemsRaw = getArrayAttributeValue(opening, 'items') ?? [];
-
-    // Parse items: string shorthand or {text, checked} objects
-    const items: SuccessCriteriaItemData[] = itemsRaw.map(item => {
-      if (typeof item === 'string') {
-        return { text: item, checked: false };
-      }
-      // Assume it's an object with text and optional checked
-      const obj = item as any;
-      return {
-        text: String(obj.text || ''),
-        checked: Boolean(obj.checked),
-      };
-    });
+    const items = this.parseSuccessCriteriaItems(opening);
 
     return {
       kind: 'successCriteria',
@@ -1245,25 +1232,112 @@ export class Transformer {
     };
   }
 
+  /**
+   * Parse items attribute for SuccessCriteria
+   * Handles both string shorthand and {text, checked} objects
+   */
+  private parseSuccessCriteriaItems(opening: JsxOpeningElement | JsxSelfClosingElement): SuccessCriteriaItemData[] {
+    const attr = opening.getAttribute('items');
+    if (!attr || !Node.isJsxAttribute(attr)) return [];
+
+    const init = attr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) return [];
+
+    const expr = init.getExpression();
+    if (!expr || !Node.isArrayLiteralExpression(expr)) return [];
+
+    const items: SuccessCriteriaItemData[] = [];
+    for (const element of expr.getElements()) {
+      if (Node.isStringLiteral(element)) {
+        // String shorthand: "item text"
+        items.push({ text: element.getLiteralValue(), checked: false });
+      } else if (Node.isObjectLiteralExpression(element)) {
+        // Object: { text: "...", checked: true }
+        let text = '';
+        let checked = false;
+
+        for (const prop of element.getProperties()) {
+          if (Node.isPropertyAssignment(prop)) {
+            const propName = prop.getName();
+            const propInit = prop.getInitializer();
+
+            if (propName === 'text' && propInit && Node.isStringLiteral(propInit)) {
+              text = propInit.getLiteralValue();
+            } else if (propName === 'checked' && propInit) {
+              // Handle both boolean literal and truthy values
+              if (propInit.getKind() === 112) { // TrueKeyword
+                checked = true;
+              } else if (propInit.getKind() === 97) { // FalseKeyword
+                checked = false;
+              }
+            }
+          }
+        }
+
+        items.push({ text, checked });
+      }
+    }
+
+    return items;
+  }
+
   private transformOfferNext(node: JsxElement | JsxSelfClosingElement): OfferNextNode {
     const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
 
-    const routesRaw = getArrayAttributeValue(opening, 'routes') ?? [];
-
-    // Parse routes: objects with name, path, description?
-    const routes: OfferNextRouteData[] = routesRaw.map(route => {
-      const obj = route as any;
-      return {
-        name: String(obj.name || ''),
-        path: String(obj.path || ''),
-        description: obj.description ? String(obj.description) : undefined,
-      };
-    });
+    const routes = this.parseOfferNextRoutes(opening);
 
     return {
       kind: 'offerNext',
       routes,
     };
+  }
+
+  /**
+   * Parse routes attribute for OfferNext
+   * Each route is an object with name, path, and optional description
+   */
+  private parseOfferNextRoutes(opening: JsxOpeningElement | JsxSelfClosingElement): OfferNextRouteData[] {
+    const attr = opening.getAttribute('routes');
+    if (!attr || !Node.isJsxAttribute(attr)) return [];
+
+    const init = attr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) return [];
+
+    const expr = init.getExpression();
+    if (!expr || !Node.isArrayLiteralExpression(expr)) return [];
+
+    const routes: OfferNextRouteData[] = [];
+    for (const element of expr.getElements()) {
+      if (Node.isObjectLiteralExpression(element)) {
+        let name = '';
+        let path = '';
+        let description: string | undefined = undefined;
+
+        for (const prop of element.getProperties()) {
+          if (Node.isPropertyAssignment(prop)) {
+            const propName = prop.getName();
+            const propInit = prop.getInitializer();
+
+            if (propInit && Node.isStringLiteral(propInit)) {
+              const value = propInit.getLiteralValue();
+              if (propName === 'name') {
+                name = value;
+              } else if (propName === 'path') {
+                path = value;
+              } else if (propName === 'description') {
+                description = value;
+              }
+            }
+          }
+        }
+
+        if (name && path) {
+          routes.push({ name, path, description });
+        }
+      }
+    }
+
+    return routes;
   }
 
   private transformXmlSection(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
