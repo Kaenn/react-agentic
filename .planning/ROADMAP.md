@@ -11,7 +11,7 @@
 - **v1.6 State System** - Phase 17 (shipped 2026-01-22)
 - **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
 - **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-26)
-- **v2.0 TSX Syntax Improvements** - Phases 20-25 (in progress)
+- **v2.0 TSX Syntax Improvements** - Phases 20-25 (shipped 2026-01-27)
 
 ## Phases
 
@@ -42,7 +42,7 @@ See: .planning/ROADMAP.md history or milestone archives
 
 </details>
 
-### v2.0 TSX Syntax Improvements (In Progress)
+### v2.0 TSX Syntax Improvements (SHIPPED 2026-01-27)
 
 **Milestone Goal:** Improve TSX authoring ergonomics with better module organization, semantic components for common patterns, structured props for tables/lists, and render props pattern for context access.
 
@@ -51,7 +51,7 @@ See: .planning/ROADMAP.md history or milestone archives
 - [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
 - [x] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component (complete 2026-01-27)
 - [x] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests (complete 2026-01-27)
-- [ ] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features
+- [x] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features (complete 2026-01-27)
 
 ## Phase Details
 
@@ -152,9 +152,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 25-01-PLAN.md — Update scenario files with Table and List components
-- [ ] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
-- [ ] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
+- [x] 25-01-PLAN.md — Update scenario files with Table and List components
+- [x] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
+- [x] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
 
 ## Progress
 
@@ -180,7 +180,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 | 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
 | 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 25. TSX Test Modernization | v2.0 | 0/3 | Not started | - |
+| 25. TSX Test Modernization | v2.0 | 3/3 | Complete | 2026-01-27 |
 
 ---
 *Roadmap created: 2026-01-21*
