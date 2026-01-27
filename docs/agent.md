@@ -372,6 +372,103 @@ What went wrong and options to proceed...
 
 This allows the orchestrating command to handle different outcomes.
 
+## Render Props Pattern
+
+Agents support a render props pattern for accessing agent context within the component body:
+
+```tsx
+import { Agent, BaseOutput } from '../jsx.js';
+
+interface MyInput {
+  task: string;
+}
+
+interface MyOutput extends BaseOutput {
+  result?: string;
+}
+
+export default function MyAgent() {
+  return (
+    <Agent<MyInput, MyOutput>
+      name="worker"
+      description="Demonstrates render props"
+      tools="Read, Write"
+    >
+      {(ctx) => (
+        <>
+          <p>Agent name: {ctx.name}</p>
+          <p>Description: {ctx.description}</p>
+          <p>Available tools: {ctx.tools?.join(', ')}</p>
+          <p>Model: {ctx.model}</p>
+          <p>Output path: {ctx.outputPath}</p>
+        </>
+      )}
+    </Agent>
+  );
+}
+```
+
+### Available Context Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` | Agent name (from name prop) |
+| `description` | `string` | Agent description (from description prop) |
+| `outputPath` | `string` | Absolute path where markdown will be written |
+| `sourcePath` | `string` | Absolute path to the source .tsx file |
+| `tools` | `string[] \| undefined` | Parsed array of tool names |
+| `model` | `string \| undefined` | Model name if specified |
+| `skill` | `string \| undefined` | Skill name if using skill system |
+
+### Agent-Specific Properties
+
+Agents extend the command context with:
+
+- **`tools`**: Automatically parsed from space-separated string into array
+- **`model`**: Optional model override for this agent
+
+### Use Cases
+
+**Tool-dependent instructions:**
+
+```tsx
+<Agent name="analyzer" description="Analyzes code" tools="Read, Grep, Bash">
+  {(ctx) => {
+    const hasGrep = ctx.tools?.includes('Grep');
+    return (
+      <>
+        {hasGrep ? (
+          <p>Use Grep for efficient code search</p>
+        ) : (
+          <p>Use Read to examine files</p>
+        )}
+      </>
+    );
+  }}
+</Agent>
+```
+
+**Dynamic documentation based on agent name:**
+
+```tsx
+<Agent name="test-runner" description="Runs tests">
+  {(ctx) => (
+    <>
+      <p>You are the {ctx.name} agent.</p>
+      <p>Your markdown output: {ctx.outputPath}</p>
+    </>
+  )}
+</Agent>
+```
+
+**Note:** The render props pattern is optional. Standard JSX children work exactly as before:
+
+```tsx
+<Agent name="simple" description="Standard approach">
+  <p>Direct children work fine</p>
+</Agent>
+```
+
 ## Tips
 
 1. **Define clear input contracts** — Document what parameters you expect

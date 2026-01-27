@@ -176,6 +176,81 @@ Use `<Markdown>` directly for free-form content:
 Free-form markdown content here.`}</Markdown>
 ```
 
+## Render Props Pattern
+
+Commands support a render props pattern for accessing command context within the component body:
+
+```tsx
+import { Command } from '../jsx.js';
+
+export default function MyCommand() {
+  return (
+    <Command name="example" description="Demonstrates render props">
+      {(ctx) => (
+        <>
+          <p>Command name: {ctx.name}</p>
+          <p>Description: {ctx.description}</p>
+          <p>Output will be written to: {ctx.outputPath}</p>
+          <p>Source file: {ctx.sourcePath}</p>
+        </>
+      )}
+    </Command>
+  );
+}
+```
+
+### Available Context Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` | Command name (from name prop) |
+| `description` | `string` | Command description (from description prop) |
+| `outputPath` | `string` | Absolute path where markdown will be written |
+| `sourcePath` | `string` | Absolute path to the source .tsx file |
+| `skill` | `string \| undefined` | Skill name if command uses skill system |
+
+### Use Cases
+
+**Dynamic documentation:**
+
+```tsx
+<Command name="deploy" description="Deploy to production">
+  {(ctx) => (
+    <>
+      <p>This command ({ctx.name}) will deploy your application.</p>
+      <p>Generated from: {ctx.sourcePath}</p>
+    </>
+  )}
+</Command>
+```
+
+**Conditional logic based on output path:**
+
+```tsx
+<Command name="multi-env" description="Environment-aware command">
+  {(ctx) => {
+    const isProd = ctx.outputPath.includes('production');
+    return (
+      <>
+        {isProd ? (
+          <p>⚠️ Running in production mode</p>
+        ) : (
+          <p>Running in development mode</p>
+        )}
+      </>
+    );
+  }}
+</Command>
+```
+
+**Note:** The render props pattern is optional. Standard JSX children work exactly as before:
+
+```tsx
+<Command name="simple" description="Standard approach">
+  <p>Direct children work fine</p>
+</Command>
+```
+
 ## Tips
 
 1. **Be specific in process steps** — Claude follows them literally
