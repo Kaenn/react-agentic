@@ -4,8 +4,10 @@ import {
   Markdown,
   Assign,
   AssignGroup,
-  useVariable,
+  Bash,
+  defineVars,
   SpawnAgent,
+  Table,
 } from '../../jsx.js';
 
 // Agent file paths (GSD pattern - agents live in ~/.claude/agents/)
@@ -15,22 +17,24 @@ const AGENT_PATHS = {
   checker: '/Users/glenninizan/.claude/agents/gsd-plan-checker.md',
 } as const;
 
-// Declare shell variables for the orchestrator
-const modelProfile = useVariable<string>("MODEL_PROFILE");
-const phaseDesc = useVariable<string>("PHASE_DESC");
-const requirements = useVariable<string>("REQUIREMENTS");
-const decisions = useVariable<string>("DECISIONS");
-const phaseContext = useVariable<string>("PHASE_CONTEXT");
-const workflowResearch = useVariable<string>("WORKFLOW_RESEARCH");
-const workflowPlanCheck = useVariable<string>("WORKFLOW_PLAN_CHECK");
-const stateContent = useVariable<string>("STATE_CONTENT");
-const roadmapContent = useVariable<string>("ROADMAP_CONTENT");
-const requirementsContent = useVariable<string>("REQUIREMENTS_CONTENT");
-const contextContent = useVariable<string>("CONTEXT_CONTENT");
-const researchContent = useVariable<string>("RESEARCH_CONTENT");
-const verificationContent = useVariable<string>("VERIFICATION_CONTENT");
-const uatContent = useVariable<string>("UAT_CONTENT");
-const plansContent = useVariable<string>("PLANS_CONTENT");
+// Declare shell variables using schema-based approach
+const vars = defineVars({
+  MODEL_PROFILE: { type: 'string' },
+  PHASE_DESC: { type: 'string' },
+  REQUIREMENTS: { type: 'string' },
+  DECISIONS: { type: 'string' },
+  PHASE_CONTEXT: { type: 'string' },
+  WORKFLOW_RESEARCH: { type: 'string' },
+  WORKFLOW_PLAN_CHECK: { type: 'string' },
+  STATE_CONTENT: { type: 'string' },
+  ROADMAP_CONTENT: { type: 'string' },
+  REQUIREMENTS_CONTENT: { type: 'string' },
+  CONTEXT_CONTENT: { type: 'string' },
+  RESEARCH_CONTENT: { type: 'string' },
+  VERIFICATION_CONTENT: { type: 'string' },
+  UAT_CONTENT: { type: 'string' },
+  PLANS_CONTENT: { type: 'string' },
+});
 
 export default function PlanPhaseCommand() {
 
@@ -44,7 +48,7 @@ export default function PlanPhaseCommand() {
     >
       <XmlBlock name="execution_context">
         <Markdown>
-@/Users/glenninizan/.claude/get-shit-done/references/ui-brand.md 
+@/Users/glenninizan/.claude/get-shit-done/references/ui-brand.md
         </Markdown>
       </XmlBlock>
 
@@ -69,19 +73,20 @@ export default function PlanPhaseCommand() {
 
       <XmlBlock name="process">
         <h2>1. Validate Environment and Resolve Model Profile</h2>
-        <pre><code className="language-bash">{`ls .planning/ 2>/dev/null`}</code></pre>
+        <Bash>ls .planning/ 2&gt;/dev/null</Bash>
         <p><b>If not found:</b> Error - user should run <code>/gsd:new-project</code> first.</p>
         <p><b>Resolve model profile for agent spawning:</b></p>
-        <Assign var={modelProfile} bash={`cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced"`} />
+        <Assign var={vars.MODEL_PROFILE} bash={`cat .planning/config.json 2\>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced"`} />
         <p>Default to "balanced" if not set.</p>
         <p><b>Model lookup table:</b></p>
-        <Markdown>{`
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| gsd-phase-researcher | opus | sonnet | haiku |
-| gsd-planner | opus | opus | sonnet |
-| gsd-plan-checker | sonnet | sonnet | haiku |
-`}</Markdown>
+        <Table
+          headers={["Agent", "quality", "balanced", "budget"]}
+          rows={[
+            ["gsd-phase-researcher", "opus", "sonnet", "haiku"],
+            ["gsd-planner", "opus", "opus", "sonnet"],
+            ["gsd-plan-checker", "sonnet", "sonnet", "haiku"],
+          ]}
+        />
         <p>Store resolved models for use in Task calls below.</p>
 
         <h2>2. Parse and Normalize Arguments</h2>
@@ -95,39 +100,39 @@ export default function PlanPhaseCommand() {
         </ul>
         <p><b>If no phase number:</b> Detect next unplanned phase from roadmap.</p>
         <p><b>Normalize phase to zero-padded format:</b></p>
-        <pre><code className="language-bash">{`# Normalize phase number (8 → 08, but preserve decimals like 2.1 → 02.1)
+        <Bash>{`# Normalize phase number (8 → 08, but preserve decimals like 2.1 → 02.1)
 if [[ "$PHASE" =~ ^[0-9]+$ ]]; then
   PHASE=$(printf "%02d" "$PHASE")
 elif [[ "$PHASE" =~ ^([0-9]+)\\.([0-9]+)$ ]]; then
   PHASE=$(printf "%02d.%s" "\${BASH_REMATCH[1]}" "\${BASH_REMATCH[2]}")
-fi`}</code></pre>
+fi`}</Bash>
         <p><b>Check for existing research and plans:</b></p>
-        <pre><code className="language-bash">{`ls .planning/phases/\${PHASE}-*/*-RESEARCH.md 2>/dev/null
-ls .planning/phases/\${PHASE}-*/*-PLAN.md 2>/dev/null`}</code></pre>
+        <Bash>{`ls .planning/phases/\${PHASE}-*/*-RESEARCH.md 2>/dev/null
+ls .planning/phases/\${PHASE}-*/*-PLAN.md 2>/dev/null`}</Bash>
 
         <h2>3. Validate Phase</h2>
-        <pre><code className="language-bash">{`grep -A5 "Phase \${PHASE}:" .planning/ROADMAP.md 2>/dev/null`}</code></pre>
+        <Bash>{`grep -A5 "Phase \${PHASE}:" .planning/ROADMAP.md 2>/dev/null`}</Bash>
         <p><b>If not found:</b> Error with available phases. <b>If found:</b> Extract phase number, name, description.</p>
 
         <h2>4. Ensure Phase Directory Exists</h2>
-        <pre><code className="language-bash">{`# PHASE is already normalized (08, 02.1, etc.) from step 2
+        <Bash>{`# PHASE is already normalized (08, 02.1, etc.) from step 2
 PHASE_DIR=$(ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1)
 if [ -z "$PHASE_DIR" ]; then
   # Create phase directory from roadmap name
   PHASE_NAME=$(grep "Phase \${PHASE}:" .planning/ROADMAP.md | sed 's/.*Phase [0-9]*: //' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
   mkdir -p ".planning/phases/\${PHASE}-\${PHASE_NAME}"
   PHASE_DIR=".planning/phases/\${PHASE}-\${PHASE_NAME}"
-fi`}</code></pre>
+fi`}</Bash>
 
         <h2>5. Handle Research</h2>
         <p><b>If <code>--gaps</code> flag:</b> Skip research (gap closure uses VERIFICATION.md instead).</p>
         <p><b>If <code>--skip-research</code> flag:</b> Skip to step 6.</p>
         <p><b>Check config for research setting:</b></p>
-        <Assign var={workflowResearch} bash={`cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
+        <Assign var={vars.WORKFLOW_RESEARCH} bash={`cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
         <p><b>If <code>workflow.research</code> is <code>false</code> AND <code>--research</code> flag NOT set:</b> Skip to step 6.</p>
         <p><b>Otherwise:</b></p>
         <p>Check for existing research:</p>
-        <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}</code></pre>
+        <Bash>{`ls "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}</Bash>
         <div>
           <b>If RESEARCH.md exists AND <code>--research</code> flag NOT set:</b>
           <ul>
@@ -153,10 +158,10 @@ fi`}</code></pre>
         <h3>Spawn gsd-phase-researcher</h3>
         <p>Gather context for research prompt:</p>
         <AssignGroup>
-          <Assign var={phaseDesc} bash={`grep -A3 "Phase \${PHASE}:" .planning/ROADMAP.md`} comment="Get phase description from roadmap" />
-          <Assign var={requirements} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50`} comment="Get requirements if they exist" />
-          <Assign var={decisions} bash={`grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null`} comment="Get prior decisions from STATE.md" />
-          <Assign var={phaseContext} bash={`cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null`} comment="Get phase context if exists" />
+          <Assign var={vars.PHASE_DESC} bash={`grep -A3 "Phase \${PHASE}:" .planning/ROADMAP.md`} comment="Get phase description from roadmap" />
+          <Assign var={vars.REQUIREMENTS} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50`} comment="Get requirements if they exist" />
+          <Assign var={vars.DECISIONS} bash={`grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null`} comment="Get prior decisions from STATE.md" />
+          <Assign var={vars.PHASE_CONTEXT} bash={`cat "\${PHASE_DIR}/\${PHASE}-CONTEXT.md" 2>/dev/null`} comment="Get phase context if exists" />
         </AssignGroup>
         <p>Fill research prompt and spawn:</p>
 
@@ -216,20 +221,20 @@ Write research findings to: {phase_dir}/{phase}-RESEARCH.md
         </div>
 
         <h2>6. Check Existing Plans</h2>
-        <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`}</code></pre>
+        <Bash>{`ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`}</Bash>
         <p><b>If exists:</b> Offer: 1) Continue planning (add more plans), 2) View existing, 3) Replan from scratch. Wait for response.</p>
 
         <h2>7. Read Context Files</h2>
         <p>Read and store context file contents for the planner agent. The <code>@</code> syntax does not work across Task() boundaries - content must be inlined.</p>
         <AssignGroup>
-          <Assign var={stateContent} bash={`cat .planning/STATE.md`} comment="Read project state" />
-          <Assign var={roadmapContent} bash={`cat .planning/ROADMAP.md`} />
+          <Assign var={vars.STATE_CONTENT} bash={`cat .planning/STATE.md`} comment="Read project state" />
+          <Assign var={vars.ROADMAP_CONTENT} bash={`cat .planning/ROADMAP.md`} />
           <br/>
-          <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Read optional files (empty string if missing)" />
-          <Assign var={contextContent} bash={`cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null`}/>
-          <Assign var={researchContent} bash={`cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}/>
-          <Assign var={verificationContent} bash={`cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null`} comment='Gap closure files (only if --gaps mode)'/>
-          <Assign var={uatContent} bash={`cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null`}/>
+          <Assign var={vars.REQUIREMENTS_CONTENT} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Read optional files (empty string if missing)" />
+          <Assign var={vars.CONTEXT_CONTENT} bash={`cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null`}/>
+          <Assign var={vars.RESEARCH_CONTENT} bash={`cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}/>
+          <Assign var={vars.VERIFICATION_CONTENT} bash={`cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null`} comment='Gap closure files (only if --gaps mode)'/>
+          <Assign var={vars.UAT_CONTENT} bash={`cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null`}/>
         </AssignGroup>
 
         <h2>8. Spawn gsd-planner Agent</h2>
@@ -314,7 +319,7 @@ Before returning PLANNING COMPLETE:
             <li>Check config:</li>
           </ul>
         </div>
-        <Assign var={workflowPlanCheck} bash={`cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
+        <Assign var={vars.WORKFLOW_PLAN_CHECK} bash={`cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
         <ul>
           <li>If <code>workflow.plan_check</code> is <code>false</code>: Skip to step 13</li>
           <li>Otherwise: Proceed to step 10</li>
@@ -342,8 +347,8 @@ Before returning PLANNING COMPLETE:
 \`\`\`
 `}</Markdown>
         <p>Read plans and requirements for the checker:</p>
-        <Assign var={plansContent} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
-        <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} />
+        <Assign var={vars.PLANS_CONTENT} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
+        <Assign var={vars.REQUIREMENTS_CONTENT} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} />
         <p>Fill checker prompt with inlined content and spawn:</p>
         <Markdown>{`
 \`\`\`markdown
@@ -394,7 +399,7 @@ Return one of:
         <p><b>If iteration_count {'< '}3:</b></p>
         <p>Display: <code>{'Sending back to planner for revision... (iteration {N}/3)'}</code></p>
         <p>Read current plans for revision context:</p>
-        <Assign var={plansContent} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
+        <Assign var={vars.PLANS_CONTENT} bash={`cat "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`} />
         <p>Spawn gsd-planner with revision prompt:</p>
         <Markdown>{`
 \`\`\`markdown

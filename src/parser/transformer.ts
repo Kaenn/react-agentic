@@ -62,6 +62,9 @@ import type {
   OfferNextRouteData,
   StepNode,
   StepVariant,
+  ReadFilesNode,
+  ReadFileEntry,
+  PromptTemplateNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
@@ -116,7 +119,13 @@ const SPECIAL_COMPONENTS = new Set([
   'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
   'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
   // Step workflow primitive
-  'Step'
+  'Step',
+  // Code block primitives
+  'Bash',
+  // File reading
+  'ReadFiles',
+  // Template primitives
+  'PromptTemplate',
 ]);
 
 /**
@@ -845,6 +854,21 @@ export class Transformer {
     // Step workflow primitive
     if (name === 'Step') {
       return this.transformStep(node);
+    }
+
+    // Bash code block primitive
+    if (name === 'Bash') {
+      return this.transformBash(node);
+    }
+
+    // ReadFiles - batch file reading
+    if (name === 'ReadFiles') {
+      return this.transformReadFiles(node);
+    }
+
+    // PromptTemplate - wrap content in markdown code fence
+    if (name === 'PromptTemplate') {
+      return this.transformPromptTemplate(node);
     }
 
     // Markdown passthrough
@@ -1712,6 +1736,198 @@ export class Transformer {
       number: stepNumber,
       name,
       variant,
+      children,
+    };
+  }
+
+  /**
+   * Transform <Bash> to CodeBlockNode with language 'bash'
+   *
+   * <Bash>ls -la</Bash>
+   * becomes:
+   * ```bash
+   * ls -la
+   * ```
+   */
+  private transformBash(node: JsxElement | JsxSelfClosingElement): CodeBlockNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { kind: 'codeBlock', language: 'bash', content: '' };
+    }
+
+    // Use extractCodeContent to preserve whitespace
+    const content = this.extractCodeContent(node);
+
+    return {
+      kind: 'codeBlock',
+      language: 'bash',
+      content,
+    };
+  }
+
+  /**
+   * Transform <ReadFiles> to ReadFilesNode
+   *
+   * Extracts the files prop (which should be a defineFiles() result)
+   * and creates a ReadFilesNode with file entries.
+   */
+  private transformReadFiles(node: JsxElement | JsxSelfClosingElement): ReadFilesNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Get the 'files' prop - should be an identifier referencing defineFiles result
+    const filesAttr = opening.getAttribute('files');
+    if (!filesAttr || !Node.isJsxAttribute(filesAttr)) {
+      throw this.createError('ReadFiles requires files prop', node);
+    }
+
+    const init = filesAttr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) {
+      throw this.createError('ReadFiles files prop must be a JSX expression', node);
+    }
+
+    const expr = init.getExpression();
+    if (!expr) {
+      throw this.createError('ReadFiles files prop expression is empty', node);
+    }
+
+    // The files prop should reference a variable that holds defineFiles() result
+    // We need to trace back to find the defineFiles() call and extract its schema
+    const files: ReadFileEntry[] = [];
+
+    // If it's an identifier, look up the variable declaration
+    if (Node.isIdentifier(expr)) {
+      const varName = expr.getText();
+      // Find the variable declaration in the source file
+      const sourceFile = this.sourceFile;
+      if (sourceFile) {
+        const statements = sourceFile.getStatements();
+        for (const stmt of statements) {
+          if (Node.isVariableStatement(stmt)) {
+            for (const decl of stmt.getDeclarationList().getDeclarations()) {
+              if (decl.getName() === varName) {
+                const initializer = decl.getInitializer();
+                if (initializer && Node.isCallExpression(initializer)) {
+                  const callee = initializer.getExpression();
+                  if (Node.isIdentifier(callee) && callee.getText() === 'defineFiles') {
+                    // Found the defineFiles call - extract the schema
+                    const args = initializer.getArguments();
+                    if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+                      this.extractFilesFromSchema(args[0], files);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // If it's a call expression directly: <ReadFiles files={defineFiles({...})} />
+    else if (Node.isCallExpression(expr)) {
+      const callee = expr.getExpression();
+      if (Node.isIdentifier(callee) && callee.getText() === 'defineFiles') {
+        const args = expr.getArguments();
+        if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+          this.extractFilesFromSchema(args[0], files);
+        }
+      }
+    }
+
+    if (files.length === 0) {
+      throw this.createError('ReadFiles: could not extract files from defineFiles schema', node);
+    }
+
+    return {
+      kind: 'readFiles',
+      files,
+    };
+  }
+
+  /**
+   * Extract file entries from defineFiles schema object literal
+   */
+  private extractFilesFromSchema(obj: ObjectLiteralExpression, files: ReadFileEntry[]): void {
+    for (const prop of obj.getProperties()) {
+      if (Node.isPropertyAssignment(prop)) {
+        const key = prop.getName();
+        const value = prop.getInitializer();
+
+        if (value && Node.isObjectLiteralExpression(value)) {
+          // Extract path and required from the FileDef object
+          let path: string | undefined;
+          let required = true; // Default true
+
+          for (const fileProp of value.getProperties()) {
+            if (Node.isPropertyAssignment(fileProp)) {
+              const propName = fileProp.getName();
+              const propValue = fileProp.getInitializer();
+
+              if (propName === 'path' && propValue) {
+                if (Node.isStringLiteral(propValue)) {
+                  path = propValue.getLiteralValue();
+                } else if (Node.isNoSubstitutionTemplateLiteral(propValue)) {
+                  path = propValue.getLiteralValue();
+                } else if (Node.isTemplateExpression(propValue)) {
+                  // Template with ${} - preserve as-is for shell interpolation
+                  path = this.extractTemplatePath(propValue);
+                }
+              } else if (propName === 'required' && propValue) {
+                if (propValue.getText() === 'false') {
+                  required = false;
+                }
+              }
+            }
+          }
+
+          if (path) {
+            // Convert key to UPPER_SNAKE_CASE + _CONTENT
+            const varName = key.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase() + '_CONTENT';
+            files.push({ varName, path, required });
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Extract path from template expression, preserving ${} for shell
+   */
+  private extractTemplatePath(tmpl: TemplateExpression): string {
+    let result = tmpl.getHead().getLiteralText();
+
+    for (const span of tmpl.getTemplateSpans()) {
+      const spanExpr = span.getExpression();
+      // Convert TS ${expr} to shell ${expr}
+      result += '${' + spanExpr.getText() + '}';
+      result += span.getLiteral().getLiteralText();
+    }
+
+    return result;
+  }
+
+  /**
+   * Transform <PromptTemplate> to PromptTemplateNode
+   *
+   * <PromptTemplate>
+   *   <XmlBlock name="objective">...</XmlBlock>
+   * </PromptTemplate>
+   *
+   * Becomes:
+   * ```markdown
+   * <objective>
+   * ...
+   * </objective>
+   * ```
+   */
+  private transformPromptTemplate(node: JsxElement | JsxSelfClosingElement): PromptTemplateNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      return { kind: 'promptTemplate', children: [] };
+    }
+
+    // Transform children normally
+    const children = this.transformBlockChildren(node.getJsxChildren());
+
+    return {
+      kind: 'promptTemplate',
       children,
     };
   }
@@ -3221,17 +3437,28 @@ export class Transformer {
     }
 
     const expr = init.getExpression();
-    if (!expr || !Node.isIdentifier(expr)) {
-      throw this.createError('Assign var must reference a useVariable result', openingElement);
+    if (!expr) {
+      throw this.createError('Assign var must reference a useVariable or defineVars result', openingElement);
     }
 
-    const localName = expr.getText();
+    // Support both patterns:
+    // - Identifier: var={phaseDir} (from useVariable)
+    // - PropertyAccessExpression: var={vars.PHASE_DIR} (from defineVars)
+    let localName: string;
+    if (Node.isIdentifier(expr)) {
+      localName = expr.getText();
+    } else if (Node.isPropertyAccessExpression(expr)) {
+      // e.g., vars.MODEL_PROFILE -> "vars.MODEL_PROFILE"
+      localName = expr.getText();
+    } else {
+      throw this.createError('Assign var must reference a useVariable or defineVars result', openingElement);
+    }
 
     // Look up in extracted variables to get the env name
     const variable = this.variables.get(localName);
     if (!variable) {
       throw this.createError(
-        `Variable '${localName}' not found. Did you declare it with useVariable()?`,
+        `Variable '${localName}' not found. Did you declare it with useVariable() or defineVars()?`,
         openingElement
       );
     }

@@ -31,6 +31,8 @@ import type {
   OnStatusNode,
   ParagraphNode,
   ReadStateNode,
+  ReadFilesNode,
+  PromptTemplateNode,
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
@@ -257,6 +259,10 @@ export class MarkdownEmitter {
         return this.emitReadState(node);
       case 'writeState':
         return this.emitWriteState(node);
+      case 'readFiles':
+        return this.emitReadFiles(node);
+      case 'promptTemplate':
+        return this.emitPromptTemplate(node);
       case 'step':
         return this.emitStep(node);
       case 'mcpServer':
@@ -888,6 +894,53 @@ Task(
       const mergeJson = value.content;
       return `Use skill \`/react-agentic:state-write ${stateKey} --merge '${mergeJson}'\`.`;
     }
+  }
+
+  /**
+   * Emit ReadFilesNode as bash code block with cat commands
+   *
+   * Output format:
+   * ```bash
+   * STATE_CONTENT=$(cat .planning/STATE.md)
+   * REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
+   * ```
+   *
+   * Required files use plain cat, optional files add 2>/dev/null
+   */
+  private emitReadFiles(node: ReadFilesNode): string {
+    const lines: string[] = [];
+
+    for (const file of node.files) {
+      // Quote path if it contains variable references
+      const quotedPath = file.path.includes('$') ? `"${file.path}"` : file.path;
+
+      if (file.required) {
+        // Required file - fail loudly if missing
+        lines.push(`${file.varName}=$(cat ${quotedPath})`);
+      } else {
+        // Optional file - suppress errors
+        lines.push(`${file.varName}=$(cat ${quotedPath} 2>/dev/null)`);
+      }
+    }
+
+    return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
+  }
+
+  /**
+   * Emit PromptTemplateNode as markdown code fence
+   *
+   * Output format:
+   * ```markdown
+   * {children content}
+   * ```
+   */
+  private emitPromptTemplate(node: PromptTemplateNode): string {
+    // Emit children as markdown
+    const content = node.children
+      .map(child => this.emitBlock(child))
+      .join('\n\n');
+
+    return `\`\`\`markdown\n${content}\n\`\`\``;
   }
 
   /**

@@ -22,6 +22,41 @@ export {
   type XmlBlockProps,
 } from './primitives/markdown.js';
 
+// Bash code block
+export {
+  Bash,
+  type BashProps,
+} from './primitives/bash.js';
+
+// Schema-based declarations
+export {
+  defineVars,
+  defineFiles,
+  defineContext,
+  type VarDef,
+  type VarSchema,
+  type VarsFromSchema,
+  type FileDef,
+  type FileSchema,
+  type FileRef,
+  type FilesFromSchema,
+  type AgentDef,
+  type ContextDef,
+  type Context,
+} from './primitives/schema.js';
+
+// File reading
+export {
+  ReadFiles,
+  type ReadFilesProps,
+} from './primitives/files.js';
+
+// Template primitives
+export {
+  PromptTemplate,
+  type PromptTemplateProps,
+} from './primitives/template.js';
+
 // Variable system
 export {
   useVariable,

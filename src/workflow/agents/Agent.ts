@@ -7,6 +7,7 @@
 
 import type { ReactNode } from 'react';
 import type { VariableRef } from '../../primitives/variables.js';
+import type { Context } from '../../primitives/schema.js';
 import type { AgentStatus, BaseOutput } from './types.js';
 import type { CommandContext } from '../Command.js';
 import type { AgentRef } from './AgentRef.js';
@@ -40,6 +41,11 @@ export interface AgentProps<TInput = unknown, TOutput = unknown> {
   folder?: string;
   /** Model name (optional) - for AgentContext access */
   model?: string;
+  /**
+   * Optional unified context from defineContext()
+   * Provides organized access to agents, variables, and files
+   */
+  context?: Context;
   /**
    * Agent body content - either regular JSX or render props function
    * Render props: (ctx: AgentContext) => ReactNode

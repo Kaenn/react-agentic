@@ -883,10 +883,14 @@ export interface ExtractedVariable {
 }
 
 /**
- * Extract all useVariable() declarations from a source file
+ * Extract all useVariable() and defineVars() declarations from a source file
  *
  * Finds patterns like:
  *   const phaseDir = useVariable("PHASE_DIR");
+ *   const vars = defineVars({ MODEL_PROFILE: { type: 'string' } });
+ *
+ * For defineVars, each property becomes a separate entry:
+ *   vars.MODEL_PROFILE -> { localName: 'vars.MODEL_PROFILE', envName: 'MODEL_PROFILE' }
  *
  * @param sourceFile - Source file to extract from
  * @returns Map from local variable name to ExtractedVariable info
@@ -903,25 +907,56 @@ export function extractVariableDeclarations(
     const initializer = node.getInitializer();
     if (!initializer || !Node.isCallExpression(initializer)) return;
 
-    // Check if it's a useVariable call
     const callExpr = initializer.getExpression();
-    if (!Node.isIdentifier(callExpr) || callExpr.getText() !== 'useVariable') return;
+    if (!Node.isIdentifier(callExpr)) return;
 
-    const args = initializer.getArguments();
-    if (args.length < 1) return;
+    const funcName = callExpr.getText();
 
-    // First arg: string literal for env name
-    const firstArg = args[0];
-    if (!Node.isStringLiteral(firstArg)) return;
-    const envName = firstArg.getLiteralValue();
+    // Handle useVariable() call
+    if (funcName === 'useVariable') {
+      const args = initializer.getArguments();
+      if (args.length < 1) return;
 
-    // Get local variable name
-    const localName = node.getName();
+      // First arg: string literal for env name
+      const firstArg = args[0];
+      if (!Node.isStringLiteral(firstArg)) return;
+      const envName = firstArg.getLiteralValue();
 
-    result.set(localName, {
-      localName,
-      envName,
-    });
+      // Get local variable name
+      const localName = node.getName();
+
+      result.set(localName, {
+        localName,
+        envName,
+      });
+    }
+
+    // Handle defineVars() call
+    if (funcName === 'defineVars') {
+      const args = initializer.getArguments();
+      if (args.length < 1) return;
+
+      const schemaArg = args[0];
+      if (!Node.isObjectLiteralExpression(schemaArg)) return;
+
+      // Get the variable name (e.g., "vars")
+      const varName = node.getName();
+
+      // Extract each property from the schema
+      for (const prop of schemaArg.getProperties()) {
+        if (!Node.isPropertyAssignment(prop)) continue;
+
+        // Get property name (e.g., "MODEL_PROFILE")
+        const propName = prop.getName();
+
+        // Create entry like "vars.MODEL_PROFILE" -> "MODEL_PROFILE"
+        const localName = `${varName}.${propName}`;
+        result.set(localName, {
+          localName,
+          envName: propName,
+        });
+      }
+    }
   });
 
   return result;

@@ -156,6 +156,31 @@ Plans:
 - [x] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
 - [x] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
 
+### v2.1 Parser Refactoring
+
+**Milestone Goal:** Refactor the large parser files (parser.ts: 1255 lines, transformer.ts: 3956 lines) into smaller, maintainable submodules for improved code organization and readability.
+
+- [ ] **Phase 26: Parser Refactoring** - Split parser.ts and transformer.ts into focused submodules
+
+## Phase Details
+
+### Phase 26: Parser Refactoring
+**Goal**: Split monolithic parser files into organized submodules for maintainability
+**Depends on**: Phase 25 (v2.0 complete)
+**Requirements**: REF-01, REF-02
+**Success Criteria** (what must be TRUE):
+  1. `parser.ts` (1255 lines) split into logical submodules
+  2. `transformer.ts` (3956 lines) split into focused transformer modules by component type
+  3. Central `index.ts` re-exports all public APIs (no breaking changes)
+  4. All existing tests pass after refactoring
+  5. Build passes with no TypeScript errors
+  6. Code is easier to navigate and understand
+**Plans**: TBD (run /gsd:plan-phase 26 to break down)
+
+Plans:
+- [ ] TBD — Research current structure and design module boundaries
+- [ ] TBD — Implementation and verification
+
 ## Progress
 
 **Execution Order:**
@@ -181,6 +206,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 | 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 25. TSX Test Modernization | v2.0 | 3/3 | Complete | 2026-01-27 |
+| 26. Parser Refactoring | v2.1 | 0/? | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*

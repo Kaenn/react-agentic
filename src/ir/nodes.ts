@@ -384,6 +384,36 @@ export interface WriteStateNode {
 }
 
 /**
+ * PromptTemplate node - wraps children in markdown code fence
+ * Used to avoid nested escaping in prompt content
+ */
+export interface PromptTemplateNode {
+  kind: 'promptTemplate';
+  children: BlockNode[];
+}
+
+/**
+ * File entry for ReadFilesNode
+ */
+export interface ReadFileEntry {
+  /** Variable name for content (e.g., "STATE_CONTENT") */
+  varName: string;
+  /** File path (may contain variable references) */
+  path: string;
+  /** Whether file is required (affects error suppression) */
+  required: boolean;
+}
+
+/**
+ * ReadFiles node - emit bash commands to read multiple files
+ * Emits as single bash code block with cat commands
+ */
+export interface ReadFilesNode {
+  kind: 'readFiles';
+  files: ReadFileEntry[];
+}
+
+/**
  * Step output variant
  */
 export type StepVariant = 'heading' | 'bold' | 'xml';
@@ -430,6 +460,8 @@ export type BlockNode =
   | OnStatusNode
   | ReadStateNode
   | WriteStateNode
+  | ReadFilesNode
+  | PromptTemplateNode
   | MCPServerNode
   | StepNode;
 

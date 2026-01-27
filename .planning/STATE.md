@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.0 TSX Syntax Improvements - Phase 25 (TSX Test Modernization) COMPLETE
+**Current focus:** v2.1 Parser Refactoring - Phase 26 (Parser Refactoring) NOT STARTED
 
 ## Current Position
 
-Phase: 25 of 25 (TSX Test Modernization)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-01-27 — Completed 25-03-PLAN.md
+Phase: 26 (Parser Refactoring)
+Plan: 0 of ? in current phase
+Status: Not started
+Last activity: 2026-01-27 — Added Phase 26 to roadmap
 
-Progress: [####################] v1.8 COMPLETE | [###################] v2.0: 19/19 plans COMPLETE
-Next: v2.0 milestone wrap-up or new phase
+Progress: [####################] v2.0 COMPLETE | [ ] v2.1: Phase 26 added
+Next: Run /gsd:plan-phase 26 to create implementation plans
 
 ## Milestone History
 
@@ -134,6 +134,7 @@ Phase 25 decisions (complete):
 
 - Phase 25 added: TSX Test Modernization - update all src/app/ test files to use v2.0 syntax features
 - v2.0 complete: All 6 phases (20-25) delivered with 19 total plans
+- Phase 26 added: Parser Refactoring - split parser.ts (1255 lines) and transformer.ts (3956 lines) into maintainable submodules
 
 ### Pending Todos
 
@@ -146,5 +147,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 25-03-PLAN.md
-Resume with: v2.0 milestone documentation or new feature planning
+Stopped at: Added Phase 26 to roadmap
+Resume with: /gsd:plan-phase 26 to create parser refactoring plans

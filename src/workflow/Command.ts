@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from 'react';
+import type { Context } from '../primitives/schema.js';
 
 /**
  * Context available in Command render props pattern
@@ -38,6 +39,11 @@ export interface CommandProps {
   agent?: string;
   /** Optional list of allowed tools (maps to allowed-tools in frontmatter) */
   allowedTools?: string[];
+  /**
+   * Optional unified context from defineContext()
+   * Provides organized access to agents, variables, and files
+   */
+  context?: Context;
   /**
    * Command body content - either regular JSX or render props function
    * Render props: (ctx: CommandContext) => ReactNode
