@@ -1,3 +1,19 @@
+/**
+ * Release Command
+ *
+ * Orchestrates a complete release workflow using spawned agents for
+ * version analysis, changelog generation, and validation.
+ *
+ * v2.0 Features Demonstrated:
+ * - ExecutionContext: Reference related agent files
+ * - OfferNext: Structured next action routing
+ * - SuccessCriteria: Semantic checklist component
+ * - List: Semantic list rendering
+ *
+ * Run: node dist/cli/index.js build src/app/release/release.command.tsx
+ * Output: .claude/commands/release.md
+ */
+
 import {
   Command,
   XmlBlock,
@@ -7,6 +23,10 @@ import {
   useVariable,
   useOutput,
   OnStatus,
+  ExecutionContext,
+  OfferNext,
+  SuccessCriteria,
+  List,
 } from '../../jsx.js';
 import type { VersionAnalyzerInput, VersionAnalyzerOutput } from './version-analyzer.agent.js';
 import type { ChangelogGeneratorInput, ChangelogGeneratorOutput } from './changelog-generator.agent.js';
@@ -64,6 +84,12 @@ export default function ReleaseCommand() {
       agent="release/version-analyzer"
       allowedTools={['Read', 'Write', 'Bash', 'Task', 'mcp__release-db__read_query', 'mcp__release-db__write_query']}
     >
+      <ExecutionContext paths={[
+        "src/app/release/version-analyzer.agent.tsx",
+        "src/app/release/changelog-generator.agent.tsx",
+        "src/app/release/release-validator.agent.tsx",
+      ]} />
+
       <XmlBlock name="objective">
         <p>Orchestrate a complete release workflow:</p>
         <ol>
@@ -79,14 +105,14 @@ export default function ReleaseCommand() {
 
       <XmlBlock name="context">
         <p><b>Flags:</b></p>
-        <ul>
-          <li><code>--major</code> — Force major version bump</li>
-          <li><code>--minor</code> — Force minor version bump</li>
-          <li><code>--patch</code> — Force patch version bump</li>
-          <li><code>--skip-tests</code> — Skip test validation</li>
-          <li><code>--skip-build</code> — Skip build validation</li>
-          <li><code>--dry-run</code> — Don't tag or record, just show what would happen</li>
-        </ul>
+        <List items={[
+          "--major — Force major version bump",
+          "--minor — Force minor version bump",
+          "--patch — Force patch version bump",
+          "--skip-tests — Skip test validation",
+          "--skip-build — Skip build validation",
+          "--dry-run — Don't tag or record, just show what would happen",
+        ]} />
         <p><b>MCP Server:</b> release-db (SQLite for release tracking)</p>
       </XmlBlock>
 
@@ -352,61 +378,35 @@ mcp__release-db__write_query({
 `}</Markdown>
       </XmlBlock>
 
-      <XmlBlock name="offer_next">
-        <Markdown>{`
-Output this markdown directly:
+      <OfferNext routes={[
+        {
+          name: "View Release",
+          path: "git show v$VERSION",
+          description: "Show the release tag details",
+        },
+        {
+          name: "Push Tag",
+          path: "git push origin v$VERSION",
+          description: "Push tag to remote if not auto-pushed",
+        },
+        {
+          name: "View Changelog",
+          path: "cat CHANGELOG.md",
+          description: "Display the changelog",
+        },
+      ]} />
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- RELEASE ► v$VERSION COMPLETE ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**$PROJECT_NAME v$VERSION** — $BUMP_TYPE release
-
-| Metric | Value |
-|--------|-------|
-| Previous | $LAST_VERSION |
-| New | $VERSION |
-| Commits | $COMMIT_COUNT |
-| Date | $RELEASE_DATE |
-
-### Actions Taken
-
-- [x] Version analyzed ($BUMP_TYPE bump)
-- [x] Changelog generated
-- [x] Pre-flight checks passed
-- [x] Git tag created: v$VERSION
-- [x] Release recorded in database
-
-───────────────────────────────────────────────────────────────
-
-## ▶ Next Steps
-
-**View Release:**
-git show v$VERSION
-
-**Push to Remote (if not auto-pushed):**
-git push origin v$VERSION
-
-**View Changelog:**
-cat CHANGELOG.md
-
-───────────────────────────────────────────────────────────────`}
-        </Markdown>
-      </XmlBlock>
-
-      <XmlBlock name="success_criteria">
-        <ul>
-          <li>[ ] SQLite database initialized with tables</li>
-          <li>[ ] Last version retrieved from database</li>
-          <li>[ ] Commit history gathered</li>
-          <li>[ ] version-analyzer spawned and returned version</li>
-          <li>[ ] changelog-generator spawned and created entry</li>
-          <li>[ ] release-validator spawned and all checks passed (or user override)</li>
-          <li>[ ] Git tag created (unless dry-run)</li>
-          <li>[ ] Release recorded in SQLite (unless dry-run)</li>
-          <li>[ ] User sees complete summary</li>
-        </ul>
-      </XmlBlock>
+      <SuccessCriteria items={[
+        "SQLite database initialized with tables",
+        "Last version retrieved from database",
+        "Commit history gathered",
+        "version-analyzer spawned and returned version",
+        "changelog-generator spawned and created entry",
+        "release-validator spawned and all checks passed (or user override)",
+        "Git tag created (unless dry-run)",
+        "Release recorded in SQLite (unless dry-run)",
+        "User sees complete summary",
+      ]} />
     </Command>
   );
 }
