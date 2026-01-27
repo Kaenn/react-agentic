@@ -54,6 +54,8 @@ import type {
   SuccessCriteriaItemData,
   OfferNextNode,
   OfferNextRouteData,
+  StepNode,
+  StepVariant,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
@@ -87,12 +89,14 @@ const HTML_ELEMENTS = new Set([
  * Special component names that are NOT custom user components
  */
 const SPECIAL_COMPONENTS = new Set([
-  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'OnStatus',
+  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'If', 'Else', 'Loop', 'OnStatus',
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
   'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
-  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling'
+  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
+  // Step workflow primitive
+  'Step'
 ]);
 
 /**
@@ -759,6 +763,11 @@ export class Transformer {
       return this.transformXmlWrapper(name, node);
     }
 
+    // Step workflow primitive
+    if (name === 'Step') {
+      return this.transformStep(node);
+    }
+
     // Markdown passthrough
     if (name === 'Markdown') {
       return this.transformMarkdown(node);
@@ -1418,6 +1427,46 @@ export class Transformer {
     }
 
     return routes;
+  }
+
+  /**
+   * Transform Step component to StepNode IR
+   */
+  private transformStep(node: JsxElement | JsxSelfClosingElement): StepNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Extract required props
+    const numberAttr = getAttributeValue(openingElement, 'number');
+    const name = getAttributeValue(openingElement, 'name');
+
+    if (!numberAttr) {
+      throw this.createError('Step requires number prop', openingElement);
+    }
+    if (!name) {
+      throw this.createError('Step requires name prop', openingElement);
+    }
+
+    // Extract variant with default
+    const variantAttr = getAttributeValue(openingElement, 'variant');
+    let variant: StepVariant = 'heading'; // Default
+    if (variantAttr === 'heading' || variantAttr === 'bold' || variantAttr === 'xml') {
+      variant = variantAttr;
+    }
+
+    // Transform children
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'step',
+      number: numberAttr,
+      name,
+      variant,
+      children,
+    };
   }
 
   private transformXmlSection(node: JsxElement | JsxSelfClosingElement): XmlBlockNode {
