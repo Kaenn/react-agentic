@@ -104,6 +104,13 @@ Phase 23 decisions (plan 01):
 - Single parameter required for render props pattern detection
 - Support both block body and expression body for arrow functions
 
+Phase 23 decisions (plan 02):
+- Generic T defaults to unknown for backwards compatibility
+- Generics are compile-time only - no runtime overhead or validation
+- LoopNode stores items as string representation of expression
+- Loop emits as **For each {as} in {items}:** pattern
+- typeParam field captures explicit generic for potential future validation
+
 Phase 23 decisions (plan 03):
 - Step number prop stored as string in IR to support sub-steps ("1.1")
 - Support both number={1} and number="1.1" syntax with numeric literal parsing
@@ -124,5 +131,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 23-03-PLAN.md
+Stopped at: Completed 23-02-PLAN.md (and 23-03-PLAN.md - interleaved execution)
 Resume with: Execute Phase 24 (Parser/Emitter Integration)
