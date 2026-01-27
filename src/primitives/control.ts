@@ -77,6 +77,46 @@ export function Else(_props: ElseProps): null {
 }
 
 // ============================================================================
+// Loop Component (iteration control flow)
+// ============================================================================
+
+/**
+ * Props for the Loop component
+ * @typeParam T - Type of items in the array (inferred or explicit)
+ */
+export interface LoopProps<T = unknown> {
+  /** Array of items to iterate over - type-safe via generic */
+  items?: T[];
+  /** Variable name for the current item in iteration */
+  as?: string;
+  /** Loop body content */
+  children?: ReactNode;
+}
+
+/**
+ * Loop component - iteration block for repeated content
+ *
+ * This is a compile-time component that emits markdown describing
+ * an iteration pattern. Claude interprets and executes the loop.
+ *
+ * @typeParam T - Type of items being iterated (defaults to unknown)
+ * @example
+ * // Basic usage with inferred type
+ * <Loop items={['a', 'b', 'c']} as="item">
+ *   <p>Process item</p>
+ * </Loop>
+ *
+ * @example with explicit generic
+ * interface User { name: string; email: string; }
+ * <Loop<User> items={users} as="user">
+ *   <p>Greet user by name</p>
+ * </Loop>
+ */
+export function Loop<T = unknown>(_props: LoopProps<T>): null {
+  return null;
+}
+
+// ============================================================================
 // Shell Test Builders (type-safe test expressions for conditionals)
 // ============================================================================
 

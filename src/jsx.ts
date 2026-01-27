@@ -34,6 +34,7 @@ export {
 export {
   If,
   Else,
+  Loop,
   fileExists,
   dirExists,
   isEmpty,
@@ -43,6 +44,7 @@ export {
   or,
   type IfProps,
   type ElseProps,
+  type LoopProps,
 } from './primitives/control.js';
 
 // Structured data components
