@@ -572,23 +572,27 @@ export class MarkdownEmitter {
   }
 
   /**
-   * Emit SpawnAgent as GSD Task() syntax
+   * Emit SpawnAgent as GSD Task() syntax wrapped in code block
    *
    * Output format (standard):
+   * ```
    * Task(
    *   prompt="...",
    *   subagent_type="agent-name",
    *   model="...",
    *   description="..."
    * )
+   * ```
    *
    * Output format (with loadFromFile):
+   * ```
    * Task(
-   *   prompt="First, read {path} for your role and instructions.\n\n...",
+   *   prompt="First, read {path}..." + variable,
    *   subagent_type="general-purpose",
    *   model="...",
    *   description="..."
    * )
+   * ```
    */
   private emitSpawnAgent(node: SpawnAgentNode): string {
     // Escape double quotes in string values (backslash escape for Task() syntax)
@@ -602,35 +606,54 @@ export class MarkdownEmitter {
     } else if (node.input) {
       // Generate from typed input
       promptContent = this.generateInputPrompt(node.input);
+    } else if (node.promptVariable) {
+      // promptVariable provides the prompt at runtime - no content to embed
+      promptContent = '';
     } else {
       // Neither - shouldn't happen (transformer validates)
-      throw new Error('SpawnAgent requires either prompt or input');
+      throw new Error('SpawnAgent requires either prompt, promptVariable, or input');
     }
 
-    // Append extraInstructions if present
-    if (node.extraInstructions) {
+    // Append extraInstructions if present (only for embedded prompts)
+    if (node.extraInstructions && !node.promptVariable) {
       promptContent = promptContent + '\n\n' + node.extraInstructions;
     }
 
     // Handle loadFromFile pattern
     // When present, prefix prompt with agent file loading instruction
     // and use "general-purpose" as the subagent type
-    let finalPrompt = promptContent;
     let subagentType = node.agent;
+    let promptOutput: string;
 
     if (node.loadFromFile) {
-      // Prepend the "First, read..." instruction (GSD pattern)
-      finalPrompt = `First, read ${node.loadFromFile} for your role and instructions.\n\n${promptContent}`;
       // Override to general-purpose
       subagentType = 'general-purpose';
+      const prefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
+
+      if (node.promptVariable) {
+        // GSD pattern: runtime variable concatenation
+        // Output: prompt="prefix" + variableName
+        promptOutput = `"${prefix}" + ${node.promptVariable}`;
+      } else {
+        // Embed prompt content directly
+        promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
+      }
+    } else if (node.promptVariable) {
+      // Just variable reference (no loadFromFile)
+      promptOutput = node.promptVariable;
+    } else {
+      // Standard: embed prompt content
+      promptOutput = `"${escapeQuotes(promptContent)}"`;
     }
 
-    return `Task(
-  prompt="${escapeQuotes(finalPrompt)}",
+    return `\`\`\`
+Task(
+  prompt=${promptOutput},
   subagent_type="${escapeQuotes(subagentType)}",
   model="${escapeQuotes(node.model)}",
   description="${escapeQuotes(node.description)}"
-)`;
+)
+\`\`\``;
   }
 
   /**
@@ -695,6 +718,10 @@ export class MarkdownEmitter {
    * Emit AssignGroup node as single bash code block
    * with all assignments grouped together
    *
+   * Blank lines appear only:
+   * - Before assignments with comments (for visual grouping)
+   * - Before assignments with blankBefore (from <br/>)
+   *
    * Output format:
    * ```bash
    * # Comment 1
@@ -702,11 +729,28 @@ export class MarkdownEmitter {
    *
    * # Comment 2
    * VAR2=$(command2)
+   * VAR3=$(command3)
+   *
+   * # After br
+   * VAR4=$(command4)
    * ```
    */
   private emitAssignGroup(node: AssignGroupNode): string {
-    const lines = node.assignments.map(assign => this.emitAssignmentLine(assign));
-    return `\`\`\`bash\n${lines.join('\n\n')}\n\`\`\``;
+    const lines: string[] = [];
+
+    for (let i = 0; i < node.assignments.length; i++) {
+      const assign = node.assignments[i];
+      const isFirst = i === 0;
+
+      // Add blank line before if not first AND (has comment OR has blankBefore)
+      if (!isFirst && (assign.comment || assign.blankBefore)) {
+        lines.push('');
+      }
+
+      lines.push(this.emitAssignmentLine(assign));
+    }
+
+    return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
   }
 
   /**

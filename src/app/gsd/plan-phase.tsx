@@ -5,6 +5,7 @@ import {
   Assign,
   AssignGroup,
   useVariable,
+  SpawnAgent,
 } from '../../jsx.js';
 
 // Agent file paths (GSD pattern - agents live in ~/.claude/agents/)
@@ -187,31 +188,32 @@ Write research findings to: {phase_dir}/{phase}-RESEARCH.md
 \`\`\`
 `}</Markdown>
 
-        <Markdown>{`
-\`\`\`
-Task(
-  prompt="First, read ` + AGENT_PATHS.researcher + ` for your role and instructions.\\n\\n" + research_prompt,
-  subagent_type="general-purpose",
-  model="{researcher_model}",
-  description="Research Phase {phase}"
-)
-\`\`\`
-`}</Markdown>
+        <SpawnAgent
+          agent="gsd-phase-researcher"
+          loadFromFile={AGENT_PATHS.researcher}
+          model="{researcher_model}"
+          description="Research Phase {phase}"
+          promptVariable="research_prompt"
+        />
 
         <h3>Handle Researcher Return</h3>
 
-        <p><b><code>## RESEARCH COMPLETE</code>:</b></p>
-        <ul>
-          <li>Display: <code>Research complete. Proceeding to planning...</code></li>
-          <li>Continue to step 6</li>
-        </ul>
+        <div>
+          <b><code>## RESEARCH COMPLETE</code>:</b>
+          <ul>
+            <li>Display: <code>Research complete. Proceeding to planning...</code></li>
+            <li>Continue to step 6</li>
+          </ul>
+        </div>
 
-        <p><b><code>## RESEARCH BLOCKED</code>:</b></p>
-        <ul>
-          <li>Display blocker information</li>
-          <li>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</li>
-          <li>Wait for user response</li>
-        </ul>
+        <div>
+          <b><code>## RESEARCH BLOCKED</code>:</b>
+          <ul>
+            <li>Display blocker information</li>
+            <li>Offer: 1) Provide more context, 2) Skip research and plan anyway, 3) Abort</li>
+            <li>Wait for user response</li>
+          </ul>
+        </div>
 
         <h2>6. Check Existing Plans</h2>
         <pre><code className="language-bash">{`ls "\${PHASE_DIR}"/*-PLAN.md 2>/dev/null`}</code></pre>
@@ -221,16 +223,18 @@ Task(
         <p>Read and store context file contents for the planner agent. The <code>@</code> syntax does not work across Task() boundaries - content must be inlined.</p>
         <AssignGroup>
           <Assign var={stateContent} bash={`cat .planning/STATE.md`} comment="Read project state" />
-          <Assign var={roadmapContent} bash={`cat .planning/ROADMAP.md`} comment="Read roadmap" />
-          <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Read requirements (optional)" />
-          <Assign var={contextContent} bash={`cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null`} comment="Read phase context (optional)" />
-          <Assign var={researchContent} bash={`cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`} comment="Read research (optional)" />
-          <Assign var={verificationContent} bash={`cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null`} comment="Gap closure: verification (if --gaps)" />
-          <Assign var={uatContent} bash={`cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null`} comment="Gap closure: UAT (if --gaps)" />
+          <Assign var={roadmapContent} bash={`cat .planning/ROADMAP.md`} />
+          <br/>
+          <Assign var={requirementsContent} bash={`cat .planning/REQUIREMENTS.md 2>/dev/null`} comment="Read optional files (empty string if missing)" />
+          <Assign var={contextContent} bash={`cat "\${PHASE_DIR}"/*-CONTEXT.md 2>/dev/null`}/>
+          <Assign var={researchContent} bash={`cat "\${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null`}/>
+          <Assign var={verificationContent} bash={`cat "\${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null`} comment='Gap closure files (only if --gaps mode)'/>
+          <Assign var={uatContent} bash={`cat "\${PHASE_DIR}"/*-UAT.md 2>/dev/null`}/>
         </AssignGroup>
 
         <h2>8. Spawn gsd-planner Agent</h2>
-        <p>Display stage banner:</p>
+        <div>
+          Display stage banner:
         <Markdown>{`
 \`\`\`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -240,6 +244,7 @@ Task(
 ◆ Spawning planner...
 \`\`\`
 `}</Markdown>
+        </div>
         <p>Fill prompt with inlined content and spawn:</p>
         <Markdown>{`
 \`\`\`markdown
@@ -291,25 +296,24 @@ Before returning PLANNING COMPLETE:
 </quality_gate>
 \`\`\`
 `}</Markdown>
-        <Markdown>{`
-\`\`\`
-Task(
-  prompt="First, read ` + AGENT_PATHS.planner + ` for your role and instructions.\\n\\n" + filled_prompt,
-  subagent_type="general-purpose",
-  model="{planner_model}",
-  description="Plan Phase {phase}"
-)
-\`\`\`
-`}</Markdown>
+        <SpawnAgent
+          agent="gsd-planner"
+          loadFromFile={AGENT_PATHS.planner}
+          model="{planner_model}"
+          description="Plan Phase {phase}"
+          promptVariable="filled_prompt"
+        />
 
         <h2>9. Handle Planner Return</h2>
         <p>Parse planner output:</p>
-        <p><b><code>## PLANNING COMPLETE</code>:</b></p>
-        <ul>
-          <li>Display: <code>{'Planner created {N} plan(s). Files on disk.'}</code></li>
-          <li>If <code>--skip-verify</code>: Skip to step 13</li>
-          <li>Check config:</li>
-        </ul>
+        <div>
+          <b><code>## PLANNING COMPLETE</code>:</b>
+          <ul>
+            <li>Display: <code>{'Planner created {N} plan(s). Files on disk.'}</code></li>
+            <li>If <code>--skip-verify</code>: Skip to step 13</li>
+            <li>Check config:</li>
+          </ul>
+        </div>
         <Assign var={workflowPlanCheck} bash={`cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\\|false' || echo "true"`} />
         <ul>
           <li>If <code>workflow.plan_check</code> is <code>false</code>: Skip to step 13</li>
@@ -363,16 +367,13 @@ Return one of:
 </expected_output>
 \`\`\`
 `}</Markdown>
-        <Markdown>{`
-\`\`\`
-Task(
-  prompt="First, read ` + AGENT_PATHS.checker + ` for your role and instructions.\\n\\n" + checker_prompt,
-  subagent_type="general-purpose",
-  model="{checker_model}",
-  description="Verify Phase {phase} plans"
-)
-\`\`\`
-`}</Markdown>
+        <SpawnAgent
+          agent="gsd-plan-checker"
+          loadFromFile={AGENT_PATHS.checker}
+          model="{checker_model}"
+          description="Verify Phase {phase} plans"
+          promptVariable="checker_prompt"
+        />
 
         <h2>11. Handle Checker Return</h2>
         <p><b>If <code>## VERIFICATION PASSED</code>:</b></p>
@@ -417,16 +418,13 @@ Return what changed.
 </instructions>
 \`\`\`
 `}</Markdown>
-        <Markdown>{`
-\`\`\`
-Task(
-  prompt="First, read ` + AGENT_PATHS.planner + ` for your role and instructions.\\n\\n" + revision_prompt,
-  subagent_type="general-purpose",
-  model="{planner_model}",
-  description="Revise Phase {phase} plans"
-)
-\`\`\`
-`}</Markdown>
+        <SpawnAgent
+          agent="gsd-planner"
+          loadFromFile={AGENT_PATHS.planner}
+          model="{planner_model}"
+          description="Revise Phase {phase} plans"
+          promptVariable="revision_prompt"
+        />
         <ul>
           <li>After planner returns → spawn checker again (step 10)</li>
           <li>Increment iteration_count</li>

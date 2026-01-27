@@ -94,6 +94,12 @@ export interface SpawnAgentProps<TInput = unknown> {
    */
   prompt?: string;
   /**
+   * Variable name containing the prompt (for runtime concatenation).
+   * When used with loadFromFile, outputs: prompt="prefix" + variableName
+   * This matches the GSD pattern where prompts are built at runtime.
+   */
+  promptVariable?: string;
+  /**
    * Typed input - either a VariableRef from useVariable() or an object literal.
    * Object literal values can be strings or VariableRefs.
    * Auto-generates structured prompt from Agent's interface contract.

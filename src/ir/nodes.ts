@@ -256,6 +256,12 @@ export interface SpawnAgentNode {
    * - Prepend "First, read {path}..." to the prompt
    */
   loadFromFile?: string;
+  /**
+   * Variable name for runtime prompt concatenation.
+   * When set, outputs: prompt="prefix" + variableName
+   * Used with loadFromFile for GSD-style dynamic prompts.
+   */
+  promptVariable?: string;
 }
 
 /**
@@ -270,6 +276,7 @@ export interface AssignNode {
     content: string;                  // The bash command, static value, or env var name
   };
   comment?: string;        // Optional inline comment (e.g., "Get phase from roadmap")
+  blankBefore?: boolean;   // Insert extra blank line before this assignment (from <br/>)
 }
 
 /**

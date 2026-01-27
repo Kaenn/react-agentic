@@ -1967,8 +1967,9 @@ export class Transformer {
     // Extract loadFromFile prop
     const loadFromFile = this.extractLoadFromFileProp(openingElement, agentPath);
 
-    // Extract prompt and input props
+    // Extract prompt, promptVariable, and input props
     const prompt = this.extractPromptProp(openingElement);
+    const promptVariable = getAttributeValue(openingElement, 'promptVariable');
     const input = this.extractInputProp(openingElement);
 
     // Extract extra instructions from children (when using input prop)
@@ -1987,18 +1988,19 @@ export class Transformer {
       throw this.createError('SpawnAgent requires description prop', openingElement);
     }
 
-    // Validate mutual exclusivity of prompt and input
-    if (prompt && input) {
+    // Validate mutual exclusivity of prompt, promptVariable, and input
+    const promptProps = [prompt, promptVariable, input].filter(Boolean).length;
+    if (promptProps > 1) {
       throw this.createError(
-        'Cannot use both prompt and input props on SpawnAgent. Use input for typed input or prompt for manual prompts.',
+        'Cannot use multiple prompt props on SpawnAgent. Use one of: prompt, promptVariable, or input.',
         openingElement
       );
     }
 
-    // Require one of prompt or input
-    if (!prompt && !input) {
+    // Require one of prompt, promptVariable, or input
+    if (promptProps === 0) {
       throw this.createError(
-        'SpawnAgent requires either prompt or input prop',
+        'SpawnAgent requires either prompt, promptVariable, or input prop',
         openingElement
       );
     }
@@ -2026,6 +2028,7 @@ export class Transformer {
       model,
       description,
       ...(prompt && { prompt }),
+      ...(promptVariable && { promptVariable }),
       ...(input && { input }),
       ...(extraInstructions && { extraInstructions }),
       ...(inputType && { inputType }),
@@ -2270,6 +2273,19 @@ export class Transformer {
       // Case 3c: String literal - loadFromFile={"path/to/agent.md"}
       if (expr && Node.isStringLiteral(expr)) {
         return expr.getLiteralValue();
+      }
+
+      // Case 3d: Property access - loadFromFile={AGENT_PATHS.researcher}
+      if (expr && Node.isPropertyAccessExpression(expr)) {
+        const resolvedPath = this.resolvePropertyAccess(expr);
+        if (resolvedPath) {
+          return resolvedPath;
+        }
+        throw this.createError(
+          `Cannot resolve property access ${expr.getText()} for loadFromFile. ` +
+          'Make sure the object is a const with string literal values.',
+          element
+        );
       }
     }
 
@@ -3271,18 +3287,19 @@ export class Transformer {
 
     const children = node.getJsxChildren();
     const assignments: AssignNode[] = [];
+    let pendingBlankBefore = false;  // Track <br/> for next assignment
 
     for (const child of children) {
       // Skip whitespace text nodes
       if (Node.isJsxText(child)) {
         const text = child.getText().trim();
         if (text === '') continue;
-        throw this.createError('AssignGroup can only contain Assign elements, not text', child);
+        throw this.createError('AssignGroup can only contain Assign or br elements, not text', child);
       }
 
       // Must be JSX element
       if (!Node.isJsxElement(child) && !Node.isJsxSelfClosingElement(child)) {
-        throw this.createError('AssignGroup can only contain Assign elements', child);
+        throw this.createError('AssignGroup can only contain Assign or br elements', child);
       }
 
       // Get element name
@@ -3290,13 +3307,26 @@ export class Transformer {
       const tagNameNode = opening.getTagNameNode();
       const name = tagNameNode.getText();
 
+      // Handle <br/> - mark that next assignment should have extra blank line
+      if (name === 'br') {
+        pendingBlankBefore = true;
+        continue;
+      }
+
       // Must be Assign
       if (name !== 'Assign') {
-        throw this.createError(`AssignGroup can only contain Assign elements, found: ${name}`, child);
+        throw this.createError(`AssignGroup can only contain Assign or br elements, found: ${name}`, child);
       }
 
       // Transform the Assign element
       const assignNode = this.transformAssign(child);
+
+      // Apply pending blank before flag
+      if (pendingBlankBefore) {
+        assignNode.blankBefore = true;
+        pendingBlankBefore = false;
+      }
+
       assignments.push(assignNode);
     }
 
