@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.0 TSX Syntax Improvements - Phase 25 (TSX Test Modernization)
+**Current focus:** v2.0 TSX Syntax Improvements - Phase 25 (TSX Test Modernization) COMPLETE
 
 ## Current Position
 
 Phase: 25 of 25 (TSX Test Modernization)
-Plan: 2 of ? in current phase
-Status: In progress
-Last activity: 2026-01-27 — Completed 25-02-PLAN.md
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-01-27 — Completed 25-03-PLAN.md
 
-Progress: [####################] v1.8 COMPLETE | [################] v2.0: 16/16+ plans
-Next: Plan 03 or phase completion
+Progress: [####################] v1.8 COMPLETE | [###################] v2.0: 19/19 plans COMPLETE
+Next: v2.0 milestone wrap-up or new phase
 
 ## Milestone History
 
@@ -33,9 +33,9 @@ Next: Plan 03 or phase completion
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 66 (v1.0-v1.8, v2.0 in progress)
+- Total plans completed: 69 (v1.0-v1.8, v2.0 complete)
 - Average duration: ~3m
-- Total execution time: ~3.5 hours
+- Total execution time: ~3.7 hours
 
 **By Phase (v1.1-v1.8, v2.0):**
 
@@ -57,7 +57,7 @@ Next: Plan 03 or phase completion
 | 22 | 4/4 | 15m | 3m 45s |
 | 23 | 3/3 | 15m | 5m |
 | 24 | 3/3 | 7m 36s | 2m 32s |
-| 25 | 2/? | 5m 8s | 2m 34s |
+| 25 | 3/3 | ~9m | ~3m |
 
 *Updated after each plan completion*
 
@@ -121,16 +121,19 @@ Phase 24 decisions (complete):
 - TSX → markdown transformation pairs throughout all docs
 - Render props documented as optional pattern (progressive disclosure)
 
-Phase 25 decisions (in progress):
+Phase 25 decisions (complete):
 - Replace manual ul/ol with List component in scenario tests
 - Maintain original manual tests for comparison in 2.4-lists-rendering.tsx
 - Step bold variant for dependent steps in sequential chains
 - ExecutionContext placed after introductory paragraph
 - SuccessCriteria placed at end before any final YAML output
+- Render props demonstrated in Agent with ctx.name, ctx.model interpolation
+- OfferNext routes replace manual offer_next XmlBlock in release command
 
 ### Roadmap Evolution
 
 - Phase 25 added: TSX Test Modernization - update all src/app/ test files to use v2.0 syntax features
+- v2.0 complete: All 6 phases (20-25) delivered with 19 total plans
 
 ### Pending Todos
 
@@ -143,5 +146,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 25-02-PLAN.md
-Resume with: Plan 03 or phase completion review
+Stopped at: Completed 25-03-PLAN.md
+Resume with: v2.0 milestone documentation or new feature planning
