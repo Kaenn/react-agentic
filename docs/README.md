@@ -12,6 +12,8 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Communication](./communication.md) | SpawnAgent pattern for Command ↔ Agent communication |
 | [Variables](./variables.md) | Shell variables with `useVariable` and `<Assign>` |
 | [Conditionals](./conditionals.md) | Decision logic with `<If>` and `<Else>` components |
+| [Structured Components](./structured-components.md) | Table and List with array props |
+| [Semantic Components](./semantic-components.md) | ExecutionContext, SuccessCriteria, OfferNext, XmlSection |
 | [MCP Configuration](./mcp-configuration.md) | Configure MCP servers via TSX |
 
 ## Technical Reference
@@ -46,6 +48,19 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
   .claude/           Emitted in          .claude/
   commands/          markdown            agents/
 ```
+
+### v2.0 Components
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `<Table>` | Markdown tables from arrays | `<Table headers={["A"]} rows={[["1"]]} />` |
+| `<List>` | Bullet/ordered lists from arrays | `<List items={["a", "b"]} ordered />` |
+| `<ExecutionContext>` | @ file references section | `<ExecutionContext paths={["file.md"]} />` |
+| `<SuccessCriteria>` | Checkbox success list | `<SuccessCriteria items={["Pass"]} />` |
+| `<OfferNext>` | Navigation route list | `<OfferNext routes={[{name: "Go", path: "/x"}]} />` |
+| `<XmlSection>` | Custom XML wrapper | `<XmlSection name="custom">...</XmlSection>` |
+| `<Step>` | Numbered workflow step | `<Step name="Setup" number={1}>...</Step>` |
+| `<Loop>` | Iteration over items | `<Loop items={arr} as="x">...</Loop>` |
 
 ### File → Output Mapping
 
