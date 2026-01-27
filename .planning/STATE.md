@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.0 TSX Syntax Improvements - Phase 24 (Parser/Emitter Integration)
+**Current focus:** v2.0 TSX Syntax Improvements - Phase 25 (TSX Test Modernization)
 
 ## Current Position
 
-Phase: 24 of 25 (Parser/Emitter Integration)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-01-27 — Completed 24-03-PLAN.md
+Phase: 25 of 25 (TSX Test Modernization)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-01-27 — Phase 24 complete (3 plans, verified)
 
-Progress: [####################] v1.8 COMPLETE | [##############] v2.0: 14/14 plans
-Next: Phase 25 - TSX Test Modernization
+Progress: [####################] v1.8 COMPLETE | [##############] v2.0: 14/14+ plans
+Next: `/gsd:plan-phase 25`
 
 ## Milestone History
 
@@ -134,6 +134,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-01-27 01:43:31
-Stopped at: Completed 24-03-PLAN.md (Phase 24 complete)
-Resume with: Begin Phase 25 - TSX Test Modernization
+Last session: 2026-01-27
+Stopped at: Phase 24 complete and verified
+Resume with: `/gsd:plan-phase 25` to plan TSX Test Modernization
