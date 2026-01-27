@@ -846,9 +846,10 @@ export class MarkdownEmitter {
   private emitExecutionContext(node: ExecutionContextNode): string {
     const lines: string[] = ['<execution_context>'];
 
-    // Add paths with prefix
+    // Add paths with prefix (avoid double-prefixing if path already starts with prefix)
     for (const path of node.paths) {
-      lines.push(`${node.prefix}${path}`);
+      const prefixedPath = path.startsWith(node.prefix) ? path : `${node.prefix}${path}`;
+      lines.push(prefixedPath);
     }
 
     // Add children if present
