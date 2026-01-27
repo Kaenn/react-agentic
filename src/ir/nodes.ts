@@ -278,6 +278,22 @@ export interface ElseNode {
 }
 
 /**
+ * Loop iteration block
+ * Emits as iteration pattern for Claude to execute
+ */
+export interface LoopNode {
+  kind: 'loop';
+  /** Variable name for current item */
+  as?: string;
+  /** Array expression or placeholder */
+  items?: string;
+  /** Type parameter name if explicitly provided (compile-time info) */
+  typeParam?: string;
+  /** Loop body content */
+  children: BlockNode[];
+}
+
+/**
  * Reference to an agent's output in the IR
  * Captures the agent name for output binding
  */
@@ -375,6 +391,7 @@ export type BlockNode =
   | AssignNode
   | IfNode
   | ElseNode
+  | LoopNode
   | OnStatusNode
   | ReadStateNode
   | WriteStateNode

@@ -35,6 +35,7 @@ import type {
   AssignNode,
   IfNode,
   ElseNode,
+  LoopNode,
   OnStatusNode,
   SkillDocumentNode,
   SkillFrontmatterNode,
@@ -715,6 +716,11 @@ export class Transformer {
     // Else component - standalone is an error (must follow If as sibling)
     if (name === 'Else') {
       throw this.createError('<Else> must follow <If> as sibling', node);
+    }
+
+    // Loop component - iteration block
+    if (name === 'Loop') {
+      return this.transformLoop(node);
     }
 
     // OnStatus component - status-based conditional block
@@ -1962,6 +1968,47 @@ export class Transformer {
 
     return {
       kind: 'else',
+      children,
+    };
+  }
+
+  /**
+   * Transform Loop component to LoopNode IR
+   */
+  private transformLoop(node: JsxElement | JsxSelfClosingElement): LoopNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    const as = getAttributeValue(openingElement, 'as');
+
+    // Get items attribute as string representation
+    const itemsAttr = openingElement.getAttribute('items');
+    let items: string | undefined;
+    if (itemsAttr && Node.isJsxAttribute(itemsAttr)) {
+      const init = itemsAttr.getInitializer();
+      if (init && Node.isJsxExpression(init)) {
+        const expr = init.getExpression();
+        if (expr) {
+          items = expr.getText();
+        }
+      }
+    }
+
+    // Extract type argument if present
+    const typeArgs = extractTypeArguments(node);
+    const typeParam = typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
+
+    // Transform children
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'loop',
+      as,
+      items,
+      typeParam,
       children,
     };
   }
