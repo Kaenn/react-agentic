@@ -49,7 +49,7 @@ See: .planning/ROADMAP.md history or milestone archives
 - [x] **Phase 20: Module Restructure** - Split jsx.ts into primitives/ and workflow/ directories (complete 2026-01-26)
 - [x] **Phase 21: Structured Props** - Table and List components with array-based props (complete 2026-01-26)
 - [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
-- [ ] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component
+- [x] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component (complete 2026-01-27)
 - [ ] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests
 - [ ] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features
 
@@ -117,9 +117,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 23-01-PLAN.md — Command and Agent render props support (CTX-01, CTX-02)
-- [ ] 23-02-PLAN.md — Explicit generics on workflow components (CTX-03)
-- [ ] 23-03-PLAN.md — Step component for numbered sections (CTX-04)
+- [x] 23-01-PLAN.md — Command and Agent render props support (CTX-01, CTX-02)
+- [x] 23-02-PLAN.md — Explicit generics on workflow components (CTX-03)
+- [x] 23-03-PLAN.md — Step component for numbered sections (CTX-04)
 
 ### Phase 24: Parser/Emitter Integration
 **Goal**: Wire all new components through transformer and emitter with comprehensive tests
@@ -176,7 +176,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 | 20. Module Restructure | v2.0 | 2/2 | Complete | 2026-01-26 |
 | 21. Structured Props | v2.0 | 2/2 | Complete | 2026-01-26 |
 | 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
-| 23. Context Access Patterns | v2.0 | 0/3 | Not started | - |
+| 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 24. Parser/Emitter Integration | v2.0 | 0/3 | Not started | - |
 | 25. TSX Test Modernization | v2.0 | 0/? | Not started | - |
 
