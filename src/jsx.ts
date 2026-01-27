@@ -54,6 +54,13 @@ export {
   type TableAlignment,
 } from './primitives/structured.js';
 
+// Step workflow primitive
+export {
+  Step,
+  type StepProps,
+  type StepVariant,
+} from './primitives/step.js';
+
 // ============================================================================
 // Workflow - Framework Helpers for Agentic Flows
 // ============================================================================
