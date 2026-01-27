@@ -8,6 +8,18 @@
 import type { ReactNode } from 'react';
 import type { VariableRef } from '../../primitives/variables.js';
 import type { AgentStatus, BaseOutput } from './types.js';
+import type { CommandContext } from '../Command.js';
+
+/**
+ * Context available in Agent render props pattern
+ * Extends CommandContext with agent-specific fields
+ */
+export interface AgentContext extends CommandContext {
+  /** Space-separated tool names if defined */
+  tools?: string;
+  /** Model name if specified in agent */
+  model?: string;
+}
 
 /**
  * Props for the Agent component
@@ -25,8 +37,13 @@ export interface AgentProps<TInput = unknown, TOutput = unknown> {
   color?: string;
   /** Subfolder for output path (optional) - determines namespaced agent name */
   folder?: string;
-  /** Agent body content */
-  children?: ReactNode;
+  /** Model name (optional) - for AgentContext access */
+  model?: string;
+  /**
+   * Agent body content - either regular JSX or render props function
+   * Render props: (ctx: AgentContext) => ReactNode
+   */
+  children?: ReactNode | ((ctx: AgentContext) => ReactNode);
   // TInput and TOutput are compile-time only - used for cross-file type validation
 }
 

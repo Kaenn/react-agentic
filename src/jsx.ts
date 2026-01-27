@@ -62,6 +62,7 @@ export {
 export {
   Command,
   type CommandProps,
+  type CommandContext,
 } from './workflow/Command.js';
 
 // Agent system
@@ -76,6 +77,7 @@ export {
   type OutputRef,
   type AgentStatus,
   type BaseOutput,
+  type AgentContext,
 } from './workflow/agents/index.js';
 
 // State management
