@@ -25,6 +25,7 @@ import {
   InterfaceDeclaration,
   TemplateExpression,
   CallExpression,
+  ArrowFunction,
 } from 'ts-morph';
 
 export interface CreateProjectOptions {
@@ -1150,4 +1151,70 @@ export function extractSqlArguments(sqlTemplate: string): string[] {
     args.add(match[1].toLowerCase());
   }
   return Array.from(args);
+}
+
+// ============================================================================
+// Render Props Pattern Detection
+// ============================================================================
+
+/**
+ * Result of analyzing JSX children for render props pattern
+ */
+export interface RenderPropsInfo {
+  /** True if children is a single arrow function */
+  isRenderProps: boolean;
+  /** Parameter name used in arrow function (e.g., 'ctx') */
+  paramName?: string;
+  /** The arrow function AST node */
+  arrowFunction?: ArrowFunction;
+}
+
+/**
+ * Analyze JSX element children for render props pattern
+ *
+ * Detects when children is a single arrow function: {(ctx) => ...}
+ * Returns info about the arrow function for transformer use.
+ *
+ * @param element - JSX element to analyze
+ * @returns RenderPropsInfo with detection results
+ */
+export function analyzeRenderPropsChildren(
+  element: JsxElement
+): RenderPropsInfo {
+  const children = element.getJsxChildren();
+
+  // Filter out whitespace-only text nodes
+  const nonWhitespace = children.filter(child => {
+    if (Node.isJsxText(child)) {
+      return child.getText().trim().length > 0;
+    }
+    return true;
+  });
+
+  // Must have exactly one child that's a JSX expression
+  if (nonWhitespace.length !== 1) {
+    return { isRenderProps: false };
+  }
+
+  const child = nonWhitespace[0];
+  if (!Node.isJsxExpression(child)) {
+    return { isRenderProps: false };
+  }
+
+  const expr = child.getExpression();
+  if (!expr || !Node.isArrowFunction(expr)) {
+    return { isRenderProps: false };
+  }
+
+  // Extract parameter (should be exactly one)
+  const params = expr.getParameters();
+  if (params.length !== 1) {
+    return { isRenderProps: false };
+  }
+
+  return {
+    isRenderProps: true,
+    paramName: params[0].getName(),
+    arrowFunction: expr,
+  };
 }
