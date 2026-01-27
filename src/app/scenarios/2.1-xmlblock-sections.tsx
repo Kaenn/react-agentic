@@ -4,11 +4,15 @@
  * Goal: Confirm that `<XmlBlock>` components render as proper XML-style sections
  * that Claude can parse as structured instructions.
  *
+ * v2.0 Features Demonstrated:
+ * - List component for unordered lists (replaces manual <ul>/<li>)
+ * - List component with ordered prop (replaces manual <ol>/<li>)
+ *
  * Run: node dist/cli/index.js build src/app/scenarios/2.1-xmlblock-sections.tsx
  * Output: .claude/skills/xmlblock-test/SKILL.md
  */
 
-import { Skill, XmlBlock } from '../../jsx.js';
+import { Skill, XmlBlock, List } from '../../jsx.js';
 
 export default function XmlBlockTestSkill() {
   return (
@@ -31,11 +35,11 @@ export default function XmlBlockTestSkill() {
       </XmlBlock>
 
       <XmlBlock name="constraints">
-        <ul>
-          <li>You must respond in a structured format</li>
-          <li>You must reference each XmlBlock section by name</li>
-          <li>You must confirm the nesting is preserved</li>
-        </ul>
+        <List items={[
+          "You must respond in a structured format",
+          "You must reference each XmlBlock section by name",
+          "You must confirm the nesting is preserved",
+        ]} />
       </XmlBlock>
 
       <XmlBlock name="output-format">
@@ -59,12 +63,15 @@ timestamp: "ISO timestamp"`}</code></pre>
         After analyzing the structure above, confirm the following:
       </p>
 
-      <ol>
-        <li>Each XmlBlock rendered as &lt;tagname&gt;content&lt;/tagname&gt;</li>
-        <li>You interpreted each section as structured instructions</li>
-        <li>Multiple XmlBlocks were treated as separate logical sections</li>
-        <li>Nested content (lists, paragraphs) within XmlBlock was preserved</li>
-      </ol>
+      <List
+        items={[
+          "Each XmlBlock rendered as <tagname>content</tagname>",
+          "You interpreted each section as structured instructions",
+          "Multiple XmlBlocks were treated as separate logical sections",
+          "Nested content (lists, paragraphs) within XmlBlock was preserved",
+        ]}
+        ordered
+      />
     </Skill>
   );
 }
