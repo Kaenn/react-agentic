@@ -131,12 +131,12 @@ Plans:
   3. Unit tests cover each new component with expected input -> output
   4. Integration test demonstrates all new components in a single command
   5. Documentation updated for all new components
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 24-01: Transformer updates for all new components
-- [ ] 24-02: Emitter updates for all new IR nodes
-- [ ] 24-03: Tests and documentation
+- [ ] 24-01-PLAN.md — Unit verification tests for Table, List, and semantic components
+- [ ] 24-02-PLAN.md — Control flow tests (Loop, OnStatus, Step) and v2.0 integration test
+- [ ] 24-03-PLAN.md — Documentation updates for all v2.0 components
 
 ### Phase 25: TSX Test Modernization
 **Goal**: Update all TSX test files in src/app/ to use new v2.0 syntax features (Table, List, ExecutionContext, SuccessCriteria, OfferNext, XML sections, render props, Step component)
