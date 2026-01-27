@@ -43,7 +43,7 @@ export {
 // Dispatch (recursive transform entry point)
 // ============================================================================
 
-export { dispatchBlockTransform, transformBlockChildren } from './dispatch.js';
+export { transformToBlock, transformBlockChildren } from './dispatch.js';
 
 // ============================================================================
 // Document Transformers (Plan 26-03)
@@ -140,3 +140,51 @@ export {
 //
 // Markdown transformers:
 // - transformMarkdown, transformXmlBlock
+
+// ============================================================================
+// SpawnAgent Transformers (Plan 26-04)
+// ============================================================================
+
+export {
+  transformSpawnAgent,
+} from './spawner.js';
+
+// ============================================================================
+// Variable Transformers (Plan 26-04)
+// ============================================================================
+
+export {
+  transformAssign,
+  transformAssignGroup,
+} from './variables.js';
+
+// ============================================================================
+// State Transformers (Plan 26-04)
+// ============================================================================
+
+export {
+  transformReadState,
+  transformWriteState,
+} from './state.js';
+
+// ============================================================================
+// Primitive Transformers (Plan 26-04)
+// ============================================================================
+
+export {
+  transformStep,
+  transformBash,
+  transformReadFiles,
+  transformPromptTemplate,
+} from './primitives.js';
+
+// ============================================================================
+// Markdown Transformers (Plan 26-04)
+// ============================================================================
+
+export {
+  transformMarkdown,
+  transformXmlBlock,
+  transformCustomComponent,
+  extractTemplateText,
+} from './markdown.js';
