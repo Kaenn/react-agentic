@@ -11,7 +11,7 @@
 - **v1.6 State System** - Phase 17 (shipped 2026-01-22)
 - **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
 - **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-26)
-- **v2.0 TSX Syntax Improvements** - Phases 20-24 (in progress)
+- **v2.0 TSX Syntax Improvements** - Phases 20-25 (in progress)
 
 ## Phases
 
@@ -51,6 +51,7 @@ See: .planning/ROADMAP.md history or milestone archives
 - [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
 - [ ] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component
 - [ ] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests
+- [ ] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features
 
 ## Phase Details
 
@@ -113,12 +114,12 @@ Plans:
   3. `<Bash<string>>`, `<Loop<T>>`, `<If<T>>` accept explicit generic type parameters
   4. `<Step name="Setup" number={1}>` component emits numbered workflow section
   5. Context types include relevant command/agent metadata
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 23-01: Command and Agent render props support
-- [ ] 23-02: Explicit generics on workflow components
-- [ ] 23-03: Step component for numbered sections
+- [ ] 23-01-PLAN.md — Command and Agent render props support (CTX-01, CTX-02)
+- [ ] 23-02-PLAN.md — Explicit generics on workflow components (CTX-03)
+- [ ] 23-03-PLAN.md — Step component for numbered sections (CTX-04)
 
 ### Phase 24: Parser/Emitter Integration
 **Goal**: Wire all new components through transformer and emitter with comprehensive tests
@@ -137,10 +138,26 @@ Plans:
 - [ ] 24-02: Emitter updates for all new IR nodes
 - [ ] 24-03: Tests and documentation
 
+### Phase 25: TSX Test Modernization
+**Goal**: Update all TSX test files in src/app/ to use new v2.0 syntax features (Table, List, ExecutionContext, SuccessCriteria, OfferNext, XML sections, render props, Step component)
+**Depends on**: Phase 24
+**Requirements**: TEST-01
+**Success Criteria** (what must be TRUE):
+  1. All test files in src/app/ demonstrate working examples of v2.0 features
+  2. Table and List components used where appropriate (replaces manual markdown)
+  3. ExecutionContext and SuccessCriteria used for semantic sections
+  4. Render props pattern demonstrated in at least one Command and Agent
+  5. All files build successfully with `npm run build`
+  6. Tests serve as working documentation for v2.0 features
+**Plans**: TBD
+
+Plans:
+- [ ] 25-01: TBD (run /gsd:plan-phase 25 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
+Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -161,6 +178,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
 | 23. Context Access Patterns | v2.0 | 0/3 | Not started | - |
 | 24. Parser/Emitter Integration | v2.0 | 0/3 | Not started | - |
+| 25. TSX Test Modernization | v2.0 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-01-21*
