@@ -10,11 +10,14 @@
  * - The description becomes the prompt
  * - Claude successfully spawns the sub-agent
  *
+ * v2.0 Features Demonstrated:
+ * - List component with ordered prop for numbered objectives
+ *
  * Run: node dist/cli/index.js build src/app/scenarios/5.1-spawnagent-basic.tsx
  * Output: .claude/commands/5.1-spawnagent-basic.md
  */
 
-import { Command, SpawnAgent } from '../../jsx.js';
+import { Command, SpawnAgent, List } from '../../jsx.js';
 import type { EchoAgentOutput } from './5.1-echo-agent.js';
 
 export default function SpawnAgentBasicCommand() {
@@ -32,12 +35,15 @@ export default function SpawnAgentBasicCommand() {
 
       <h2>Test Objectives</h2>
 
-      <ol>
-        <li>Verify SpawnAgent produces Task() call in the markdown</li>
-        <li>Verify agent name appears as subagent_type parameter</li>
-        <li>Verify description/prompt is passed correctly</li>
-        <li>Verify Claude successfully spawns and receives agent response</li>
-      </ol>
+      <List
+        items={[
+          "Verify SpawnAgent produces Task() call in the markdown",
+          "Verify agent name appears as subagent_type parameter",
+          "Verify description/prompt is passed correctly",
+          "Verify Claude successfully spawns and receives agent response",
+        ]}
+        ordered
+      />
 
       <h2>Spawn Test</h2>
 
