@@ -335,6 +335,27 @@ export interface WriteStateNode {
 }
 
 /**
+ * Step output variant
+ */
+export type StepVariant = 'heading' | 'bold' | 'xml';
+
+/**
+ * Numbered workflow step
+ * Emits formatted step section based on variant
+ */
+export interface StepNode {
+  kind: 'step';
+  /** Step number (string to support "1.1" sub-steps) */
+  number: string;
+  /** Step name/title */
+  name: string;
+  /** Output format variant (default: 'heading') */
+  variant: StepVariant;
+  /** Step body content */
+  children: BlockNode[];
+}
+
+/**
  * Union of all block node types
  */
 export type BlockNode =
@@ -357,7 +378,8 @@ export type BlockNode =
   | OnStatusNode
   | ReadStateNode
   | WriteStateNode
-  | MCPServerNode;
+  | MCPServerNode
+  | StepNode;
 
 // ============================================================================
 // Special Nodes
