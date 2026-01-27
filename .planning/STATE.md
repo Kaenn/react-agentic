@@ -12,10 +12,10 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 Phase: 26 (Parser Refactoring)
 Plan: 4 of ? in current phase
 Status: In progress
-Last activity: 2026-01-27 — Completed 26-03-PLAN.md (transformer extraction wave 1)
+Last activity: 2026-01-27 — Completed 26-04-PLAN.md (remaining transformer extraction)
 
-Progress: [####################] v2.0 COMPLETE | [####                ] v2.1: 3 plans complete (26-01, 26-02, 26-03)
-Next: Complete dispatch.ts and wire up extracted transformers (26-04)
+Progress: [####################] v2.0 COMPLETE | [#####               ] v2.1: 4 plans complete (26-01, 26-02, 26-03, 26-04)
+Next: Create slim transformer.ts coordinator and update parser.ts re-exports (26-05 or cleanup)
 
 ## Milestone History
 
@@ -58,7 +58,7 @@ Next: Complete dispatch.ts and wire up extracted transformers (26-04)
 | 23 | 3/3 | 15m | 5m |
 | 24 | 3/3 | 7m 36s | 2m 32s |
 | 25 | 3/3 | ~9m | ~3m |
-| 26 | 3/? | 17m 29s | 5m 50s |
+| 26 | 4/? | 26m 29s | 6m 37s |
 
 *Updated after each plan completion*
 
@@ -143,6 +143,9 @@ Phase 26 decisions (in progress):
 - Error throw stubs in transformers: Use explicit errors (not TODOs) for incomplete recursive calls - ensures code paths explicit
 - Helper function co-location: Extract helpers alongside main transformers in same module for cohesion
 - Hook extraction helpers in control.ts: extractOutputDeclarations/extractStateRefDeclarations placed with OnStatus transformer
+- require() for circular imports in markdown.ts: transformCustomComponent needs transformToBlock from dispatch - use dynamic require() to break cycle
+- Property access resolution for const objects: Allows loadFromFile={AGENT_PATHS.researcher} to resolve at build time
+- extractTemplateText conversion: TSX ${var} becomes GSD {var} for proper placeholder syntax
 
 ### Roadmap Evolution
 
