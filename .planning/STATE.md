@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.1 Parser Refactoring - Phase 26 (Parser Refactoring) NOT STARTED
+**Current focus:** v2.1 Parser Refactoring - Phase 26 (Parser Refactoring) IN PROGRESS
 
 ## Current Position
 
 Phase: 26 (Parser Refactoring)
-Plan: 0 of ? in current phase
-Status: Not started
-Last activity: 2026-01-27 — Added Phase 26 to roadmap
+Plan: 2 of ? in current phase
+Status: In progress
+Last activity: 2026-01-27 — Completed 26-02-PLAN.md (foundation)
 
-Progress: [####################] v2.0 COMPLETE | [ ] v2.1: Phase 26 added
-Next: Run /gsd:plan-phase 26 to create implementation plans
+Progress: [####################] v2.0 COMPLETE | [##                  ] v2.1: 2 plans complete
+Next: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
 
 ## Milestone History
 
@@ -130,6 +130,13 @@ Phase 25 decisions (complete):
 - Render props demonstrated in Agent with ctx.name, ctx.model interpolation
 - OfferNext routes replace manual offer_next XmlBlock in release command
 
+Phase 26 decisions (in progress):
+- TransformContext pattern: Explicit context passing replaces class instance state for functional transformer modules
+- Central dispatch pattern: dispatch.ts prevents circular imports between transformer modules
+- Stub strategy: dispatch.ts contains stubs (not empty implementations) for clear Plan 03/04 handoff
+- Pure utility extraction: shared.ts contains only non-recursive utilities, recursive transforms use dispatch
+- Node import as value: Required for runtime checks (Node.isJsxText), not just types
+
 ### Roadmap Evolution
 
 - Phase 25 added: TSX Test Modernization - update all src/app/ test files to use v2.0 syntax features
@@ -147,5 +154,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Added Phase 26 to roadmap
-Resume with: /gsd:plan-phase 26 to create parser refactoring plans
+Stopped at: Completed 26-02-PLAN.md (transformers foundation)
+Resume with: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
