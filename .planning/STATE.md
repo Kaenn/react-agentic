@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 26 (Parser Refactoring)
-Plan: 2 of ? in current phase
+Plan: 3 of ? in current phase
 Status: In progress
-Last activity: 2026-01-27 — Completed 26-02-PLAN.md (foundation)
+Last activity: 2026-01-27 — Completed 26-01-PLAN.md (utils extraction)
 
-Progress: [####################] v2.0 COMPLETE | [##                  ] v2.1: 2 plans complete
-Next: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
+Progress: [####################] v2.0 COMPLETE | [###                 ] v2.1: 3 plans complete (26-01, 26-02)
+Next: Update parser.ts imports to use utils/ or continue with transformer plans
 
 ## Milestone History
 
@@ -33,9 +33,9 @@ Next: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 69 (v1.0-v1.8, v2.0 complete)
+- Total plans completed: 72 (v1.0-v1.8, v2.0 complete, v2.1 in progress)
 - Average duration: ~3m
-- Total execution time: ~3.7 hours
+- Total execution time: ~3.8 hours
 
 **By Phase (v1.1-v1.8, v2.0):**
 
@@ -58,6 +58,7 @@ Next: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
 | 23 | 3/3 | 15m | 5m |
 | 24 | 3/3 | 7m 36s | 2m 32s |
 | 25 | 3/3 | ~9m | ~3m |
+| 26 | 3/? | 10m | 3m 20s |
 
 *Updated after each plan completion*
 
@@ -136,6 +137,9 @@ Phase 26 decisions (in progress):
 - Stub strategy: dispatch.ts contains stubs (not empty implementations) for clear Plan 03/04 handoff
 - Pure utility extraction: shared.ts contains only non-recursive utilities, recursive transforms use dispatch
 - Node import as value: Required for runtime checks (Node.isJsxText), not just types
+- Extract utilities without modifying parser.ts: Create clean foundation first, update imports in 26-02
+- Forward reference ExtractedVariable: Avoid circular import in jsx-traversal.ts, proper import through barrel export
+- Barrel export pattern: Single utils/index.ts provides convenient import point for all utilities
 
 ### Roadmap Evolution
 
@@ -154,5 +158,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 26-02-PLAN.md (transformers foundation)
-Resume with: Execute 26-03 (dispatch implementation) or 26-04 (transformer extraction)
+Stopped at: Completed 26-01-PLAN.md (utils extraction)
+Resume with: Update parser.ts imports or continue with transformer plans (26-03/26-04)
