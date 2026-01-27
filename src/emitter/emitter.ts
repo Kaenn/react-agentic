@@ -24,6 +24,7 @@ import type {
   InputPropertyValue,
   ListItemNode,
   ListNode,
+  LoopNode,
   OfferNextNode,
   OnStatusNode,
   ParagraphNode,
@@ -34,6 +35,8 @@ import type {
   SpawnAgentInput,
   SpawnAgentNode,
   SuccessCriteriaNode,
+  StepNode,
+  StepVariant,
   TableNode,
   TypeReference,
   WriteStateNode,
@@ -240,12 +243,16 @@ export class MarkdownEmitter {
         return this.emitIf(node);
       case 'else':
         return this.emitElse(node);
+      case 'loop':
+        return this.emitLoop(node);
       case 'onStatus':
         return this.emitOnStatus(node);
       case 'readState':
         return this.emitReadState(node);
       case 'writeState':
         return this.emitWriteState(node);
+      case 'step':
+        return this.emitStep(node);
       case 'mcpServer':
         // MCP servers are not emitted via markdown emitter
         // They go through settings.ts emitter to settings.json
@@ -689,6 +696,35 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Emit LoopNode as markdown loop description
+   *
+   * Output format:
+   * **For each {as} in {items}:**
+   * {children}
+   */
+  private emitLoop(node: LoopNode): string {
+    const parts: string[] = [];
+
+    // Build loop header
+    const varName = node.as || 'item';
+    const itemsExpr = node.items || 'items';
+
+    parts.push(`**For each ${varName} in ${itemsExpr}:**`);
+
+    // Emit children with indentation context
+    const childParts: string[] = [];
+    for (const child of node.children) {
+      childParts.push(this.emitBlock(child));
+    }
+
+    if (childParts.length > 0) {
+      parts.push(childParts.join('\n\n'));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
    * Emit OnStatus node as prose-based status conditional
    *
    * Output format:
@@ -750,6 +786,61 @@ export class MarkdownEmitter {
       const mergeJson = value.content;
       return `Use skill \`/react-agentic:state-write ${stateKey} --merge '${mergeJson}'\`.`;
     }
+  }
+
+  /**
+   * Emit StepNode as formatted step section
+   *
+   * Variants:
+   * - 'heading': ## Step 1: Name
+   * - 'bold': **Step 1: Name**
+   * - 'xml': <step number="1" name="Name">...</step>
+   */
+  private emitStep(node: StepNode): string {
+    const { number, name, variant, children } = node;
+    const parts: string[] = [];
+
+    // Emit children content
+    const childContent = children
+      .map(child => this.emitBlock(child))
+      .filter(s => s.length > 0)
+      .join('\n\n');
+
+    switch (variant) {
+      case 'heading':
+        // ## Step 1: Setup
+        parts.push(`## Step ${number}: ${name}`);
+        if (childContent) {
+          parts.push(childContent);
+        }
+        break;
+
+      case 'bold':
+        // **Step 1: Setup**
+        parts.push(`**Step ${number}: ${name}**`);
+        if (childContent) {
+          parts.push(childContent);
+        }
+        break;
+
+      case 'xml':
+        // <step number="1" name="Setup">...</step>
+        parts.push(`<step number="${number}" name="${name}">`);
+        if (childContent) {
+          parts.push(childContent);
+        }
+        parts.push('</step>');
+        break;
+
+      default:
+        // Fallback to heading
+        parts.push(`## Step ${number}: ${name}`);
+        if (childContent) {
+          parts.push(childContent);
+        }
+    }
+
+    return parts.join('\n\n');
   }
 
   /**
