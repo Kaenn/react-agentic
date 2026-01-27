@@ -169,22 +169,24 @@ Plans:
 **Depends on**: Phase 25 (v2.0 complete)
 **Requirements**: REF-01, REF-02
 **Success Criteria** (what must be TRUE):
-  1. `parser.ts` (1255 lines) split into logical submodules
-  2. `transformer.ts` (3956 lines) split into focused transformer modules by component type
+  1. `parser.ts` (1255 lines) split into `utils/` directory with 7 focused modules
+  2. `transformer.ts` (3956 lines) split into `transformers/` directory with 10 focused modules
   3. Central `index.ts` re-exports all public APIs (no breaking changes)
   4. All existing tests pass after refactoring
   5. Build passes with no TypeScript errors
   6. Code is easier to navigate and understand
-**Plans**: TBD (run /gsd:plan-phase 26 to break down)
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD — Research current structure and design module boundaries
-- [ ] TBD — Implementation and verification
+- [ ] 26-01-PLAN.md — Create utils/ directory with project, jsx-traversal, text-extraction, spread-resolution, component-resolution, type-resolution, variable-extraction modules
+- [ ] 26-02-PLAN.md — Create transformers/ directory foundation (types, shared utilities, dispatch stub)
+- [ ] 26-03-PLAN.md — Extract document, html, inline, semantic, control transformers
+- [ ] 26-04-PLAN.md — Extract remaining transformers, implement dispatch, update coordinator, verify tests
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
+Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -206,8 +208,9 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25
 | 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 25. TSX Test Modernization | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 26. Parser Refactoring | v2.1 | 0/? | Not Started | - |
+| 26. Parser Refactoring | v2.1 | 0/4 | Not Started | - |
 
 ---
 *Roadmap created: 2026-01-21*
 *v2.0 TSX Syntax Improvements started: 2026-01-26*
+*v2.1 Parser Refactoring planned: 2026-01-27*
