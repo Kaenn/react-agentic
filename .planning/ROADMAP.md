@@ -48,7 +48,7 @@ See: .planning/ROADMAP.md history or milestone archives
 
 - [x] **Phase 20: Module Restructure** - Split jsx.ts into primitives/ and workflow/ directories (complete 2026-01-26)
 - [x] **Phase 21: Structured Props** - Table and List components with array-based props (complete 2026-01-26)
-- [ ] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections
+- [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
 - [ ] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component
 - [ ] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests
 
@@ -95,12 +95,13 @@ Plans:
   3. `<OfferNext routes={[{name: "x", description: "y", path: "z"}]} />` emits typed navigation section
   4. `<DeviationRules>`, `<CommitRules>`, `<WaveExecution>`, `<CheckpointHandling>` emit named XML sections with children
   5. All semantic components work inside Command and Agent bodies
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 22-01-PLAN.md - ExecutionContext, SuccessCriteria, XmlSection components and IR nodes
-- [ ] 22-02-PLAN.md - OfferNext component with typed routes and XML wrapper components
-- [ ] 22-03-PLAN.md - Transformer and emitter implementation for all semantic components
+- [x] 22-01-PLAN.md - ExecutionContext, SuccessCriteria, XmlSection components and IR nodes
+- [x] 22-02-PLAN.md - OfferNext component with typed routes and XML wrapper components
+- [x] 22-03-PLAN.md - Transformer implementation for all semantic components
+- [x] 22-04-PLAN.md - Emitter implementation and end-to-end verification
 
 ### Phase 23: Context Access Patterns
 **Goal**: Enable render props pattern for context access and explicit generics on workflow components
@@ -157,7 +158,7 @@ Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24
 | 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-26 |
 | 20. Module Restructure | v2.0 | 2/2 | Complete | 2026-01-26 |
 | 21. Structured Props | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 22. Semantic Components | v2.0 | 0/3 | Not started | - |
+| 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
 | 23. Context Access Patterns | v2.0 | 0/3 | Not started | - |
 | 24. Parser/Emitter Integration | v2.0 | 0/3 | Not started | - |
 
