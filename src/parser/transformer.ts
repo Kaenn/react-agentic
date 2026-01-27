@@ -1443,11 +1443,34 @@ export class Transformer {
       ? node.getOpeningElement()
       : node;
 
-    // Extract required props
-    const numberAttr = getAttributeValue(openingElement, 'number');
+    // Extract number prop (supports both string and numeric literals)
+    let stepNumber: string | undefined = undefined;
+    const numberAttr = openingElement.getAttribute('number');
+    if (numberAttr && Node.isJsxAttribute(numberAttr)) {
+      const init = numberAttr.getInitializer();
+      if (init) {
+        // String literal: number="1.1"
+        if (Node.isStringLiteral(init)) {
+          stepNumber = init.getLiteralValue();
+        }
+        // JSX expression: number={1} or number={"1.1"}
+        else if (Node.isJsxExpression(init)) {
+          const expr = init.getExpression();
+          if (expr) {
+            if (Node.isNumericLiteral(expr)) {
+              stepNumber = String(expr.getLiteralValue());
+            } else if (Node.isStringLiteral(expr)) {
+              stepNumber = expr.getLiteralValue();
+            }
+          }
+        }
+      }
+    }
+
+    // Extract name prop
     const name = getAttributeValue(openingElement, 'name');
 
-    if (!numberAttr) {
+    if (!stepNumber) {
       throw this.createError('Step requires number prop', openingElement);
     }
     if (!name) {
@@ -1468,7 +1491,7 @@ export class Transformer {
 
     return {
       kind: 'step',
-      number: numberAttr,
+      number: stepNumber,
       name,
       variant,
       children,
