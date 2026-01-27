@@ -46,22 +46,85 @@ export {
 export { dispatchBlockTransform, transformBlockChildren } from './dispatch.js';
 
 // ============================================================================
-// Future Transformer Modules (Plan 26-03/04)
+// Document Transformers (Plan 26-03)
+// ============================================================================
+
+export {
+  transformCommand,
+  transformAgent,
+  transformSkill,
+  processSkillChildren,
+  transformSkillFile,
+  transformSkillStatic,
+  transformMCPConfig,
+  transformMCPServer,
+  transformState,
+  transformOperation,
+  transformArrowFunctionBody,
+} from './document.js';
+
+// ============================================================================
+// HTML Element Transformers (Plan 26-03)
+// ============================================================================
+
+export {
+  transformList,
+  transformListItem,
+  transformBlockquote,
+  transformCodeBlock,
+  extractCodeContent,
+  transformDiv,
+  transformMixedChildren,
+  extractAllText,
+} from './html.js';
+
+// ============================================================================
+// Inline Transformers (Plan 26-03)
+// ============================================================================
+
+export {
+  transformInlineChildren,
+  transformToInline,
+  transformInlineElement,
+  transformLink,
+  trimBoundaryTextNodes,
+} from './inline.js';
+
+// ============================================================================
+// Semantic Component Transformers (Plan 26-03)
+// ============================================================================
+
+export {
+  transformTable,
+  parseRowsAttribute,
+  transformPropList,
+  transformExecutionContext,
+  transformSuccessCriteria,
+  parseSuccessCriteriaItems,
+  transformOfferNext,
+  parseOfferNextRoutes,
+  transformXmlSection,
+  transformXmlWrapper,
+} from './semantic.js';
+
+// ============================================================================
+// Control Flow Transformers (Plan 26-03)
+// ============================================================================
+
+export {
+  transformIf,
+  transformElse,
+  transformLoop,
+  transformOnStatus,
+  extractOutputDeclarations,
+  extractStateRefDeclarations,
+} from './control.js';
+
+// ============================================================================
+// Future Transformer Modules (Plan 26-04+)
 // ============================================================================
 //
 // The following modules will be added as transformer.ts is refactored:
-//
-// Document transformers (root-level):
-// - transformCommand, transformAgent, transformSkill, etc.
-//
-// HTML element transformers:
-// - transformList, transformBlockquote, transformCodeBlock, etc.
-//
-// Semantic component transformers:
-// - transformTable, transformExecutionContext, transformSuccessCriteria, etc.
-//
-// Control flow transformers:
-// - transformIf, transformElse, transformLoop, transformOnStatus
 //
 // Agent spawning transformers:
 // - transformSpawnAgent, extractAgentProp, etc.
@@ -76,7 +139,4 @@ export { dispatchBlockTransform, transformBlockChildren } from './dispatch.js';
 // - transformStep, transformBash, transformReadFiles, transformPromptTemplate
 //
 // Markdown transformers:
-// - transformMarkdown, transformXmlBlock, transformDiv
-//
-// Inline transformers:
-// - transformInlineChildren, transformToInline, transformInlineElement
+// - transformMarkdown, transformXmlBlock
