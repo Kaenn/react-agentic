@@ -4,11 +4,16 @@
  * Goal: Confirm that `<ul>` and `<ol>` elements render as proper markdown
  * lists that Claude can parse.
  *
+ * v2.0 Features Demonstrated:
+ * - List component for array-based list generation
+ * - List component with ordered prop for numbered lists
+ * - Comparison of manual HTML approach vs structured component
+ *
  * Run: node dist/cli/index.js build src/app/scenarios/2.4-lists-rendering.tsx
  * Output: .claude/skills/lists-rendering-test/SKILL.md
  */
 
-import { Skill } from '../../jsx.js';
+import { Skill, List } from '../../jsx.js';
 
 export default function ListsRenderingTestSkill() {
   return (
@@ -114,6 +119,26 @@ export default function ListsRenderingTestSkill() {
         <li>Count to three (1, 2, 3)</li>
         <li>Say "Instructions complete"</li>
       </ol>
+
+      <h2>Test 7: v2.0 Structured List Component</h2>
+
+      <p>
+        The List component provides array-based list generation, replacing
+        manual ul/li and ol/li patterns:
+      </p>
+
+      <List items={[
+        "First item from array",
+        "Second item from array",
+        "Third item from array",
+      ]} />
+
+      <p>Ordered list variant with the ordered prop:</p>
+
+      <List
+        items={["Step one", "Step two", "Step three"]}
+        ordered
+      />
 
       <h2>Validation Instructions</h2>
 
