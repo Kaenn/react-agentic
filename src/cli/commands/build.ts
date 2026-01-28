@@ -21,9 +21,9 @@ import { TranspileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 
 // Build imports
-import { buildV3File, hasV3Imports } from '../../v3/cli/build-v3.js';
-import { bundleSingleEntryRuntime, bundleCodeSplit } from '../../v3/emitter/index.js';
-import type { RuntimeFileInfo } from '../../v3/emitter/index.js';
+import { buildV3File, hasV3Imports } from '../v3-build.js';
+import { bundleSingleEntryRuntime, bundleCodeSplit } from '../../emitter/index.js';
+import type { RuntimeFileInfo } from '../../emitter/index.js';
 
 interface BuildOptions {
   out: string;

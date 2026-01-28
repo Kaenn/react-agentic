@@ -38,12 +38,11 @@ export {
   getAgentName,
   getAgentPath,
 
-  // ScriptVar utilities
-  isScriptVar,
-  getScriptVarInfo,
+  // RuntimeVar utilities
+  isRuntimeVar,
+  getRuntimeVarInfo,
   toJqExpression,
   toJqPath,
-
   // RuntimeFn utilities
   isRuntimeFn,
   getRuntimeFnRegistry,
@@ -85,10 +84,10 @@ export {
   type Condition,
   type AskUserProps,
   type AskUserOption,
-  type ScriptVar,
-  type ScriptVarProxy,
-  type OrScriptVar,
-  type AllowScriptVars,
+  type RuntimeVar,
+  type RuntimeVarProxy,
+  type OrRuntimeVar,
+  type AllowRuntimeVars,
   type RuntimeFunction,
   type RuntimeCallProps,
   type RuntimeCallComponent,
@@ -99,7 +98,7 @@ export {
 // IR Types (from V3)
 // ============================================================================
 
-export * from './v3/ir/index.js';
+export * from './ir/index.js';
 
 // ============================================================================
 // Emitters (from V3)
@@ -120,7 +119,7 @@ export {
   type RuntimeFileInfo,
   type SingleEntryBundleResult,
   type CodeSplitBundleResult,
-} from './v3/emitter/index.js';
+} from './emitter/index.js';
 
 // ============================================================================
 // Transformers (from V3)
@@ -129,17 +128,17 @@ export {
 export {
   type V3TransformContext,
   type V3TransformResult,
-  type ScriptVarInfo,
+  type RuntimeVarInfo,
   type RuntimeFunctionInfo,
   createV3Context,
-  extractScriptVarDeclarations,
+  extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
   transformV3Command,
   transformToV3Block,
   transformV3BlockChildren,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
-} from './v3/parser/transformers/index.js';
+} from './parser/transformers/index.js';
 
 // ============================================================================
 // Build Functions
@@ -151,7 +150,7 @@ export {
   hasV3Imports,
   type V3BuildResult,
   type V3BuildOptions,
-} from './v3/cli/build-v3.js';
+} from './cli/v3-build.js';
 
 // ============================================================================
 // Parser Utilities (for CLI compatibility)
@@ -161,21 +160,7 @@ export { createProject } from './parser/utils/project.js';
 export { findRootJsxElement, transform, getAttributeValue, resolveTypeImport, extractInterfaceProperties, extractPromptPlaceholders } from './parser/index.js';
 
 // ============================================================================
-// V1 Emitters (for backward compatibility during transition)
+// Additional Emitters
 // ============================================================================
 
 export { emit, emitAgent, emitSkill, emitSkillFile, emitSettings, mergeSettings } from './emitter/index.js';
-
-// ============================================================================
-// V1 IR Types (for backward compatibility during transition)
-// ============================================================================
-
-export type {
-  DocumentNode as V1DocumentNode,
-  AgentDocumentNode,
-  SkillDocumentNode,
-  MCPConfigDocumentNode,
-  StateDocumentNode,
-  BlockNode as V1BlockNode,
-  InlineNode,
-} from './ir/nodes.js';

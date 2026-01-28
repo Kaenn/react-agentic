@@ -2,22 +2,22 @@
  * V3 Transform Context and Types
  *
  * Extends the v1 TransformContext with V3-specific tracking:
- * - Script variable declarations
+ * - Runtime variable declarations
  * - Runtime function usage
  * - Import paths for extraction
  */
 
 import type { SourceFile, Node } from 'ts-morph';
-import type { ScriptVarDeclNode } from '../../ir/index.js';
+import type { RuntimeVarDeclNode } from '../../ir/index.js';
 
 // ============================================================================
-// Script Variable Info
+// Runtime Variable Info
 // ============================================================================
 
 /**
  * Information about a useRuntimeVar declaration
  */
-export interface ScriptVarInfo {
+export interface RuntimeVarInfo {
   /** Variable name (shell variable) */
   varName: string;
   /** TypeScript identifier name in source */
@@ -30,6 +30,7 @@ export interface ScriptVarInfo {
     column: number;
   };
 }
+
 
 // ============================================================================
 // Runtime Function Info
@@ -60,7 +61,7 @@ export interface RuntimeFunctionInfo {
  *
  * Extends the v1 context with V3-specific tracking.
  * Unlike v1 which tracks shell variables, V3 tracks:
- * - ScriptVar declarations (for type-safe references)
+ * - RuntimeVar declarations (for type-safe references)
  * - RuntimeFn usage (for extraction to runtime.js)
  */
 export interface V3TransformContext {
@@ -73,8 +74,8 @@ export interface V3TransformContext {
   /** Visited paths for circular import detection */
   visitedPaths: Set<string>;
 
-  /** Script variable declarations: identifier name -> info */
-  scriptVars: Map<string, ScriptVarInfo>;
+  /** Runtime variable declarations: identifier name -> info */
+  runtimeVars: Map<string, RuntimeVarInfo>;
 
   /** Runtime function wrappers: wrapper name -> info */
   runtimeFunctions: Map<string, RuntimeFunctionInfo>;
@@ -124,7 +125,7 @@ export function createV3Context(
     sourceFile,
     namespace: ns,
     visitedPaths: new Set(),
-    scriptVars: new Map(),
+    runtimeVars: new Map(),
     runtimeFunctions: new Map(),
     runtimeImports: new Set(),
     usedRuntimeFunctions: new Set(),
@@ -147,10 +148,10 @@ export function createV3Context(
  */
 export interface V3TransformResult {
   /** Transformed V3 document */
-  document: import('../../ir/index.js').V3DocumentNode;
+  document: import('../../ir/index.js').DocumentNode;
 
-  /** Script variable declarations (for markdown emission) */
-  scriptVars: ScriptVarDeclNode[];
+  /** Runtime variable declarations (for markdown emission) */
+  runtimeVars: RuntimeVarDeclNode[];
 
   /** Runtime function names used (for runtime.js extraction) */
   runtimeFunctions: string[];

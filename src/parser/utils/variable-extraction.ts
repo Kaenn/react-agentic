@@ -10,7 +10,8 @@ import {
   InterfaceDeclaration,
   ArrowFunction,
 } from 'ts-morph';
-import type { InputProperty, InputPropertyValue, StateSchema, StateSchemaField } from '../../ir/nodes.js';
+import type { StateSchema, StateSchemaField } from '../../ir/nodes.js';
+import type { InputProperty, InputValue } from '../../ir/v3-nodes.js';
 
 // ============================================================================
 // Variable Declaration Extraction (useVariable hook)
@@ -129,12 +130,13 @@ export function isVariableRef(
  *
  * Handles property values:
  * - String literal: { propName: "value" } -> { type: 'string', value: str }
- * - {placeholder} pattern: { propName: "{var}" } -> { type: 'placeholder', name: var }
- * - Identifier referencing variable: { propName: varRef } -> { type: 'variable', name: envName }
+ * - Identifier: treated as string value
+ *
+ * Note: RuntimeVar references are handled by v3-spawner.ts using parseRuntimeVarRef
  *
  * @param objLiteral - The ObjectLiteralExpression from JSX input prop
  * @param variables - Map of declared useVariable results
- * @returns Array of InputProperty with proper InputPropertyValue types
+ * @returns Array of InputProperty with InputValue types
  */
 export function extractInputObjectLiteral(
   objLiteral: ObjectLiteralExpression,
@@ -149,36 +151,19 @@ export function extractInputObjectLiteral(
     const initializer = prop.getInitializer();
     if (!initializer) continue;
 
-    let value: InputPropertyValue;
+    let value: InputValue;
 
     if (Node.isStringLiteral(initializer)) {
       const strValue = initializer.getLiteralValue();
-      // Check for {placeholder} pattern
-      const placeholderMatch = strValue.match(/^\{(\w+)\}$/);
-      if (placeholderMatch) {
-        value = { type: 'placeholder', name: placeholderMatch[1] };
-      } else {
-        value = { type: 'string', value: strValue };
-      }
+      value = { type: 'string', value: strValue };
     } else if (Node.isNoSubstitutionTemplateLiteral(initializer)) {
       const strValue = initializer.getLiteralValue();
-      // Check for {placeholder} pattern
-      const placeholderMatch = strValue.match(/^\{(\w+)\}$/);
-      if (placeholderMatch) {
-        value = { type: 'placeholder', name: placeholderMatch[1] };
-      } else {
-        value = { type: 'string', value: strValue };
-      }
+      value = { type: 'string', value: strValue };
     } else if (Node.isIdentifier(initializer)) {
-      // Identifier referencing a variable
+      // Identifier referencing a variable - treat as string
+      // V3 RuntimeVar references are handled by v3-spawner.ts using parseRuntimeVarRef
       const varName = initializer.getText();
-      const variable = variables.get(varName);
-      if (variable) {
-        value = { type: 'variable', name: variable.envName };
-      } else {
-        // Unknown identifier - treat as string (will be validated elsewhere)
-        value = { type: 'string', value: varName };
-      }
+      value = { type: 'string', value: varName };
     } else {
       // Unsupported initializer type - skip this property
       continue;

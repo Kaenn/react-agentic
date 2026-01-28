@@ -6,26 +6,26 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
-import type { V3BlockNode, V3DocumentNode } from '../../ir/index.js';
-import type { V3TransformContext } from './types.js';
-import { getElementName, extractText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './utils.js';
-import type { XmlBlockNode } from '../../../ir/nodes.js';
+import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
+import type { V3TransformContext } from './v3-types.js';
+import { getElementName, extractText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './v3-utils.js';
+import type { XmlBlockNode } from '../../ir/nodes.js';
 
 // V3 transformers
-import { transformV3If, transformV3Else, transformV3Loop, transformBreak, transformReturn } from './control.js';
-import { transformRuntimeCall, isRuntimeFnCall } from './runtime-call.js';
-import { transformAskUser } from './ask-user.js';
-import { transformV3SpawnAgent } from './spawner.js';
+import { transformV3If, transformV3Else, transformV3Loop, transformBreak, transformReturn } from './v3-control.js';
+import { transformRuntimeCall, isRuntimeFnCall } from './v3-runtime-call.js';
+import { transformAskUser } from './v3-ask-user.js';
+import { transformV3SpawnAgent } from './v3-spawner.js';
 
-// V3 inline transformer for ScriptVar interpolation
-import { transformV3InlineChildren } from './inline.js';
+// V3 inline transformer for RuntimeVar interpolation
+import { transformV3InlineChildren } from './v3-inline.js';
 
 // V1 transformers for shared elements
-import { transformList, transformBlockquote, transformCodeBlock } from '../../../parser/transformers/html.js';
-import { transformTable, transformXmlSection, transformXmlWrapper } from '../../../parser/transformers/semantic.js';
-import { transformXmlBlock, transformMarkdown } from '../../../parser/transformers/markdown.js';
-import type { TransformContext } from '../../../parser/transformers/types.js';
-import type { BlockNode, GroupNode } from '../../../ir/nodes.js';
+import { transformList, transformBlockquote, transformCodeBlock } from './html.js';
+import { transformTable, transformXmlSection, transformXmlWrapper } from './semantic.js';
+import { transformXmlBlock, transformMarkdown } from './markdown.js';
+import type { TransformContext } from './types.js';
+import type { GroupNode } from '../../ir/nodes.js';
 
 // ============================================================================
 // Fragment Handling
@@ -38,18 +38,18 @@ import type { BlockNode, GroupNode } from '../../../ir/nodes.js';
 function transformFragmentChildren(
   fragment: JsxFragment,
   ctx: V3TransformContext
-): V3BlockNode[] {
+): BlockNode[] {
   return transformChildArray(fragment.getJsxChildren(), ctx);
 }
 
 /**
- * Transform an array of JSX children to V3BlockNodes, handling If/Else sibling pairs
+ * Transform an array of JSX children to BlockNodes, handling If/Else sibling pairs
  */
 function transformChildArray(
   jsxChildren: Node[],
   ctx: V3TransformContext
-): V3BlockNode[] {
-  const blocks: V3BlockNode[] = [];
+): BlockNode[] {
+  const blocks: BlockNode[] = [];
   let i = 0;
 
   while (i < jsxChildren.length) {
@@ -121,7 +121,7 @@ function transformChildArray(
 function transformV3BlockChildrenWrapper(
   parent: JsxElement,
   ctx: V3TransformContext
-): V3BlockNode[] {
+): BlockNode[] {
   return transformChildArray(parent.getJsxChildren(), ctx);
 }
 
@@ -139,7 +139,7 @@ function adaptToV1Context(v3Ctx: V3TransformContext): TransformContext {
   return {
     sourceFile: v3Ctx.sourceFile,
     visitedPaths: v3Ctx.visitedPaths,
-    variables: new Map(), // V3 uses scriptVars, not variables
+    variables: new Map(), // V3 uses runtimeVars, not variables
     outputs: new Map(),
     stateRefs: new Map(),
     renderPropsContext: undefined,
@@ -208,7 +208,7 @@ function transformV3Div(
     kind: 'xmlBlock',
     name: nameAttr,
     attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
-    children: children as BlockNode[],
+    children: children as BaseBlockNode[],
   };
 }
 
@@ -227,8 +227,8 @@ const V3_INLINE_ELEMENTS = new Set([
 function transformV3MixedChildren(
   jsxChildren: Node[],
   ctx: V3TransformContext
-): V3BlockNode[] {
-  const blocks: V3BlockNode[] = [];
+): BlockNode[] {
+  const blocks: BlockNode[] = [];
   let inlineAccumulator: Node[] = [];
 
   const flushInline = () => {
@@ -393,12 +393,12 @@ function transformV3XmlBlock(
 // ============================================================================
 
 /**
- * Transform a JSX node to V3BlockNode
+ * Transform a JSX node to BlockNode
  */
 export function transformToV3Block(
   node: Node,
   ctx: V3TransformContext
-): V3BlockNode | null {
+): BlockNode | null {
   // Whitespace-only text - skip
   if (Node.isJsxText(node)) {
     const text = extractText(node);
@@ -422,7 +422,7 @@ export function transformToV3Block(
         // Block body: { return (...) }
         if (Node.isBlock(body)) {
           // Use object holder for TypeScript control flow
-          const holder: { result: V3BlockNode[] | null } = { result: null };
+          const holder: { result: BlockNode[] | null } = { result: null };
 
           body.forEachDescendant((descendant, traversal) => {
             if (Node.isReturnStatement(descendant)) {
@@ -453,7 +453,7 @@ export function transformToV3Block(
               return holder.result[0];
             }
             // Multiple blocks - return as group (this is a simplified approach)
-            return { kind: 'group', children: holder.result } as V3BlockNode;
+            return { kind: 'group', children: holder.result } as BlockNode;
           }
         }
 
@@ -466,7 +466,7 @@ export function transformToV3Block(
         if (Node.isJsxFragment(inner)) {
           const blocks = transformFragmentChildren(inner, ctx);
           if (blocks.length === 1) return blocks[0];
-          return { kind: 'group', children: blocks } as V3BlockNode;
+          return { kind: 'group', children: blocks } as BlockNode;
         }
 
         if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
@@ -475,7 +475,7 @@ export function transformToV3Block(
       }
 
       // Not a render function - treat as text with the expression
-      // TODO: Handle ScriptVar interpolation properly
+      // TODO: Handle RuntimeVar interpolation properly
       return { kind: 'paragraph', children: [{ kind: 'text', value: `{${expr.getText()}}` }] };
     }
   }
@@ -489,7 +489,7 @@ export function transformToV3Block(
 function transformV3Element(
   node: JsxElement | JsxSelfClosingElement,
   ctx: V3TransformContext
-): V3BlockNode | null {
+): BlockNode | null {
   const name = getElementName(node);
 
   // ============================================================
@@ -543,7 +543,7 @@ function transformV3Element(
 
   const v1Ctx = adaptToV1Context(ctx);
 
-  // Headings - use V3 inline transformer for ScriptVar interpolation
+  // Headings - use V3 inline transformer for RuntimeVar interpolation
   const headingMatch = name.match(/^h([1-6])$/);
   if (headingMatch) {
     const level = parseInt(headingMatch[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
@@ -553,7 +553,7 @@ function transformV3Element(
     return { kind: 'heading', level, children };
   }
 
-  // Paragraph - use V3 inline transformer for ScriptVar interpolation
+  // Paragraph - use V3 inline transformer for RuntimeVar interpolation
   if (name === 'p') {
     const children = Node.isJsxElement(node)
       ? transformV3InlineChildren(node, ctx)
@@ -568,25 +568,25 @@ function transformV3Element(
 
   // Lists
   if (name === 'ul') {
-    return transformList(node, false, v1Ctx) as V3BlockNode;
+    return transformList(node, false, v1Ctx) as BlockNode;
   }
   if (name === 'ol') {
-    return transformList(node, true, v1Ctx) as V3BlockNode;
+    return transformList(node, true, v1Ctx) as BlockNode;
   }
 
   // Blockquote
   if (name === 'blockquote') {
-    return transformBlockquote(node, v1Ctx) as V3BlockNode;
+    return transformBlockquote(node, v1Ctx) as BlockNode;
   }
 
   // Code block
   if (name === 'pre') {
-    return transformCodeBlock(node, v1Ctx) as V3BlockNode;
+    return transformCodeBlock(node, v1Ctx) as BlockNode;
   }
 
   // Div (XML block or group) - use V3 transformer for proper children handling
   if (name === 'div') {
-    return transformV3Div(node, ctx) as V3BlockNode;
+    return transformV3Div(node, ctx) as BlockNode;
   }
 
   // XmlBlock component - handle directly to use V3 transformers for children
@@ -609,27 +609,27 @@ function transformV3Element(
       paths,
       prefix,
       children,
-    } as V3BlockNode;
+    } as BlockNode;
   }
 
   // Table component
   if (name === 'Table') {
-    return transformTable(node, v1Ctx) as V3BlockNode;
+    return transformTable(node, v1Ctx) as BlockNode;
   }
 
   // XmlSection
   if (name === 'XmlSection') {
-    return transformXmlSection(node, v1Ctx) as V3BlockNode;
+    return transformXmlSection(node, v1Ctx) as BlockNode;
   }
 
   // XML wrapper components
   if (['DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling'].includes(name)) {
-    return transformXmlWrapper(name, node, v1Ctx) as V3BlockNode;
+    return transformXmlWrapper(name, node, v1Ctx) as BlockNode;
   }
 
   // Markdown passthrough
   if (name === 'Markdown') {
-    return transformMarkdown(node, v1Ctx) as V3BlockNode;
+    return transformMarkdown(node, v1Ctx) as BlockNode;
   }
 
   throw ctx.createError(`Unsupported V3 element: <${name}>`, node);
@@ -640,14 +640,14 @@ function transformV3Element(
 // ============================================================================
 
 /**
- * Transform JSX children to V3BlockNodes, handling If/Else sibling pairs
+ * Transform JSX children to BlockNodes, handling If/Else sibling pairs
  */
 export function transformV3BlockChildren(
   parent: JsxElement,
   ctx: V3TransformContext
-): V3BlockNode[] {
+): BlockNode[] {
   const jsxChildren = parent.getJsxChildren();
-  const blocks: V3BlockNode[] = [];
+  const blocks: BlockNode[] = [];
   let i = 0;
 
   while (i < jsxChildren.length) {
@@ -715,7 +715,7 @@ export function transformV3BlockChildren(
 // ============================================================================
 
 /**
- * Transform a V3 Command element to V3DocumentNode
+ * Transform a V3 Command element to DocumentNode
  *
  * Supports two patterns:
  * 1. Render props: <Command>{() => { return (<>...</>) }}</Command>
@@ -724,7 +724,7 @@ export function transformV3BlockChildren(
 export function transformV3Command(
   root: JsxElement | JsxSelfClosingElement,
   ctx: V3TransformContext
-): V3DocumentNode {
+): DocumentNode {
   // Extract frontmatter from Command props
   const openingElement = Node.isJsxElement(root)
     ? root.getOpeningElement()
@@ -767,7 +767,7 @@ export function transformV3Command(
   }
 
   // Transform children - detect render props vs direct JSX
-  let children: V3BlockNode[] = [];
+  let children: BlockNode[] = [];
 
   if (Node.isJsxElement(root)) {
     const jsxChildren = root.getJsxChildren();
@@ -792,9 +792,9 @@ export function transformV3Command(
     }
   }
 
-  // Collect script var declarations
-  const scriptVars = Array.from(ctx.scriptVars.values()).map(info => ({
-    kind: 'scriptVarDecl' as const,
+  // Collect runtime var declarations
+  const runtimeVars = Array.from(ctx.runtimeVars.values()).map(info => ({
+    kind: 'runtimeVarDecl' as const,
     varName: info.varName,
     tsType: info.tsType,
   }));
@@ -803,11 +803,11 @@ export function transformV3Command(
   const runtimeFunctions = Array.from(ctx.usedRuntimeFunctions);
 
   return {
-    kind: 'v3Document',
+    kind: 'document',
     frontmatter: Object.keys(frontmatterData).length > 0
-      ? { kind: 'v3Frontmatter', data: frontmatterData }
+      ? { kind: 'frontmatter', data: frontmatterData }
       : undefined,
-    scriptVars,
+    runtimeVars,
     runtimeFunctions,
     children,
   };
@@ -824,14 +824,14 @@ export function transformV3Command(
 function extractRenderPropsChildren(
   arrowFn: Node,
   ctx: V3TransformContext
-): V3BlockNode[] {
+): BlockNode[] {
   if (!Node.isArrowFunction(arrowFn)) return [];
 
   const body = arrowFn.getBody();
 
   // Block body: { return (...) }
   if (Node.isBlock(body)) {
-    const holder: { result: V3BlockNode[] | null } = { result: null };
+    const holder: { result: BlockNode[] | null } = { result: null };
 
     body.forEachDescendant((descendant, traversal) => {
       if (Node.isReturnStatement(descendant)) {

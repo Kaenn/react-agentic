@@ -5,3 +5,4 @@
  */
 
 export * from './nodes.js';
+export * from './v3-nodes.js';

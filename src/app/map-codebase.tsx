@@ -25,7 +25,7 @@ import {
   SpawnAgent,
   XmlBlock,
   Table,
-} from '../../jsx.js';
+} from '../jsx.js';
 
 // Import runtime functions
 import {
@@ -70,7 +70,7 @@ export default (
     allowedTools={["Read", "Write", "Bash", "Glob", "Grep", "Task"]}
   >
     {() => {
-      // Variable declarations with typed ScriptVars
+      // Variable declarations with typed RuntimeVars
       const ctx = useRuntimeVar<MapCodebaseContext>('CTX');
       const userChoice = useRuntimeVar<string>('USER_CHOICE');
       const techPrompt = useRuntimeVar<AgentPrompt>('TECH_PROMPT');

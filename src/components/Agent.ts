@@ -7,7 +7,7 @@
 
 import type { ReactNode } from 'react';
 import type { CommandContext } from './Command.js';
-import type { ScriptVarProxy, OrScriptVar, AllowScriptVars } from './script-var.js';
+import type { RuntimeVarProxy, OrRuntimeVar, AllowRuntimeVars } from './runtime-var.js';
 
 // ============================================================================
 // Types
@@ -166,23 +166,23 @@ export interface SpawnAgentProps<TInput = unknown> {
 }
 
 /**
- * V3-compatible SpawnAgent props with ScriptVar support
+ * V3-compatible SpawnAgent props with RuntimeVar support
  */
 export interface V3SpawnAgentProps<TInput = unknown> {
-  /** Agent to spawn - accepts ScriptVar for runtime resolution */
-  agent: OrScriptVar<string> | AgentRef<TInput>;
-  /** Model to use - supports static string or ScriptVar */
-  model: OrScriptVar<string>;
-  /** Human-readable description - accepts static or ScriptVar */
-  description: OrScriptVar<string>;
-  /** Enable "load from file" pattern - accepts ScriptVar */
-  loadFromFile?: OrScriptVar<string | boolean>;
-  /** Prompt content - supports ScriptVar interpolation */
-  prompt?: OrScriptVar<string>;
-  /** Typed input - accepts ScriptVar values */
-  input?: ScriptVarProxy<TInput> | Partial<AllowScriptVars<TInput>>;
-  /** ScriptVar to store the agent's output */
-  output?: ScriptVarProxy<string>;
+  /** Agent to spawn - accepts RuntimeVar for runtime resolution */
+  agent: OrRuntimeVar<string> | AgentRef<TInput>;
+  /** Model to use - supports static string or RuntimeVar */
+  model: OrRuntimeVar<string>;
+  /** Human-readable description - accepts static or RuntimeVar */
+  description: OrRuntimeVar<string>;
+  /** Enable "load from file" pattern - accepts RuntimeVar */
+  loadFromFile?: OrRuntimeVar<string | boolean>;
+  /** Prompt content - supports RuntimeVar interpolation */
+  prompt?: OrRuntimeVar<string>;
+  /** Typed input - accepts RuntimeVar values */
+  input?: RuntimeVarProxy<TInput> | Partial<AllowRuntimeVars<TInput>>;
+  /** RuntimeVar to store the agent's output */
+  output?: RuntimeVarProxy<string>;
   /** Optional extra instructions */
   children?: ReactNode;
 }

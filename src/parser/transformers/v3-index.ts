@@ -8,19 +8,19 @@
 export {
   type V3TransformContext,
   type V3TransformResult,
-  type ScriptVarInfo,
+  type RuntimeVarInfo,
   type RuntimeFunctionInfo,
   createV3Context,
-} from './types.js';
+} from './v3-types.js';
 
-// Script variable transformer
+// Runtime variable transformer
 export {
-  extractScriptVarDeclarations,
-  getScriptVarDecls,
-  resolveScriptVar,
-  parseScriptVarRef,
-  isScriptVarReference,
-} from './script-var.js';
+  extractRuntimeVarDeclarations,
+  getRuntimeVarDecls,
+  resolveRuntimeVar,
+  parseRuntimeVarRef,
+  isRuntimeVarReference,
+} from './v3-runtime-var.js';
 
 // Runtime function transformer
 export {
@@ -30,7 +30,7 @@ export {
   resolveRuntimeFn,
   isRuntimeFnWrapper,
   markRuntimeFnUsed,
-} from './runtime-fn.js';
+} from './v3-runtime-fn.js';
 
 // Control flow transformers
 export {
@@ -40,30 +40,30 @@ export {
   transformBreak,
   transformReturn,
   parseConditionExpression,
-} from './control.js';
+} from './v3-control.js';
 
 // Runtime call transformer
 export {
   transformRuntimeCall,
   isRuntimeFnCall,
-} from './runtime-call.js';
+} from './v3-runtime-call.js';
 
 // AskUser transformer
 export {
   transformAskUser,
-} from './ask-user.js';
+} from './v3-ask-user.js';
 
 // V3 SpawnAgent transformer
 export {
   transformV3SpawnAgent,
-} from './spawner.js';
+} from './v3-spawner.js';
 
 // Dispatch and document transformation
 export {
   transformToV3Block,
   transformV3BlockChildren,
   transformV3Command,
-} from './dispatch.js';
+} from './v3-dispatch.js';
 
 // Utilities
 export {
@@ -75,4 +75,4 @@ export {
   isCustomComponent,
   extractText,
   extractJsonValue,
-} from './utils.js';
+} from './v3-utils.js';

@@ -30,6 +30,7 @@ import type {
   OfferNextNode,
   OfferNextRouteData,
   XmlBlockNode,
+  BaseBlockNode,
   BlockNode,
 } from '../../ir/index.js';
 import {
@@ -225,7 +226,7 @@ export function transformExecutionContext(
     kind: 'executionContext',
     paths,
     prefix,
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 
@@ -389,7 +390,7 @@ export function transformXmlSection(
   return {
     kind: 'xmlBlock',
     name,
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 
@@ -414,6 +415,6 @@ export function transformXmlWrapper(
   return {
     kind: 'xmlBlock',
     name: tagName,
-    children,
+    children: children as BaseBlockNode[],
   };
 }

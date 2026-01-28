@@ -2,17 +2,17 @@
  * Control Flow Components
  *
  * These components provide typed control flow for commands:
- * - If: Conditional based on ScriptVar (not shell test strings)
+ * - If: Conditional based on RuntimeVar (not shell test strings)
  * - Else: Paired with If for else blocks
  * - Loop: Bounded iteration with max count
  * - Break: Exit current loop
  * - Return: Exit command early
  *
- * Key difference from v1: conditions are ScriptVar<boolean> expressions,
+ * Key difference from v1: conditions are RuntimeVar<boolean> expressions,
  * not shell test strings. This enables proper TypeScript type checking.
  */
 
-import type { ScriptVar, ScriptVarProxy, OrScriptVar } from './script-var.js';
+import type { RuntimeVar, RuntimeVarProxy, OrRuntimeVar } from './runtime-var.js';
 
 // ============================================================================
 // Condition Types
@@ -20,14 +20,14 @@ import type { ScriptVar, ScriptVarProxy, OrScriptVar } from './script-var.js';
 
 /**
  * Condition can be:
- * - ScriptVar<boolean> (direct reference)
- * - ScriptVar<T> (truthy check - undefined/null/empty string = false)
- * - Boolean expression combining ScriptVars
+ * - RuntimeVar<boolean> (direct reference)
+ * - RuntimeVar<T> (truthy check - undefined/null/empty string = false)
+ * - Boolean expression combining RuntimeVars
  * - undefined (from optional property access - treated as falsy)
  *
  * The transformer parses these to Condition IR nodes.
  */
-export type Condition<T = unknown> = ScriptVar<T> | ScriptVarProxy<T> | boolean | undefined;
+export type Condition<T = unknown> = RuntimeVar<T> | RuntimeVarProxy<T> | boolean | undefined;
 
 // ============================================================================
 // If Component
@@ -36,15 +36,15 @@ export type Condition<T = unknown> = ScriptVar<T> | ScriptVarProxy<T> | boolean 
 /**
  * Props for If component
  *
- * Takes a `condition: ScriptVar` for type-safe conditions.
+ * Takes a `condition: RuntimeVar` for type-safe conditions.
  */
 export interface IfProps {
   /**
    * Condition to evaluate
    *
    * Can be:
-   * - ScriptVar<boolean> for direct boolean check
-   * - ScriptVar<T> for truthy check (falsy = false, truthy = true)
+   * - RuntimeVar<boolean> for direct boolean check
+   * - RuntimeVar<T> for truthy check (falsy = false, truthy = true)
    *
    * @example
    * <If condition={ctx.error}>...</If>
@@ -64,7 +64,7 @@ export interface IfProps {
  * Conditional block
  *
  * Renders children only if condition is truthy.
- * Works with ScriptVar for type-safe runtime checks.
+ * Works with RuntimeVar for type-safe runtime checks.
  *
  * @example
  * const ctx = useRuntimeVar<{ error?: string }>('CTX');
@@ -122,9 +122,9 @@ export interface LoopProps {
    *
    * Required for loops to prevent infinite loops.
    * Claude will stop after this many iterations.
-   * Accepts static number or ScriptVar<number> for runtime resolution.
+   * Accepts static number or RuntimeVar<number> for runtime resolution.
    */
-  max: OrScriptVar<number>;
+  max: OrRuntimeVar<number>;
 
   /**
    * Optional counter variable
@@ -138,7 +138,7 @@ export interface LoopProps {
    *   <p>Iteration: {i}</p>
    * </Loop>
    */
-  counter?: ScriptVarProxy<number>;
+  counter?: RuntimeVarProxy<number>;
 
   /** Loop body content */
   children?: React.ReactNode;
@@ -171,8 +171,8 @@ export function Loop(_props: LoopProps): null {
  * Props for Break component
  */
 export interface BreakProps {
-  /** Optional message to display when breaking. Accepts static string or ScriptVar. */
-  message?: OrScriptVar<string>;
+  /** Optional message to display when breaking. Accepts static string or RuntimeVar. */
+  message?: OrRuntimeVar<string>;
 }
 
 /**
@@ -211,12 +211,12 @@ export interface ReturnProps {
    * Optional status to return
    *
    * Used when the command needs to indicate success/failure
-   * to a parent orchestrator. Accepts static status or ScriptVar.
+   * to a parent orchestrator. Accepts static status or RuntimeVar.
    */
-  status?: OrScriptVar<ReturnStatus>;
+  status?: OrRuntimeVar<ReturnStatus>;
 
-  /** Optional message to display when returning. Accepts static string or ScriptVar. */
-  message?: OrScriptVar<string>;
+  /** Optional message to display when returning. Accepts static string or RuntimeVar. */
+  message?: OrRuntimeVar<string>;
 }
 
 /**

@@ -34,6 +34,7 @@ import type {
   OperationNode,
   StateSchema,
   BlockNode,
+  BaseBlockNode,
   TypeReference,
 } from '../../ir/index.js';
 import {
@@ -357,7 +358,13 @@ export function transformCommand(
     }
   }
 
-  return { kind: 'document', frontmatter, children };
+  return {
+    kind: 'document',
+    frontmatter,
+    runtimeVars: [],      // V1 doesn't use runtime vars
+    runtimeFunctions: [], // V1 doesn't use runtime functions
+    children
+  };
 }
 
 // ============================================================================
@@ -453,7 +460,7 @@ export function transformAgent(
     }
   }
 
-  return { kind: 'agentDocument', frontmatter, children };
+  return { kind: 'agentDocument', frontmatter, children: children as BaseBlockNode[] };
 }
 
 // ============================================================================
@@ -519,7 +526,7 @@ export function transformSkill(
   return {
     kind: 'skillDocument',
     frontmatter,
-    children,
+    children: children as BaseBlockNode[],
     files,
     statics,
   };
@@ -597,7 +604,7 @@ export function transformSkillFile(
   return {
     kind: 'skillFile',
     name,
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 

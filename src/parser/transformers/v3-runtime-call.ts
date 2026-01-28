@@ -7,10 +7,10 @@
 
 import { Node, JsxElement, JsxSelfClosingElement } from 'ts-morph';
 import type { RuntimeCallNode } from '../../ir/index.js';
-import type { V3TransformContext } from './types.js';
-import { resolveRuntimeFn, markRuntimeFnUsed } from './runtime-fn.js';
-import { parseScriptVarRef } from './script-var.js';
-import { getAttributeExpression, extractJsonValue } from './utils.js';
+import type { V3TransformContext } from './v3-types.js';
+import { resolveRuntimeFn, markRuntimeFnUsed } from './v3-runtime-fn.js';
+import { parseRuntimeVarRef } from './v3-runtime-var.js';
+import { getAttributeExpression, extractJsonValue } from './v3-utils.js';
 
 // ============================================================================
 // RuntimeFn.Call Detection
@@ -126,13 +126,13 @@ export function transformRuntimeCall(
   const outputExpr = getAttributeExpression(openingElement, 'output');
   if (!outputExpr) {
     throw ctx.createError(
-      `${wrapperName}.Call requires output prop (ScriptVar reference)`,
+      `${wrapperName}.Call requires output prop (RuntimeVar reference)`,
       openingElement
     );
   }
 
-  // Parse output to ScriptVar reference
-  const outputRef = parseScriptVarRef(outputExpr, ctx);
+  // Parse output to RuntimeVar reference
+  const outputRef = parseRuntimeVarRef(outputExpr, ctx);
   if (!outputRef) {
     throw ctx.createError(
       `${wrapperName}.Call output must be a useRuntimeVar reference`,

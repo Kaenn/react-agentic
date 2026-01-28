@@ -1,29 +1,29 @@
 /**
- * V3 IR Node Types
+ * Runtime IR Node Types
  *
- * Extends the base IR nodes with V3-specific nodes for:
- * - Script variable declarations and references
+ * Node types for runtime-enabled commands:
+ * - Runtime variable declarations and references
  * - Runtime function calls
- * - V3 control flow (condition-based, not shell-test based)
+ * - Typed control flow (condition-based)
  * - User prompts
  *
  * All nodes follow the discriminated union pattern with `kind` property.
  */
 
-import type { BlockNode as V1BlockNode, InlineNode } from '../../ir/nodes.js';
+import type { BaseBlockNode, InlineNode } from './nodes.js';
 
 // ============================================================================
-// Script Variable Nodes
+// Runtime Variable Nodes
 // ============================================================================
 
 /**
- * Script variable declaration
+ * Runtime variable declaration
  *
  * Created from useRuntimeVar<T>('NAME') calls.
  * Tracks the variable name and TypeScript type for validation.
  */
-export interface ScriptVarDeclNode {
-  kind: 'scriptVarDecl';
+export interface RuntimeVarDeclNode {
+  kind: 'runtimeVarDecl';
   /** Shell variable name (e.g., 'CTX') */
   varName: string;
   /** TypeScript type name for documentation (e.g., 'InitResult') */
@@ -31,13 +31,13 @@ export interface ScriptVarDeclNode {
 }
 
 /**
- * Script variable reference
+ * Runtime variable reference
  *
- * Created from property access on ScriptVar proxies.
+ * Created from property access on RuntimeVar proxies.
  * Tracks the full path for jq expression generation.
  */
-export interface ScriptVarRefNode {
-  kind: 'scriptVarRef';
+export interface RuntimeVarRefNode {
+  kind: 'runtimeVarRef';
   /** Shell variable name (e.g., 'CTX') */
   varName: string;
   /** Property access path (e.g., ['user', 'name']) */
@@ -65,40 +65,40 @@ export interface RuntimeCallNode {
 }
 
 // ============================================================================
-// V3 Control Flow Nodes
+// Condition Types
 // ============================================================================
 
 /**
- * V3 condition expression tree
+ * Condition expression tree
  *
- * Represents parsed condition expressions for V3If.
+ * Represents parsed condition expressions for If.
  * Supports references, literals, and logical operators.
  */
-export type V3Condition =
-  | V3ConditionRef
-  | V3ConditionLiteral
-  | V3ConditionNot
-  | V3ConditionAnd
-  | V3ConditionOr
-  | V3ConditionEq
-  | V3ConditionNeq
-  | V3ConditionGt
-  | V3ConditionGte
-  | V3ConditionLt
-  | V3ConditionLte;
+export type Condition =
+  | ConditionRef
+  | ConditionLiteral
+  | ConditionNot
+  | ConditionAnd
+  | ConditionOr
+  | ConditionEq
+  | ConditionNeq
+  | ConditionGt
+  | ConditionGte
+  | ConditionLt
+  | ConditionLte;
 
 /**
- * Reference to a script variable (truthy check)
+ * Reference to a runtime variable (truthy check)
  */
-export interface V3ConditionRef {
+export interface ConditionRef {
   type: 'ref';
-  ref: ScriptVarRefNode;
+  ref: RuntimeVarRefNode;
 }
 
 /**
  * Literal boolean value
  */
-export interface V3ConditionLiteral {
+export interface ConditionLiteral {
   type: 'literal';
   value: boolean;
 }
@@ -106,120 +106,122 @@ export interface V3ConditionLiteral {
 /**
  * Logical NOT
  */
-export interface V3ConditionNot {
+export interface ConditionNot {
   type: 'not';
-  operand: V3Condition;
+  operand: Condition;
 }
 
 /**
  * Logical AND
  */
-export interface V3ConditionAnd {
+export interface ConditionAnd {
   type: 'and';
-  left: V3Condition;
-  right: V3Condition;
+  left: Condition;
+  right: Condition;
 }
 
 /**
  * Logical OR
  */
-export interface V3ConditionOr {
+export interface ConditionOr {
   type: 'or';
-  left: V3Condition;
-  right: V3Condition;
+  left: Condition;
+  right: Condition;
 }
 
 /**
  * Equality check
  */
-export interface V3ConditionEq {
+export interface ConditionEq {
   type: 'eq';
-  left: V3Condition;
+  left: Condition;
   right: string | number | boolean;
 }
 
 /**
  * Inequality check
  */
-export interface V3ConditionNeq {
+export interface ConditionNeq {
   type: 'neq';
-  left: V3Condition;
+  left: Condition;
   right: string | number | boolean;
 }
 
 /**
  * Greater than check
  */
-export interface V3ConditionGt {
+export interface ConditionGt {
   type: 'gt';
-  left: V3Condition;
+  left: Condition;
   right: number;
 }
 
 /**
  * Greater than or equal check
  */
-export interface V3ConditionGte {
+export interface ConditionGte {
   type: 'gte';
-  left: V3Condition;
+  left: Condition;
   right: number;
 }
 
 /**
  * Less than check
  */
-export interface V3ConditionLt {
+export interface ConditionLt {
   type: 'lt';
-  left: V3Condition;
+  left: Condition;
   right: number;
 }
 
 /**
  * Less than or equal check
  */
-export interface V3ConditionLte {
+export interface ConditionLte {
   type: 'lte';
-  left: V3Condition;
+  left: Condition;
   right: number;
 }
 
+// ============================================================================
+// Control Flow Nodes
+// ============================================================================
+
 /**
- * V3 If node - condition-based conditional
+ * If node - condition-based conditional
  *
- * Unlike v1 IfNode which has a `test: string` shell expression,
- * V3IfNode has a `condition: V3Condition` tree.
+ * Uses a Condition tree for typed conditional logic.
  */
-export interface V3IfNode {
-  kind: 'v3If';
+export interface IfNode {
+  kind: 'if';
   /** Parsed condition expression tree */
-  condition: V3Condition;
+  condition: Condition;
   /** "then" block content */
-  children: V3BlockNode[];
+  children: BlockNode[];
 }
 
 /**
- * V3 Else node (same as v1, but paired with V3If)
+ * Else node - paired with If
  */
-export interface V3ElseNode {
-  kind: 'v3Else';
+export interface ElseNode {
+  kind: 'else';
   /** "else" block content */
-  children: V3BlockNode[];
+  children: BlockNode[];
 }
 
 /**
- * V3 Loop node - bounded iteration
+ * Loop node - bounded iteration
  *
- * Unlike v1 LoopNode which iterates over items,
- * V3LoopNode executes up to `max` times.
+ * Executes up to `max` times.
  */
-export interface V3LoopNode {
-  kind: 'v3Loop';
+export interface LoopNode {
+  kind: 'loop';
   /** Maximum iteration count */
   max: number;
   /** Optional counter variable name */
   counterVar?: string;
   /** Loop body content */
-  children: V3BlockNode[];
+  children: BlockNode[];
 }
 
 /**
@@ -275,16 +277,14 @@ export interface AskUserNode {
 }
 
 // ============================================================================
-// V3 SpawnAgent Node
+// SpawnAgent Node
 // ============================================================================
 
 /**
- * V3 SpawnAgent with output capture
- *
- * Extends v1 SpawnAgentNode with output variable binding.
+ * SpawnAgent with output capture
  */
-export interface V3SpawnAgentNode {
-  kind: 'v3SpawnAgent';
+export interface SpawnAgentNode {
+  kind: 'spawnAgent';
   /** Agent name/reference */
   agent: string;
   /** Model to use */
@@ -294,7 +294,7 @@ export interface V3SpawnAgentNode {
   /** Prompt content or variable */
   prompt?: string;
   /** Input object (alternative to prompt) */
-  input?: V3SpawnAgentInput;
+  input?: SpawnAgentInput;
   /** Output variable name to store agent result */
   outputVar?: string;
   /** Load agent from file path */
@@ -302,84 +302,79 @@ export interface V3SpawnAgentNode {
 }
 
 /**
- * V3 SpawnAgent input types
+ * SpawnAgent input types
  */
-export type V3SpawnAgentInput =
-  | { type: 'object'; properties: V3InputProperty[] }
+export type SpawnAgentInput =
+  | { type: 'object'; properties: InputProperty[] }
   | { type: 'variable'; varName: string };
 
 /**
- * Property in V3 SpawnAgent input object
+ * Property in SpawnAgent input object
  */
-export interface V3InputProperty {
+export interface InputProperty {
   name: string;
-  value: V3InputValue;
+  value: InputValue;
 }
 
 /**
- * Value types for V3 SpawnAgent input
+ * Value types for SpawnAgent input
  */
-export type V3InputValue =
+export type InputValue =
   | { type: 'string'; value: string }
-  | { type: 'scriptVarRef'; ref: ScriptVarRefNode }
+  | { type: 'runtimeVarRef'; ref: RuntimeVarRefNode }
   | { type: 'json'; value: unknown };
 
 // ============================================================================
-// V3 Block Node Union
+// Block Node Union
 // ============================================================================
 
 /**
- * V3-specific block nodes
+ * Runtime-specific block nodes
  */
-export type V3SpecificBlockNode =
-  | ScriptVarDeclNode
+export type RuntimeBlockNode =
+  | RuntimeVarDeclNode
   | RuntimeCallNode
-  | V3IfNode
-  | V3ElseNode
-  | V3LoopNode
+  | IfNode
+  | ElseNode
+  | LoopNode
   | BreakNode
   | ReturnNode
   | AskUserNode
-  | V3SpawnAgentNode;
+  | SpawnAgentNode;
 
 /**
- * Union of V1 and V3 block nodes
- *
- * V3 documents can use both v1 nodes (headings, paragraphs, etc.)
- * and V3-specific nodes (runtime calls, typed conditionals, etc.)
+ * Union of base and runtime block nodes
  */
-export type V3BlockNode = V1BlockNode | V3SpecificBlockNode;
+export type BlockNode = BaseBlockNode | RuntimeBlockNode;
 
 // ============================================================================
-// V3 Document Nodes
+// Document Nodes
 // ============================================================================
 
 /**
- * V3 Command frontmatter
- *
- * Same structure as v1 but indicates V3 processing.
+ * Command frontmatter
  */
-export interface V3FrontmatterNode {
-  kind: 'v3Frontmatter';
+export interface FrontmatterNode {
+  kind: 'frontmatter';
   data: Record<string, unknown>;
 }
 
 /**
- * V3 Document root node
+ * Document root node
  *
- * Represents a V3 command that produces dual output:
+ * Represents a command that produces dual output:
  * - COMMAND.md (markdown for Claude)
  * - runtime.js (extracted TypeScript functions)
  */
-export interface V3DocumentNode {
-  kind: 'v3Document';
-  frontmatter?: V3FrontmatterNode;
-  /** Script variable declarations */
-  scriptVars: ScriptVarDeclNode[];
+export interface DocumentNode {
+  kind: 'document';
+  frontmatter?: FrontmatterNode;
+  /** Runtime variable declarations */
+  runtimeVars: RuntimeVarDeclNode[];
   /** Runtime function names used (for extraction) */
   runtimeFunctions: string[];
   /** Body content */
-  children: V3BlockNode[];
+  children: BlockNode[];
 }
 
 // ============================================================================
@@ -387,35 +382,28 @@ export interface V3DocumentNode {
 // ============================================================================
 
 /**
- * Type guard for V3-specific nodes
+ * Type guard for runtime-specific nodes
  */
-export function isV3SpecificNode(node: unknown): node is V3SpecificBlockNode {
+export function isRuntimeNode(node: unknown): node is RuntimeBlockNode {
   if (!node || typeof node !== 'object') return false;
   const kind = (node as { kind?: string }).kind;
   return [
-    'scriptVarDecl',
+    'runtimeVarDecl',
     'runtimeCall',
-    'v3If',
-    'v3Else',
-    'v3Loop',
+    'if',
+    'else',
+    'loop',
     'break',
     'return',
     'askUser',
-    'v3SpawnAgent',
+    'spawnAgent',
   ].includes(kind ?? '');
 }
 
 /**
- * Type guard for V3 document
+ * Type guard for document
  */
-export function isV3Document(node: unknown): node is V3DocumentNode {
+export function isDocument(node: unknown): node is DocumentNode {
   if (!node || typeof node !== 'object') return false;
-  return (node as { kind?: string }).kind === 'v3Document';
-}
-
-/**
- * Helper for exhaustiveness checking
- */
-export function assertNeverV3(x: never): never {
-  throw new Error(`Unexpected V3 node: ${JSON.stringify(x)}`);
+  return (node as { kind?: string }).kind === 'document';
 }

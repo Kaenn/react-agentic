@@ -69,20 +69,20 @@ export {
 } from './Agent.js';
 
 // ============================================================================
-// Script Variable System
+// Runtime Variable System
 // ============================================================================
 
 export {
   useRuntimeVar,
-  isScriptVar,
-  getScriptVarInfo,
+  isRuntimeVar,
+  getRuntimeVarInfo,
   toJqExpression,
   toJqPath,
-  type ScriptVar,
-  type ScriptVarProxy,
-  type OrScriptVar,
-  type AllowScriptVars,
-} from './script-var.js';
+  type RuntimeVar,
+  type RuntimeVarProxy,
+  type OrRuntimeVar,
+  type AllowRuntimeVars,
+} from './runtime-var.js';
 
 // ============================================================================
 // Runtime Function System

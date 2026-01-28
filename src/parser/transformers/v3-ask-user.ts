@@ -6,9 +6,9 @@
 
 import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
 import type { AskUserNode, AskUserOptionNode } from '../../ir/index.js';
-import type { V3TransformContext } from './types.js';
-import { parseScriptVarRef } from './script-var.js';
-import { getAttributeValue, getAttributeExpression, getAttributeArray } from './utils.js';
+import type { V3TransformContext } from './v3-types.js';
+import { parseRuntimeVarRef } from './v3-runtime-var.js';
+import { getAttributeValue, getAttributeExpression, getAttributeArray } from './v3-utils.js';
 
 // ============================================================================
 // Option Parsing
@@ -134,12 +134,12 @@ export function transformAskUser(
   const outputExpr = getAttributeExpression(openingElement, 'output');
   if (!outputExpr) {
     throw ctx.createError(
-      'AskUser requires output prop (ScriptVar reference)',
+      'AskUser requires output prop (RuntimeVar reference)',
       openingElement
     );
   }
 
-  const outputRef = parseScriptVarRef(outputExpr, ctx);
+  const outputRef = parseRuntimeVarRef(outputExpr, ctx);
   if (!outputRef) {
     throw ctx.createError(
       'AskUser output must be a useRuntimeVar reference',

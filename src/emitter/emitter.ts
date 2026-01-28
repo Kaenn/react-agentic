@@ -16,17 +16,13 @@ import type {
   BlockquoteNode,
   CodeBlockNode,
   DocumentNode,
-  ElseNode,
   ExecutionContextNode,
   FrontmatterNode,
   GroupNode,
   HeadingNode,
-  IfNode,
   InlineNode,
-  InputPropertyValue,
   ListItemNode,
   ListNode,
-  LoopNode,
   OfferNextNode,
   OnStatusNode,
   ParagraphNode,
@@ -36,8 +32,6 @@ import type {
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
-  SpawnAgentInput,
-  SpawnAgentNode,
   SuccessCriteriaNode,
   StepNode,
   StepVariant,
@@ -241,18 +235,10 @@ export class MarkdownEmitter {
         return this.emitGroup(node);
       case 'raw':
         return node.content;
-      case 'spawnAgent':
-        return this.emitSpawnAgent(node);
       case 'assign':
         return this.emitAssign(node);
       case 'assignGroup':
         return this.emitAssignGroup(node);
-      case 'if':
-        return this.emitIf(node);
-      case 'else':
-        return this.emitElse(node);
-      case 'loop':
-        return this.emitLoop(node);
       case 'onStatus':
         return this.emitOnStatus(node);
       case 'readState':
@@ -269,6 +255,17 @@ export class MarkdownEmitter {
         // MCP servers are not emitted via markdown emitter
         // They go through settings.ts emitter to settings.json
         throw new Error('MCPServerNode should not be emitted via markdown emitter');
+      // Runtime-specific nodes - use V3 emitter for these
+      case 'spawnAgent':
+      case 'if':
+      case 'else':
+      case 'loop':
+      case 'break':
+      case 'return':
+      case 'askUser':
+      case 'runtimeCall':
+      case 'runtimeVarDecl':
+        throw new Error(`Runtime node '${node.kind}' should not be emitted via V1 emitter. Use emitV3() instead.`);
       default:
         return assertNever(node);
     }
@@ -542,125 +539,6 @@ export class MarkdownEmitter {
     return escaped || emptyCell;
   }
 
-  /**
-   * Generate XML-structured prompt from SpawnAgentInput
-   *
-   * VariableRef -> <input>{var_name}</input>
-   * Object literal -> <prop>value</prop> per property
-   */
-  private generateInputPrompt(input: SpawnAgentInput): string {
-    if (input.type === 'variable') {
-      // Wrap variable in <input> block with lowercase variable name
-      return `<input>\n{${input.variableName.toLowerCase()}}\n</input>`;
-    }
-
-    // Object literal: create XML section per property
-    const sections: string[] = [];
-    for (const prop of input.properties) {
-      const value = this.formatInputValue(prop.value);
-      sections.push(`<${prop.name}>\n${value}\n</${prop.name}>`);
-    }
-    return sections.join('\n\n');
-  }
-
-  /**
-   * Format InputPropertyValue for prompt output
-   */
-  private formatInputValue(value: InputPropertyValue): string {
-    switch (value.type) {
-      case 'string':
-        return value.value;
-      case 'placeholder':
-        return `{${value.name}}`;
-      case 'variable':
-        return `{${value.name.toLowerCase()}}`;
-    }
-  }
-
-  /**
-   * Emit SpawnAgent as GSD Task() syntax wrapped in code block
-   *
-   * Output format (standard):
-   * ```
-   * Task(
-   *   prompt="...",
-   *   subagent_type="agent-name",
-   *   model="...",
-   *   description="..."
-   * )
-   * ```
-   *
-   * Output format (with loadFromFile):
-   * ```
-   * Task(
-   *   prompt="First, read {path}..." + variable,
-   *   subagent_type="general-purpose",
-   *   model="...",
-   *   description="..."
-   * )
-   * ```
-   */
-  private emitSpawnAgent(node: SpawnAgentNode): string {
-    // Escape double quotes in string values (backslash escape for Task() syntax)
-    const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
-
-    // Determine prompt: use provided prompt OR generate from input
-    let promptContent: string;
-    if (node.prompt) {
-      // Existing prompt-based usage (backward compat)
-      promptContent = node.prompt;
-    } else if (node.input) {
-      // Generate from typed input
-      promptContent = this.generateInputPrompt(node.input);
-    } else if (node.promptVariable) {
-      // promptVariable provides the prompt at runtime - no content to embed
-      promptContent = '';
-    } else {
-      // Neither - shouldn't happen (transformer validates)
-      throw new Error('SpawnAgent requires either prompt, promptVariable, or input');
-    }
-
-    // Append extraInstructions if present (only for embedded prompts)
-    if (node.extraInstructions && !node.promptVariable) {
-      promptContent = promptContent + '\n\n' + node.extraInstructions;
-    }
-
-    // Handle loadFromFile pattern
-    // When present, prefix prompt with agent file loading instruction
-    // and use "general-purpose" as the subagent type
-    let subagentType = node.agent;
-    let promptOutput: string;
-
-    if (node.loadFromFile) {
-      // Override to general-purpose
-      subagentType = 'general-purpose';
-      const prefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
-
-      if (node.promptVariable) {
-        // GSD pattern: runtime variable concatenation
-        // Output: prompt="prefix" + variableName
-        promptOutput = `"${prefix}" + ${node.promptVariable}`;
-      } else {
-        // Embed prompt content directly
-        promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
-      }
-    } else if (node.promptVariable) {
-      // Just variable reference (no loadFromFile)
-      promptOutput = node.promptVariable;
-    } else {
-      // Standard: embed prompt content
-      promptOutput = `"${escapeQuotes(promptContent)}"`;
-    }
-
-    return `\`\`\`
-Task(
-  prompt=${promptOutput},
-  subagent_type="${escapeQuotes(subagentType)}",
-  model="${escapeQuotes(node.model)}",
-  description="${escapeQuotes(node.description)}"
-)
-\`\`\``;
-  }
 
   /**
    * Emit Assign node as bash code block with variable assignment
@@ -759,78 +637,6 @@ Task(
     return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
   }
 
-  /**
-   * Emit If node as prose-based conditional
-   *
-   * Output format:
-   * **If {test}:**
-   *
-   * {content}
-   */
-  private emitIf(node: IfNode): string {
-    const parts: string[] = [];
-
-    // Emit condition header
-    parts.push(`**If ${node.test}:**`);
-
-    // Emit "then" block content with blank line after header
-    for (const child of node.children) {
-      parts.push(this.emitBlock(child));
-    }
-
-    return parts.join('\n\n');
-  }
-
-  /**
-   * Emit Else node as prose-based conditional
-   *
-   * Output format:
-   * **Otherwise:**
-   *
-   * {content}
-   */
-  private emitElse(node: ElseNode): string {
-    const parts: string[] = [];
-
-    // Emit "otherwise" header
-    parts.push('**Otherwise:**');
-
-    // Emit "else" block content with blank line after header
-    for (const child of node.children) {
-      parts.push(this.emitBlock(child));
-    }
-
-    return parts.join('\n\n');
-  }
-
-  /**
-   * Emit LoopNode as markdown loop description
-   *
-   * Output format:
-   * **For each {as} in {items}:**
-   * {children}
-   */
-  private emitLoop(node: LoopNode): string {
-    const parts: string[] = [];
-
-    // Build loop header
-    const varName = node.as || 'item';
-    const itemsExpr = node.items || 'items';
-
-    parts.push(`**For each ${varName} in ${itemsExpr}:**`);
-
-    // Emit children with indentation context
-    const childParts: string[] = [];
-    for (const child of node.children) {
-      childParts.push(this.emitBlock(child));
-    }
-
-    if (childParts.length > 0) {
-      parts.push(childParts.join('\n\n'));
-    }
-
-    return parts.join('\n\n');
-  }
 
   /**
    * Emit OnStatus node as prose-based status conditional

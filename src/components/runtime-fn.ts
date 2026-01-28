@@ -17,7 +17,7 @@
  * // Emits: CTX=$(node runtime.js init '{"x":"1"}')
  */
 
-import type { ScriptVarProxy, AllowScriptVars } from './script-var.js';
+import type { RuntimeVarProxy, AllowRuntimeVars } from './runtime-var.js';
 
 // ============================================================================
 // Types
@@ -34,14 +34,14 @@ export type RuntimeFunction<TArgs extends object, TReturn> = (
 /**
  * Props for the .Call component
  *
- * @param args - Arguments to pass to the function (each can be static or ScriptVar)
- * @param output - ScriptVar to store the result (must match TReturn type)
+ * @param args - Arguments to pass to the function (each can be static or RuntimeVar)
+ * @param output - RuntimeVar to store the result (must match TReturn type)
  */
 export interface RuntimeCallProps<TArgs extends object, TReturn> {
-  /** Arguments passed to the runtime function. Each property can be static or ScriptVar. */
-  args: AllowScriptVars<TArgs>;
-  /** ScriptVar to store the function result */
-  output: ScriptVarProxy<TReturn>;
+  /** Arguments passed to the runtime function. Each property can be static or RuntimeVar. */
+  args: AllowRuntimeVars<TArgs>;
+  /** RuntimeVar to store the function result */
+  output: RuntimeVarProxy<TReturn>;
 }
 
 /**

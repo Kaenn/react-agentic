@@ -25,6 +25,7 @@ import type {
   CodeBlockNode,
   XmlBlockNode,
   GroupNode,
+  BaseBlockNode,
   BlockNode,
   InlineNode,
 } from '../../ir/index.js';
@@ -167,7 +168,7 @@ export function transformListItem(
   // Flush any remaining inline content
   flushInlineSequence();
 
-  return { kind: 'listItem', children };
+  return { kind: 'listItem', children: children as BaseBlockNode[] };
 }
 
 /**
@@ -215,7 +216,7 @@ export function transformBlockquote(
   // Transform children as blocks (with If/Else sibling detection)
   const children = transformBlockChildren(node.getJsxChildren(), ctx);
 
-  return { kind: 'blockquote', children };
+  return { kind: 'blockquote', children: children as BaseBlockNode[] };
 }
 
 // ============================================================================
@@ -332,7 +333,7 @@ export function transformDiv(
   if (!nameAttr) {
     return {
       kind: 'group',
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -363,7 +364,7 @@ export function transformDiv(
     kind: 'xmlBlock',
     name: nameAttr,
     attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 

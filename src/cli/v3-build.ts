@@ -12,7 +12,7 @@ import path from 'path';
 // V3 parser
 import {
   createV3Context,
-  extractScriptVarDeclarations,
+  extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
@@ -29,7 +29,7 @@ import {
 } from '../emitter/index.js';
 
 // V3 IR
-import type { V3DocumentNode } from '../ir/index.js';
+import type { DocumentNode } from '../ir/index.js';
 
 // ============================================================================
 // Types
@@ -187,7 +187,7 @@ export async function buildV3File(
   const ctx = createV3Context(sourceFile);
 
   // Phase 1: Extract declarations
-  extractScriptVarDeclarations(sourceFile, ctx);
+  extractRuntimeVarDeclarations(sourceFile, ctx);
   extractRuntimeFnDeclarations(sourceFile, ctx);
 
   // Phase 2: Find root element

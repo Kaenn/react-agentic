@@ -27,7 +27,7 @@ import {
   XmlBlock,
   ExecutionContext,
   Table,
-} from '../../jsx.js';
+} from '../jsx.js';
 
 // Import runtime functions
 import {
@@ -78,7 +78,7 @@ export default (
     allowedTools={["Read", "Write", "Bash", "Glob", "Grep", "Task", "WebFetch", "mcp__context7__*"]}
   >
     {() => {
-      // Variable declarations with typed ScriptVars
+      // Variable declarations with typed RuntimeVars
       const ctx = useRuntimeVar<PlanPhaseContext>('CTX');
       const existingPlans = useRuntimeVar<{ hasPlans: boolean; planCount: number; planFiles: string[]; planSummary: string }>('EXISTING_PLANS');
       const researcherPrompt = useRuntimeVar<PromptResult>('RESEARCHER_PROMPT');

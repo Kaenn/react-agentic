@@ -6,7 +6,7 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, ObjectLiteralExpression, TemplateExpression } from 'ts-morph';
-import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileEntry, PromptTemplateNode, BlockNode } from '../../ir/index.js';
+import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileEntry, PromptTemplateNode, BlockNode, BaseBlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue } from '../utils/index.js';
 import { transformBlockChildren } from './dispatch.js';
@@ -73,7 +73,7 @@ export function transformStep(
     number: stepNumber,
     name,
     variant,
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 
@@ -212,7 +212,7 @@ export function transformPromptTemplate(
 
   return {
     kind: 'promptTemplate',
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 

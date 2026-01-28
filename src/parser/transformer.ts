@@ -20,9 +20,9 @@ import {
 } from 'ts-morph';
 import { TranspileError, getNodeLocation, getSourceCode } from '../cli/errors.js';
 import type {
+  BaseBlockNode,
   BlockNode,
   InlineNode,
-  DocumentNode,
   AgentDocumentNode,
   AgentFrontmatterNode,
   ListNode,
@@ -192,12 +192,14 @@ export class Transformer {
   }
 
   /**
-   * Transform a root JSX element/fragment into a DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
+   * Transform a root JSX element/fragment into AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
+   *
+   * Note: Command documents use the V3 transformer (transformV3Command) for runtime feature support.
    *
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
    */
-  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
+  transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
     // Initialize state for this transformation
     this.sourceFile = sourceFile;
     this.visitedPaths = new Set();
@@ -235,16 +237,19 @@ export class Transformer {
       }
     }
 
-    // Fragment: transform each child as a block
+    // Fragment or unwrapped element: not supported in V1 transformer
+    // Documents must use a wrapper component (Command, Agent, Skill, MCPConfig, State)
+    // For Commands, use the V3 transformer which supports runtime features
     if (Node.isJsxFragment(node)) {
-      const blocks = this.transformFragmentChildren(node);
-      return { kind: 'document', children: blocks };
+      throw new Error(
+        'JSX Fragment not supported. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use V3 transformer for <Command>.'
+      );
     }
 
-    // Single element: transform it as the one block
-    const block = this.transformToBlock(node);
-    const children = block ? [block] : [];
-    return { kind: 'document', children };
+    // Single element without wrapper
+    throw new Error(
+      `Unknown root element. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use V3 transformer for <Command>.`
+    );
   }
 
   /**
@@ -285,86 +290,17 @@ export class Transformer {
   }
 
   /**
-   * Transform a Command element to DocumentNode with frontmatter
+   * Transform a Command element
+   *
+   * NOTE: V1 Command transformer is deprecated. Commands should use the V3 transformer
+   * which supports runtime features (useRuntimeVar, If/Else/Loop, etc.).
    */
-  private transformCommand(node: JsxElement | JsxSelfClosingElement): DocumentNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    // Merge all props (spread + explicit)
-    const props = this.mergeCommandProps(openingElement);
-
-    // Extract required props
-    const name = props.name as string | undefined;
-    const description = props.description as string | undefined;
-
-    if (!name) {
-      throw this.createError('Command requires name prop', openingElement);
-    }
-    if (!description) {
-      throw this.createError('Command requires description prop', openingElement);
-    }
-
-    // Build frontmatter data
-    const data: Record<string, unknown> = {
-      name,
-      description,
-    };
-
-    // Optional string props
-    const argumentHint = props.argumentHint as string | undefined;
-    if (argumentHint) {
-      data['argument-hint'] = argumentHint;
-    }
-
-    const agent = props.agent as string | undefined;
-    if (agent) {
-      data['agent'] = agent;
-    }
-
-    // Optional array prop (check for allowedTools, map to allowed-tools)
-    const allowedTools = props.allowedTools as string[] | undefined;
-    if (allowedTools) {
-      data['allowed-tools'] = allowedTools;
-    }
-
-    const frontmatter: FrontmatterNode = { kind: 'frontmatter', data };
-
-    // Transform children - check for render props pattern
-    let children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      const renderPropsInfo = analyzeRenderPropsChildren(node);
-
-      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction && renderPropsInfo.paramName) {
-        // Build context values for interpolation
-        // outputPath and sourcePath use placeholders - they're computed at build time
-        const sourcePath = this.sourceFile?.getFilePath() ?? '';
-        // Output path follows convention: .claude/commands/{name}.md
-        const outputPath = `.claude/commands/${name}.md`;
-
-        this.renderPropsContext = {
-          paramName: renderPropsInfo.paramName,
-          values: {
-            name,
-            description,
-            outputPath,
-            sourcePath,
-          },
-        };
-
-        // Render props pattern: transform arrow function body
-        children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
-
-        // Clear context after transformation
-        this.renderPropsContext = undefined;
-      } else {
-        // Regular children pattern
-        children = this.transformBlockChildren(node.getJsxChildren());
-      }
-    }
-
-    return { kind: 'document', frontmatter, children };
+  private transformCommand(node: JsxElement | JsxSelfClosingElement): never {
+    throw this.createError(
+      'V1 Command transformer is deprecated. Use the V3 transformer (transformV3Command) instead. ' +
+      'Commands should import from react-agentic and use runtime features (useRuntimeVar, If, Else, Loop).',
+      node
+    );
   }
 
   /**
@@ -453,7 +389,7 @@ export class Transformer {
       }
     }
 
-    return { kind: 'agentDocument', frontmatter, children };
+    return { kind: 'agentDocument', frontmatter, children: children as BaseBlockNode[] };
   }
 
   /**
@@ -512,7 +448,7 @@ export class Transformer {
     return {
       kind: 'skillDocument',
       frontmatter,
-      children,
+      children: children as BaseBlockNode[],
       files,
       statics,
     };
@@ -585,7 +521,7 @@ export class Transformer {
     return {
       kind: 'skillFile',
       name,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -974,7 +910,7 @@ export class Transformer {
     // Flush any remaining inline content
     flushInlineSequence();
 
-    return { kind: 'listItem', children };
+    return { kind: 'listItem', children: children as BaseBlockNode[] };
   }
 
   private transformBlockquote(node: JsxElement | JsxSelfClosingElement): BlockquoteNode {
@@ -985,7 +921,7 @@ export class Transformer {
     // Transform children as blocks (with If/Else sibling detection)
     const children = this.transformBlockChildren(node.getJsxChildren());
 
-    return { kind: 'blockquote', children };
+    return { kind: 'blockquote', children: children as BaseBlockNode[] };
   }
 
   private transformCodeBlock(node: JsxElement | JsxSelfClosingElement): CodeBlockNode {
@@ -1243,7 +1179,7 @@ export class Transformer {
     if (!nameAttr) {
       return {
         kind: 'group',
-        children,
+        children: children as BaseBlockNode[],
       };
     }
 
@@ -1274,7 +1210,7 @@ export class Transformer {
       kind: 'xmlBlock',
       name: nameAttr,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1401,7 +1337,7 @@ export class Transformer {
     return {
       kind: 'xmlBlock',
       name: nameAttr,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1554,7 +1490,7 @@ export class Transformer {
       kind: 'executionContext',
       paths,
       prefix,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1736,7 +1672,7 @@ export class Transformer {
       number: stepNumber,
       name,
       variant,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1928,7 +1864,7 @@ export class Transformer {
 
     return {
       kind: 'promptTemplate',
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1949,7 +1885,7 @@ export class Transformer {
     return {
       kind: 'xmlBlock',
       name,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -1969,7 +1905,7 @@ export class Transformer {
     return {
       kind: 'xmlBlock',
       name: tagName,
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -2534,7 +2470,7 @@ export class Transformer {
     if (Node.isIdentifier(expr)) {
       const variable = this.variables.get(expr.getText());
       if (variable) {
-        return { type: 'variable', variableName: variable.envName };
+        return { type: 'variable', varName: variable.envName };
       }
       // Not a known variable - error
       throw this.createError(
@@ -2670,87 +2606,38 @@ export class Transformer {
 
   /**
    * Transform an If element to IfNode
-   * If is a block-level element that emits prose-based conditionals
+   *
+   * NOTE: V1 control flow is deprecated. Use V3 transformer with useRuntimeVar and condition-based If.
    */
-  private transformIf(node: JsxElement | JsxSelfClosingElement): IfNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    // Extract test prop (required)
-    // Use getTestAttributeValue to support both string literals and test helper function calls
-    const test = getTestAttributeValue(openingElement, 'test', this.variables);
-    if (!test) {
-      throw this.createError('If requires test prop', openingElement);
-    }
-
-    // Transform children as "then" block using helper
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'if',
-      test,
-      children,
-    };
+  private transformIf(node: JsxElement | JsxSelfClosingElement): never {
+    throw this.createError(
+      'V1 If control flow is deprecated. Use V3 transformer with useRuntimeVar and condition-based If.',
+      node
+    );
   }
 
   /**
    * Transform an Else element to ElseNode
-   * Else is a block-level element that provides "otherwise" content
+   *
+   * NOTE: V1 control flow is deprecated. Use V3 transformer with useRuntimeVar and condition-based If/Else.
    */
-  private transformElse(node: JsxElement | JsxSelfClosingElement): ElseNode {
-    // Transform children as "else" block
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'else',
-      children,
-    };
+  private transformElse(node: JsxElement | JsxSelfClosingElement): never {
+    throw this.createError(
+      'V1 Else control flow is deprecated. Use V3 transformer with useRuntimeVar and condition-based Else.',
+      node
+    );
   }
 
   /**
    * Transform Loop component to LoopNode IR
+   *
+   * NOTE: V1 control flow is deprecated. Use V3 transformer with useRuntimeVar and max-based Loop.
    */
-  private transformLoop(node: JsxElement | JsxSelfClosingElement): LoopNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    const as = getAttributeValue(openingElement, 'as');
-
-    // Get items attribute as string representation
-    const itemsAttr = openingElement.getAttribute('items');
-    let items: string | undefined;
-    if (itemsAttr && Node.isJsxAttribute(itemsAttr)) {
-      const init = itemsAttr.getInitializer();
-      if (init && Node.isJsxExpression(init)) {
-        const expr = init.getExpression();
-        if (expr) {
-          items = expr.getText();
-        }
-      }
-    }
-
-    // Extract type argument if present
-    const typeArgs = extractTypeArguments(node);
-    const typeParam = typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
-
-    // Transform children
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'loop',
-      as,
-      items,
-      typeParam,
-      children,
-    };
+  private transformLoop(node: JsxElement | JsxSelfClosingElement): never {
+    throw this.createError(
+      'V1 Loop control flow is deprecated. Use V3 transformer with useRuntimeVar and max-based Loop.',
+      node
+    );
   }
 
   /**
@@ -3100,7 +2987,7 @@ export class Transformer {
         agent: agentName,
       },
       status: status as OnStatusNode['status'],
-      children,
+      children: children as BaseBlockNode[],
     };
   }
 
@@ -3948,9 +3835,9 @@ export class Transformer {
 }
 
 /**
- * Convenience function to transform a JSX element to a DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
+ * Convenience function to transform a JSX element to an AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
  */
-export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): DocumentNode | AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
+export function transform(node: JsxElement | JsxSelfClosingElement | JsxFragment, sourceFile?: SourceFile): AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
   const transformer = new Transformer();
   return transformer.transform(node, sourceFile);
 }

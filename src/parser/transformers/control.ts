@@ -25,13 +25,11 @@ import type {
   BlockNode,
 } from '../../ir/index.js';
 import {
-  getElementName,
   getAttributeValue,
-  getTestAttributeValue,
-  extractTypeArguments,
 } from '../utils/index.js';
 import type { TransformContext } from './types.js';
 import { transformBlockChildren } from './dispatch.js';
+import type { BaseBlockNode } from '../../ir/index.js';
 
 // ============================================================================
 // If/Else Transformers
@@ -39,51 +37,37 @@ import { transformBlockChildren } from './dispatch.js';
 
 /**
  * Transform If component to IfNode
+ *
+ * NOTE: Control flow (If/Else/Loop) is only supported in V3 Commands with runtime features.
+ * Use the V3 transformers (v3-control.ts) for Commands.
+ * This V1 transformer throws an error since Agent/Skill documents don't support control flow.
  */
 export function transformIf(
   node: JsxElement | JsxSelfClosingElement,
   ctx: TransformContext
 ): IfNode {
-  const openingElement = Node.isJsxElement(node)
-    ? node.getOpeningElement()
-    : node;
-
-  // Extract test prop (required)
-  // Use getTestAttributeValue to support both string literals and test helper function calls
-  const test = getTestAttributeValue(openingElement, 'test', ctx.variables);
-  if (!test) {
-    throw ctx.createError('If requires test prop', openingElement);
-  }
-
-  // Transform children as "then" block using helper
-  const children = Node.isJsxElement(node)
-    ? transformBlockChildren(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'if',
-    test,
-    children,
-  };
+  throw ctx.createError(
+    'If/Else control flow is only supported in V3 Commands. ' +
+    'Use useRuntimeVar and the V3 If component, or remove control flow from Agent/Skill documents.',
+    node
+  );
 }
 
 /**
  * Transform an Else element to ElseNode
- * Else is a block-level element that provides "otherwise" content
+ *
+ * NOTE: Control flow (If/Else/Loop) is only supported in V3 Commands with runtime features.
+ * This V1 transformer throws an error since Agent/Skill documents don't support control flow.
  */
 export function transformElse(
   node: JsxElement | JsxSelfClosingElement,
   ctx: TransformContext
 ): ElseNode {
-  // Transform children as "else" block
-  const children = Node.isJsxElement(node)
-    ? transformBlockChildren(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'else',
-    children,
-  };
+  throw ctx.createError(
+    'Else control flow is only supported in V3 Commands. ' +
+    'Use useRuntimeVar and the V3 Else component, or remove control flow from Agent/Skill documents.',
+    node
+  );
 }
 
 // ============================================================================
@@ -92,46 +76,19 @@ export function transformElse(
 
 /**
  * Transform Loop component to LoopNode IR
+ *
+ * NOTE: Control flow (If/Else/Loop) is only supported in V3 Commands with runtime features.
+ * This V1 transformer throws an error since Agent/Skill documents don't support control flow.
  */
 export function transformLoop(
   node: JsxElement | JsxSelfClosingElement,
   ctx: TransformContext
 ): LoopNode {
-  const openingElement = Node.isJsxElement(node)
-    ? node.getOpeningElement()
-    : node;
-
-  const as = getAttributeValue(openingElement, 'as');
-
-  // Get items attribute as string representation
-  const itemsAttr = openingElement.getAttribute('items');
-  let items: string | undefined;
-  if (itemsAttr && Node.isJsxAttribute(itemsAttr)) {
-    const init = itemsAttr.getInitializer();
-    if (init && Node.isJsxExpression(init)) {
-      const expr = init.getExpression();
-      if (expr) {
-        items = expr.getText();
-      }
-    }
-  }
-
-  // Extract type argument if present
-  const typeArgs = extractTypeArguments(node);
-  const typeParam = typeArgs && typeArgs.length > 0 ? typeArgs[0] : undefined;
-
-  // Transform children
-  const children = Node.isJsxElement(node)
-    ? transformBlockChildren(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'loop',
-    as,
-    items,
-    typeParam,
-    children,
-  };
+  throw ctx.createError(
+    'Loop control flow is only supported in V3 Commands. ' +
+    'Use useRuntimeVar and the V3 Loop component, or remove control flow from Agent/Skill documents.',
+    node
+  );
 }
 
 // ============================================================================
@@ -205,7 +162,7 @@ export function transformOnStatus(
       agent: agentName,
     },
     status: status as OnStatusNode['status'],
-    children,
+    children: children as BaseBlockNode[],
   };
 }
 

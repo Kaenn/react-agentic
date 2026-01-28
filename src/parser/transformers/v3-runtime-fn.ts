@@ -6,7 +6,7 @@
  */
 
 import { Node, SourceFile } from 'ts-morph';
-import type { RuntimeFunctionInfo, V3TransformContext } from './types.js';
+import type { RuntimeFunctionInfo, V3TransformContext } from './v3-types.js';
 
 // ============================================================================
 // Extraction

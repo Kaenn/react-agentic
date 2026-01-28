@@ -1,8 +1,8 @@
 /**
  * V3 Inline Transformer
  *
- * Extends V1 inline behavior with ScriptVar interpolation.
- * When encountering property access expressions on ScriptVar proxies,
+ * Extends V1 inline behavior with RuntimeVar interpolation.
+ * When encountering property access expressions on RuntimeVar proxies,
  * emits jq expressions for runtime resolution.
  *
  * @example
@@ -14,19 +14,19 @@
  */
 
 import { Node, JsxElement } from 'ts-morph';
-import type { InlineNode } from '../../../ir/nodes.js';
-import type { V3TransformContext } from './types.js';
-import { extractInlineText, getElementName, getAttributeValue } from '../../../parser/utils/index.js';
-import { extractAllText } from '../../../parser/transformers/html.js';
+import type { InlineNode } from '../../ir/nodes.js';
+import type { V3TransformContext } from './v3-types.js';
+import { extractInlineText, getElementName, getAttributeValue } from '../utils/index.js';
+import { extractAllText } from './html.js';
 
 // ============================================================================
 // V3 Inline Children Transformation
 // ============================================================================
 
 /**
- * Transform JSX children to array of InlineNodes with ScriptVar support
+ * Transform JSX children to array of InlineNodes with RuntimeVar support
  *
- * Unlike v1's transformInlineChildren, this version recognizes ScriptVar
+ * Unlike v1's transformInlineChildren, this version recognizes RuntimeVar
  * property access and emits jq expressions for interpolation.
  */
 export function transformV3InlineChildren(
@@ -103,7 +103,7 @@ function trimBoundaryTextNodes(inlines: InlineNode[]): void {
 // ============================================================================
 
 /**
- * Transform a single node to InlineNode with ScriptVar support
+ * Transform a single node to InlineNode with RuntimeVar support
  */
 function transformV3ToInline(
   node: Node,
@@ -128,7 +128,7 @@ function transformV3ToInline(
     return transformV3InlineElement(name, node, ctx);
   }
 
-  // Handle JSX expressions - this is where ScriptVar magic happens
+  // Handle JSX expressions - this is where RuntimeVar magic happens
   if (Node.isJsxExpression(node)) {
     const expr = node.getExpression();
     if (!expr) return null;
@@ -165,13 +165,13 @@ function transformV3ToInline(
     // Direct identifier reference: {iteration}, {userChoice}
     if (Node.isIdentifier(expr)) {
       const varName = expr.getText();
-      const scriptVar = ctx.scriptVars.get(varName);
-      if (scriptVar) {
-        // This is a ScriptVar reference - emit jq expression
-        const value = `$(echo "$${scriptVar.varName}" | jq -r '.')`;
+      const runtimeVar = ctx.runtimeVars.get(varName);
+      if (runtimeVar) {
+        // This is a RuntimeVar reference - emit jq expression
+        const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
         return { kind: 'text', value };
       }
-      // Not a ScriptVar - return raw text
+      // Not a RuntimeVar - return raw text
       return { kind: 'text', value: varName };
     }
 
@@ -218,7 +218,7 @@ function collectPropertyPath(expr: Node): string[] {
 /**
  * Transform property access expression to inline node
  *
- * If the root identifier is a ScriptVar, emit a jq expression.
+ * If the root identifier is a RuntimeVar, emit a jq expression.
  * Otherwise, return the raw text.
  */
 function transformPropertyAccess(
@@ -231,17 +231,17 @@ function transformPropertyAccess(
   if (path.length === 0) return null;
 
   const rootName = path[0];
-  const scriptVar = ctx.scriptVars.get(rootName);
+  const runtimeVar = ctx.runtimeVars.get(rootName);
 
-  if (scriptVar) {
-    // This is a ScriptVar reference - emit jq expression
+  if (runtimeVar) {
+    // This is a RuntimeVar reference - emit jq expression
     const jqPath = path.slice(1);
     const jqSelector = jqPath.length === 0 ? '.' : '.' + jqPath.join('.');
-    const value = `$(echo "$${scriptVar.varName}" | jq -r '${jqSelector}')`;
+    const value = `$(echo "$${runtimeVar.varName}" | jq -r '${jqSelector}')`;
     return { kind: 'text', value };
   }
 
-  // Not a ScriptVar - return raw text
+  // Not a RuntimeVar - return raw text
   return { kind: 'text', value: expr.getText() };
 }
 
@@ -280,11 +280,11 @@ function transformTemplateLiteral(
         const inline = transformPropertyAccess(spanExpr, ctx);
         if (inline) result.push(inline);
       } else if (Node.isIdentifier(spanExpr)) {
-        // Direct identifier - check if it's a ScriptVar
+        // Direct identifier - check if it's a RuntimeVar
         const varName = spanExpr.getText();
-        const scriptVar = ctx.scriptVars.get(varName);
-        if (scriptVar) {
-          const value = `$(echo "$${scriptVar.varName}" | jq -r '.')`;
+        const runtimeVar = ctx.runtimeVars.get(varName);
+        if (runtimeVar) {
+          const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
           result.push({ kind: 'text', value });
         } else {
           result.push({ kind: 'text', value: varName });
@@ -331,7 +331,7 @@ function transformV3InlineElement(
 
   // Inline code
   if (name === 'code') {
-    // For code elements, we need to handle ScriptVar interpolation too
+    // For code elements, we need to handle RuntimeVar interpolation too
     const children = node.getJsxChildren();
     const parts: string[] = [];
 

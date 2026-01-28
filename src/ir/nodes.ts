@@ -94,7 +94,7 @@ export interface ParagraphNode {
  */
 export interface ListItemNode {
   kind: 'listItem';
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -121,7 +121,7 @@ export interface CodeBlockNode {
  */
 export interface BlockquoteNode {
   kind: 'blockquote';
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -149,7 +149,7 @@ export interface ExecutionContextNode {
   kind: 'executionContext';
   paths: string[];                                        // File paths to reference
   prefix: string;                                         // Path prefix (default: '@')
-  children: BlockNode[];                                  // Optional additional content
+  children: BaseBlockNode[];                                  // Optional additional content
 }
 
 /**
@@ -193,7 +193,7 @@ export interface XmlBlockNode {
   kind: 'xmlBlock';
   name: string;
   attributes?: Record<string, string>;
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -202,7 +202,7 @@ export interface XmlBlockNode {
  */
 export interface GroupNode {
   kind: 'group';
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -213,56 +213,7 @@ export interface RawMarkdownNode {
   content: string;
 }
 
-/**
- * Input value for SpawnAgent typed input
- */
-export type InputPropertyValue =
-  | { type: 'string'; value: string }
-  | { type: 'variable'; name: string }
-  | { type: 'placeholder'; name: string };  // {varname} syntax
-
-/**
- * Property in SpawnAgent object literal input
- */
-export interface InputProperty {
-  name: string;
-  value: InputPropertyValue;
-}
-
-/**
- * SpawnAgent input - either a variable reference or object literal
- */
-export type SpawnAgentInput =
-  | { type: 'variable'; variableName: string }  // useVariable ref
-  | { type: 'object'; properties: InputProperty[] };  // object literal
-
-/**
- * SpawnAgent invocation within a Command
- * Emits as Task() syntax in markdown
- */
-export interface SpawnAgentNode {
-  kind: 'spawnAgent';
-  agent: string;           // Agent name/reference (e.g., 'gsd-researcher')
-  model: string;           // Model to use (supports {variable} syntax)
-  description: string;     // Human-readable task description
-  prompt?: string;         // Task prompt (supports {variable} and template literals) - optional, deprecated in favor of input
-  input?: SpawnAgentInput; // Typed input - either variable ref or object literal
-  extraInstructions?: string; // Optional extra instructions from children (when using input prop)
-  inputType?: TypeReference; // Optional: generic type parameter if provided (for validation)
-  /**
-   * Path to agent definition file for "load from file" pattern.
-   * When present, emitter will:
-   * - Use subagent_type="general-purpose"
-   * - Prepend "First, read {path}..." to the prompt
-   */
-  loadFromFile?: string;
-  /**
-   * Variable name for runtime prompt concatenation.
-   * When set, outputs: prompt="prefix" + variableName
-   * Used with loadFromFile for GSD-style dynamic prompts.
-   */
-  promptVariable?: string;
-}
+// SpawnAgent types moved to v3-nodes.ts
 
 /**
  * Shell variable assignment from useVariable/Assign
@@ -288,43 +239,7 @@ export interface AssignGroupNode {
   assignments: AssignNode[];  // Child Assign nodes
 }
 
-/**
- * Conditional If block
- * Emits as **If {test}:** prose pattern
- */
-export interface IfNode {
-  kind: 'if';
-  /** Shell test expression (preserved verbatim) */
-  test: string;
-  /** "then" block content */
-  children: BlockNode[];
-}
-
-/**
- * Else block (sibling to If)
- * Emits as **Otherwise:** prose pattern
- */
-export interface ElseNode {
-  kind: 'else';
-  /** "otherwise" block content */
-  children: BlockNode[];
-}
-
-/**
- * Loop iteration block
- * Emits as iteration pattern for Claude to execute
- */
-export interface LoopNode {
-  kind: 'loop';
-  /** Variable name for current item */
-  as?: string;
-  /** Array expression or placeholder */
-  items?: string;
-  /** Type parameter name if explicitly provided (compile-time info) */
-  typeParam?: string;
-  /** Loop body content */
-  children: BlockNode[];
-}
+// IfNode, ElseNode, LoopNode moved to v3-nodes.ts
 
 /**
  * Reference to an agent's output in the IR
@@ -347,7 +262,7 @@ export interface OnStatusNode {
   /** Status to match (SUCCESS, BLOCKED, etc.) */
   status: 'SUCCESS' | 'BLOCKED' | 'NOT_FOUND' | 'ERROR' | 'CHECKPOINT';
   /** Block content for this status */
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -389,7 +304,7 @@ export interface WriteStateNode {
  */
 export interface PromptTemplateNode {
   kind: 'promptTemplate';
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
@@ -431,13 +346,14 @@ export interface StepNode {
   /** Output format variant (default: 'heading') */
   variant: StepVariant;
   /** Step body content */
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 /**
- * Union of all block node types
+ * Base union of all block node types (without runtime nodes)
+ * Use BlockNode from v3-nodes.ts for the full union including runtime nodes
  */
-export type BlockNode =
+export type BaseBlockNode =
   | HeadingNode
   | ParagraphNode
   | ListNode
@@ -451,12 +367,8 @@ export type BlockNode =
   | XmlBlockNode
   | GroupNode
   | RawMarkdownNode
-  | SpawnAgentNode
   | AssignNode
   | AssignGroupNode
-  | IfNode
-  | ElseNode
-  | LoopNode
   | OnStatusNode
   | ReadStateNode
   | WriteStateNode
@@ -465,17 +377,17 @@ export type BlockNode =
   | MCPServerNode
   | StepNode;
 
+/**
+ * Internal alias for backward compatibility within this file
+ * @internal
+ */
+type BlockNode = BaseBlockNode;
+
 // ============================================================================
 // Special Nodes
 // ============================================================================
 
-/**
- * YAML frontmatter data
- */
-export interface FrontmatterNode {
-  kind: 'frontmatter';
-  data: Record<string, unknown>;
-}
+// FrontmatterNode moved to v3-nodes.ts
 
 /**
  * Agent YAML frontmatter data
@@ -491,14 +403,7 @@ export interface AgentFrontmatterNode {
   outputType?: TypeReference; // Optional: second generic type parameter (e.g., 'ResearcherOutput')
 }
 
-/**
- * Document root node
- */
-export interface DocumentNode {
-  kind: 'document';
-  frontmatter?: FrontmatterNode;
-  children: BlockNode[];
-}
+// DocumentNode moved to v3-nodes.ts
 
 /**
  * Agent document root node
@@ -507,7 +412,7 @@ export interface DocumentNode {
 export interface AgentDocumentNode {
   kind: 'agentDocument';
   frontmatter: AgentFrontmatterNode;  // Required for agents (vs optional for Command)
-  children: BlockNode[];
+  children: BaseBlockNode[];
 }
 
 // ============================================================================
@@ -645,7 +550,7 @@ export interface SkillFrontmatterNode {
 export interface SkillFileNode {
   kind: 'skillFile';
   name: string;                        // Output filename (e.g., "reference.md")
-  children: BlockNode[];               // Content to generate
+  children: BaseBlockNode[];               // Content to generate
 }
 
 /**
@@ -665,7 +570,7 @@ export interface SkillStaticNode {
 export interface SkillDocumentNode {
   kind: 'skillDocument';
   frontmatter: SkillFrontmatterNode;   // Required (like Agent)
-  children: BlockNode[];               // SKILL.md body content
+  children: BaseBlockNode[];               // SKILL.md body content
   files: SkillFileNode[];              // Generated files from SkillFile
   statics: SkillStaticNode[];          // Static files from SkillStatic
 }
@@ -692,13 +597,11 @@ export interface TypeReference {
 export type IRNode =
   | BlockNode
   | InlineNode
-  | FrontmatterNode
   | AgentFrontmatterNode
   | SkillFrontmatterNode
   | SkillFileNode
   | SkillStaticNode
   | ListItemNode
-  | DocumentNode
   | AgentDocumentNode
   | SkillDocumentNode
   | MCPConfigDocumentNode

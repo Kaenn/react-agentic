@@ -2,20 +2,20 @@
  * V3 SpawnAgent Transformer
  *
  * Transforms V3 SpawnAgent elements with output capture.
- * Similar to v1 spawner but with ScriptVar output binding.
+ * Similar to v1 spawner but with RuntimeVar output binding.
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
 import type {
-  V3SpawnAgentNode,
-  V3SpawnAgentInput,
-  V3InputProperty,
-  V3InputValue,
-  ScriptVarRefNode,
+  SpawnAgentNode,
+  SpawnAgentInput,
+  InputProperty,
+  InputValue,
+  RuntimeVarRefNode,
 } from '../../ir/index.js';
-import type { V3TransformContext } from './types.js';
-import { parseScriptVarRef } from './script-var.js';
-import { getAttributeValue, getAttributeExpression, extractJsonValue } from './utils.js';
+import type { V3TransformContext } from './v3-types.js';
+import { parseRuntimeVarRef } from './v3-runtime-var.js';
+import { getAttributeValue, getAttributeExpression, extractJsonValue } from './v3-utils.js';
 
 // ============================================================================
 // Input Parsing
@@ -26,17 +26,17 @@ import { getAttributeValue, getAttributeExpression, extractJsonValue } from './u
  *
  * Handles:
  * - String literals -> { type: 'string', value: '...' }
- * - ScriptVar references -> { type: 'scriptVarRef', ref: ... }
+ * - RuntimeVar references -> { type: 'runtimeVarRef', ref: ... }
  * - Other literals -> { type: 'json', value: ... }
  */
 function parseInputValue(
   expr: Expression,
   ctx: V3TransformContext
-): V3InputValue {
-  // Check for ScriptVar reference first
-  const ref = parseScriptVarRef(expr, ctx);
+): InputValue {
+  // Check for RuntimeVar reference first
+  const ref = parseRuntimeVarRef(expr, ctx);
   if (ref) {
-    return { type: 'scriptVarRef', ref };
+    return { type: 'runtimeVarRef', ref };
   }
 
   // String literal
@@ -64,9 +64,9 @@ function parseInputValue(
 function parseInput(
   expr: Expression,
   ctx: V3TransformContext
-): V3SpawnAgentInput {
-  // Check for ScriptVar reference (variable binding)
-  const ref = parseScriptVarRef(expr, ctx);
+): SpawnAgentInput {
+  // Check for RuntimeVar reference (variable binding)
+  const ref = parseRuntimeVarRef(expr, ctx);
   if (ref) {
     return {
       type: 'variable',
@@ -76,7 +76,7 @@ function parseInput(
 
   // Object literal
   if (Node.isObjectLiteralExpression(expr)) {
-    const properties: V3InputProperty[] = [];
+    const properties: InputProperty[] = [];
 
     for (const prop of expr.getProperties()) {
       if (Node.isPropertyAssignment(prop)) {
@@ -90,18 +90,18 @@ function parseInput(
           });
         }
       } else if (Node.isShorthandPropertyAssignment(prop)) {
-        // { foo } shorthand - check if it's a ScriptVar
+        // { foo } shorthand - check if it's a RuntimeVar
         const name = prop.getName();
         const nameNode = prop.getNameNode();
-        const ref = parseScriptVarRef(nameNode, ctx);
+        const ref = parseRuntimeVarRef(nameNode, ctx);
 
         if (ref) {
           properties.push({
             name,
-            value: { type: 'scriptVarRef', ref },
+            value: { type: 'runtimeVarRef', ref },
           });
         } else {
-          // Not a ScriptVar - treat as identifier reference (will be resolved at runtime)
+          // Not a RuntimeVar - treat as identifier reference (will be resolved at runtime)
           properties.push({
             name,
             value: { type: 'string', value: `{${name}}` },
@@ -114,7 +114,7 @@ function parseInput(
   }
 
   throw ctx.createError(
-    'SpawnAgent input must be an object literal or ScriptVar reference',
+    'SpawnAgent input must be an object literal or RuntimeVar reference',
     expr
   );
 }
@@ -124,7 +124,7 @@ function parseInput(
 // ============================================================================
 
 /**
- * Transform V3 SpawnAgent to V3SpawnAgentNode
+ * Transform V3 SpawnAgent to SpawnAgentNode
  *
  * Input JSX:
  * <SpawnAgent
@@ -137,7 +137,7 @@ function parseInput(
  *
  * Output IR:
  * {
- *   kind: 'v3SpawnAgent',
+ *   kind: 'spawnAgent',
  *   agent: 'researcher',
  *   model: 'haiku',
  *   description: 'Research the topic',
@@ -148,7 +148,7 @@ function parseInput(
 export function transformV3SpawnAgent(
   node: JsxElement | JsxSelfClosingElement,
   ctx: V3TransformContext
-): V3SpawnAgentNode {
+): SpawnAgentNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
     : node;
@@ -175,7 +175,7 @@ export function transformV3SpawnAgent(
   const prompt = getAttributeValue(openingElement, 'prompt');
   const inputExpr = getAttributeExpression(openingElement, 'input');
 
-  let input: V3SpawnAgentInput | undefined;
+  let input: SpawnAgentInput | undefined;
   if (inputExpr) {
     input = parseInput(inputExpr, ctx);
   }
@@ -191,7 +191,7 @@ export function transformV3SpawnAgent(
   let outputVar: string | undefined;
   const outputExpr = getAttributeExpression(openingElement, 'output');
   if (outputExpr) {
-    const outputRef = parseScriptVarRef(outputExpr, ctx);
+    const outputRef = parseRuntimeVarRef(outputExpr, ctx);
     if (!outputRef) {
       throw ctx.createError(
         'SpawnAgent output must be a useRuntimeVar reference',
@@ -211,7 +211,7 @@ export function transformV3SpawnAgent(
   const loadFromFile = getAttributeValue(openingElement, 'loadFromFile');
 
   return {
-    kind: 'v3SpawnAgent',
+    kind: 'spawnAgent',
     agent,
     model,
     description,

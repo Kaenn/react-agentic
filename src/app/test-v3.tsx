@@ -70,7 +70,7 @@ export default (
          
           This command demonstrates V3 features:
           - TypeScript runtime functions
-          - Typed conditions with ScriptVar
+          - Typed conditions with RuntimeVar
           - jq-based variable access
 
 

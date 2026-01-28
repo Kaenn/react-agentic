@@ -1,13 +1,13 @@
 /**
- * Script Variable Transformer
+ * Runtime Variable Transformer
  *
  * Extracts useRuntimeVar<T>('NAME') declarations from source files.
  * Populates the V3TransformContext with variable info for reference resolution.
  */
 
 import { Node, SourceFile } from 'ts-morph';
-import type { ScriptVarInfo, V3TransformContext } from './types.js';
-import type { ScriptVarDeclNode, ScriptVarRefNode } from '../../ir/index.js';
+import type { RuntimeVarInfo, V3TransformContext } from './v3-types.js';
+import type { RuntimeVarDeclNode, RuntimeVarRefNode } from '../../ir/index.js';
 
 // ============================================================================
 // Extraction
@@ -23,7 +23,7 @@ import type { ScriptVarDeclNode, ScriptVarRefNode } from '../../ir/index.js';
  * @param sourceFile - Source file to scan
  * @param ctx - Transform context to populate
  */
-export function extractScriptVarDeclarations(
+export function extractRuntimeVarDeclarations(
   sourceFile: SourceFile,
   ctx: V3TransformContext
 ): void {
@@ -71,7 +71,7 @@ export function extractScriptVarDeclarations(
     const tsType = typeArgs.length > 0 ? typeArgs[0].getText() : undefined;
 
     // Create info entry
-    const info: ScriptVarInfo = {
+    const info: RuntimeVarInfo = {
       varName,
       identifierName,
       tsType,
@@ -82,25 +82,25 @@ export function extractScriptVarDeclarations(
     };
 
     // Check for duplicate identifier
-    if (ctx.scriptVars.has(identifierName)) {
+    if (ctx.runtimeVars.has(identifierName)) {
       throw ctx.createError(
-        `Duplicate script variable identifier: ${identifierName}`,
+        `Duplicate runtime variable identifier: ${identifierName}`,
         node
       );
     }
 
-    ctx.scriptVars.set(identifierName, info);
+    ctx.runtimeVars.set(identifierName, info);
   });
 }
 
 /**
- * Get ScriptVarDeclNode array from context
+ * Get RuntimeVarDeclNode array from context
  *
  * Used to include declarations in the V3Document.
  */
-export function getScriptVarDecls(ctx: V3TransformContext): ScriptVarDeclNode[] {
-  return Array.from(ctx.scriptVars.values()).map(info => ({
-    kind: 'scriptVarDecl' as const,
+export function getRuntimeVarDecls(ctx: V3TransformContext): RuntimeVarDeclNode[] {
+  return Array.from(ctx.runtimeVars.values()).map(info => ({
+    kind: 'runtimeVarDecl' as const,
     varName: info.varName,
     tsType: info.tsType,
   }));
@@ -111,21 +111,21 @@ export function getScriptVarDecls(ctx: V3TransformContext): ScriptVarDeclNode[] 
 // ============================================================================
 
 /**
- * Resolve an identifier to its ScriptVar info
+ * Resolve an identifier to its RuntimeVar info
  *
  * @param identifierName - The identifier text (e.g., 'ctx')
  * @param ctx - Transform context with declarations
- * @returns ScriptVarInfo if found, undefined otherwise
+ * @returns RuntimeVarInfo if found, undefined otherwise
  */
-export function resolveScriptVar(
+export function resolveRuntimeVar(
   identifierName: string,
   ctx: V3TransformContext
-): ScriptVarInfo | undefined {
-  return ctx.scriptVars.get(identifierName);
+): RuntimeVarInfo | undefined {
+  return ctx.runtimeVars.get(identifierName);
 }
 
 /**
- * Parse a property access expression to ScriptVarRefNode
+ * Parse a property access expression to RuntimeVarRefNode
  *
  * Handles expressions like:
  * - ctx -> { varName: 'CTX', path: [] }
@@ -134,12 +134,12 @@ export function resolveScriptVar(
  *
  * @param node - Property access or identifier node
  * @param ctx - Transform context
- * @returns ScriptVarRefNode if valid, null if not a ScriptVar reference
+ * @returns RuntimeVarRefNode if valid, null if not a RuntimeVar reference
  */
-export function parseScriptVarRef(
+export function parseRuntimeVarRef(
   node: Node,
   ctx: V3TransformContext
-): ScriptVarRefNode | null {
+): RuntimeVarRefNode | null {
   // Build path by walking property access chain
   const path: string[] = [];
   let current: Node = node;
@@ -157,25 +157,25 @@ export function parseScriptVarRef(
   }
 
   const identName = current.getText();
-  const info = ctx.scriptVars.get(identName);
+  const info = ctx.runtimeVars.get(identName);
 
   if (!info) {
     return null;
   }
 
   return {
-    kind: 'scriptVarRef',
+    kind: 'runtimeVarRef',
     varName: info.varName,
     path,
   };
 }
 
 /**
- * Check if a node is a ScriptVar reference
+ * Check if a node is a RuntimeVar reference
  */
-export function isScriptVarReference(
+export function isRuntimeVarReference(
   node: Node,
   ctx: V3TransformContext
 ): boolean {
-  return parseScriptVarRef(node, ctx) !== null;
+  return parseRuntimeVarRef(node, ctx) !== null;
 }

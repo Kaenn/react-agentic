@@ -438,7 +438,7 @@ function extractInputProp(
   if (Node.isIdentifier(expr)) {
     const variable = ctx.variables.get(expr.getText());
     if (variable) {
-      return { type: 'variable', variableName: variable.envName };
+      return { type: 'variable', varName: variable.envName };
     }
     // Not a known variable - error
     throw ctx.createError(

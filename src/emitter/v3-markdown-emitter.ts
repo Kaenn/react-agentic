@@ -6,49 +6,49 @@
  *
  * Key differences from v1:
  * - RuntimeCallNode emits as bash code block with node invocation
- * - V3IfNode emits with jq-based conditions
- * - ScriptVar interpolation uses jq expressions
+ * - IfNode emits with jq-based conditions
+ * - RuntimeVar interpolation uses jq expressions
  */
 
 import matter from 'gray-matter';
 import type {
-  V3DocumentNode,
-  V3BlockNode,
-  V3IfNode,
-  V3ElseNode,
-  V3LoopNode,
+  DocumentNode,
+  BlockNode,
+  IfNode,
+  ElseNode,
+  LoopNode,
   BreakNode,
   ReturnNode,
   AskUserNode,
   RuntimeCallNode,
-  V3SpawnAgentNode,
-  V3Condition,
-  ScriptVarRefNode,
-  ScriptVarDeclNode,
-  V3InputValue,
+  SpawnAgentNode,
+  Condition,
+  RuntimeVarRefNode,
+  RuntimeVarDeclNode,
+  InputValue,
 } from '../ir/index.js';
-import type { InlineNode } from '../../ir/nodes.js';
+import type { InlineNode } from '../ir/nodes.js';
 
 // ============================================================================
 // jq Expression Generation
 // ============================================================================
 
 /**
- * Convert ScriptVarRefNode to jq shell expression
+ * Convert RuntimeVarRefNode to jq shell expression
  *
  * @example
  * toJqExpression({ varName: 'CTX', path: ['user', 'name'] })
  * // Returns: $(echo "$CTX" | jq -r '.user.name')
  */
-function toJqExpression(ref: ScriptVarRefNode): string {
+function toJqExpression(ref: RuntimeVarRefNode): string {
   const jqPath = ref.path.length === 0 ? '.' : '.' + ref.path.join('.');
   return `$(echo "$${ref.varName}" | jq -r '${jqPath}')`;
 }
 
 /**
- * Convert V3Condition to shell condition string
+ * Convert Condition to shell condition string
  */
-function conditionToShell(condition: V3Condition): string {
+function conditionToShell(condition: Condition): string {
   switch (condition.type) {
     case 'ref': {
       // Truthy check: non-empty and not "null" and not "false"
@@ -132,11 +132,11 @@ function conditionToShell(condition: V3Condition): string {
 }
 
 /**
- * Convert V3Condition to prose-friendly string
+ * Convert Condition to prose-friendly string
  *
  * Used in markdown output like: **If ctx.error:**
  */
-function conditionToProse(condition: V3Condition): string {
+function conditionToProse(condition: Condition): string {
   switch (condition.type) {
     case 'ref': {
       const path = condition.ref.path.length === 0
@@ -188,7 +188,7 @@ export class V3MarkdownEmitter {
   /**
    * Emit a complete V3 document
    */
-  emit(doc: V3DocumentNode): string {
+  emit(doc: DocumentNode): string {
     const parts: string[] = [];
 
     // Emit frontmatter
@@ -209,25 +209,25 @@ export class V3MarkdownEmitter {
   /**
    * Emit a block node
    */
-  private emitBlock(node: V3BlockNode): string {
+  private emitBlock(node: BlockNode): string {
     switch (node.kind) {
       // V3-specific nodes
       case 'runtimeCall':
         return this.emitRuntimeCall(node);
-      case 'v3If':
-        return this.emitV3If(node);
-      case 'v3Else':
-        return this.emitV3Else(node);
-      case 'v3Loop':
-        return this.emitV3Loop(node);
+      case 'if':
+        return this.emitIf(node);
+      case 'else':
+        return this.emitElse(node);
+      case 'loop':
+        return this.emitLoop(node);
       case 'break':
         return this.emitBreak(node);
       case 'return':
         return this.emitReturn(node);
       case 'askUser':
         return this.emitAskUser(node);
-      case 'v3SpawnAgent':
-        return this.emitV3SpawnAgent(node);
+      case 'spawnAgent':
+        return this.emitSpawnAgent(node);
 
       // Shared V1 nodes
       case 'heading':
@@ -247,19 +247,15 @@ export class V3MarkdownEmitter {
       case 'xmlBlock':
         return this.emitXmlBlock(node);
       case 'executionContext':
-        return this.emitExecutionContext(node as import('../../ir/nodes.js').ExecutionContextNode);
+        return this.emitExecutionContext(node as import('../ir/nodes.js').ExecutionContextNode);
       case 'group':
         return node.children.map(c => this.emitBlock(c)).join('\n');
       case 'raw':
         return node.content;
 
-      // V1 nodes that shouldn't appear in V3 (or are handled by shared path)
-      case 'spawnAgent':
+      // V1 nodes that shouldn't appear in runtime documents
       case 'assign':
       case 'assignGroup':
-      case 'if':
-      case 'else':
-      case 'loop':
       case 'onStatus':
       case 'readState':
       case 'writeState':
@@ -269,8 +265,8 @@ export class V3MarkdownEmitter {
       case 'successCriteria':
       case 'offerNext':
       case 'mcpServer':
-      case 'scriptVarDecl':
-        throw new Error(`Unexpected node kind in V3 document: ${node.kind}`);
+      case 'runtimeVarDecl':
+        throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
 
       default:
         // Exhaustiveness check
@@ -295,14 +291,14 @@ export class V3MarkdownEmitter {
   }
 
   /**
-   * Emit V3IfNode as prose conditional with jq
+   * Emit IfNode as prose conditional with jq
    *
    * Output:
    * **If ctx.error:**
    *
    * {children}
    */
-  private emitV3If(node: V3IfNode): string {
+  private emitIf(node: IfNode): string {
     const parts: string[] = [];
     const condProse = conditionToProse(node.condition);
     parts.push(`**If ${condProse}:**`);
@@ -315,9 +311,9 @@ export class V3MarkdownEmitter {
   }
 
   /**
-   * Emit V3ElseNode
+   * Emit ElseNode
    */
-  private emitV3Else(node: V3ElseNode): string {
+  private emitElse(node: ElseNode): string {
     const parts: string[] = [];
     parts.push('**Otherwise:**');
 
@@ -329,14 +325,14 @@ export class V3MarkdownEmitter {
   }
 
   /**
-   * Emit V3LoopNode as bounded loop
+   * Emit LoopNode as bounded loop
    *
    * Output:
    * **Loop up to N times:**
    *
    * {children}
    */
-  private emitV3Loop(node: V3LoopNode): string {
+  private emitLoop(node: LoopNode): string {
     const parts: string[] = [];
 
     const counterInfo = node.counterVar ? ` (counter: $${node.counterVar})` : '';
@@ -399,9 +395,9 @@ export class V3MarkdownEmitter {
   }
 
   /**
-   * Emit V3SpawnAgentNode as Task() syntax
+   * Emit SpawnAgentNode as Task() syntax
    */
-  private emitV3SpawnAgent(node: V3SpawnAgentNode): string {
+  private emitSpawnAgent(node: SpawnAgentNode): string {
     const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
 
     // Build prompt
@@ -409,7 +405,7 @@ export class V3MarkdownEmitter {
     if (node.prompt) {
       promptContent = node.prompt;
     } else if (node.input) {
-      promptContent = this.formatV3Input(node.input);
+      promptContent = this.formatInput(node.input);
     } else {
       promptContent = '';
     }
@@ -446,7 +442,7 @@ Task(
   /**
    * Format V3 input for prompt
    */
-  private formatV3Input(input: import('../ir/index.js').V3SpawnAgentInput): string {
+  private formatInput(input: import('../ir/index.js').SpawnAgentInput): string {
     if (input.type === 'variable') {
       return `<input>\n{$${input.varName.toLowerCase()}}\n</input>`;
     }
@@ -460,13 +456,13 @@ Task(
   }
 
   /**
-   * Format V3InputValue
+   * Format InputValue
    */
-  private formatInputValue(value: V3InputValue): string {
+  private formatInputValue(value: InputValue): string {
     switch (value.type) {
       case 'string':
         return value.value;
-      case 'scriptVarRef':
+      case 'runtimeVarRef':
         return toJqExpression(value.ref);
       case 'json':
         return JSON.stringify(value.value, null, 2);
@@ -498,21 +494,21 @@ Task(
     }
   }
 
-  private emitList(node: import('../../ir/nodes.js').ListNode): string {
+  private emitList(node: import('../ir/nodes.js').ListNode): string {
     const items = node.items.map((item, idx) => {
       const marker = node.ordered ? `${(node.start ?? 1) + idx}.` : '-';
-      const content = item.children.map(c => this.emitBlock(c as V3BlockNode)).join('\n');
+      const content = item.children.map(c => this.emitBlock(c as BlockNode)).join('\n');
       return `${marker} ${content}`;
     });
     return items.join('\n');
   }
 
-  private emitBlockquote(node: import('../../ir/nodes.js').BlockquoteNode): string {
-    const content = node.children.map(c => this.emitBlock(c as V3BlockNode)).join('\n\n');
+  private emitBlockquote(node: import('../ir/nodes.js').BlockquoteNode): string {
+    const content = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
     return content.split('\n').map(line => `> ${line}`).join('\n');
   }
 
-  private emitTable(node: import('../../ir/nodes.js').TableNode): string {
+  private emitTable(node: import('../ir/nodes.js').TableNode): string {
     const lines: string[] = [];
     const colCount = node.headers?.length ?? node.rows[0]?.length ?? 0;
 
@@ -531,15 +527,15 @@ Task(
     return lines.join('\n');
   }
 
-  private emitXmlBlock(node: import('../../ir/nodes.js').XmlBlockNode): string {
+  private emitXmlBlock(node: import('../ir/nodes.js').XmlBlockNode): string {
     const attrs = node.attributes
       ? ' ' + Object.entries(node.attributes).map(([k, v]) => `${k}="${v}"`).join(' ')
       : '';
-    const content = node.children.map(c => this.emitBlock(c as V3BlockNode)).join('\n\n');
+    const content = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
     return `<${node.name}${attrs}>\n${content}\n</${node.name}>`;
   }
 
-  private emitExecutionContext(node: import('../../ir/nodes.js').ExecutionContextNode): string {
+  private emitExecutionContext(node: import('../ir/nodes.js').ExecutionContextNode): string {
     const lines: string[] = ['<execution_context>'];
 
     // Emit each path with prefix
@@ -550,7 +546,7 @@ Task(
 
     // Emit children if any
     if (node.children.length > 0) {
-      const content = node.children.map(c => this.emitBlock(c as V3BlockNode)).join('\n\n');
+      const content = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
       lines.push(content);
     }
 
@@ -566,7 +562,7 @@ Task(
 /**
  * Emit a V3 document to markdown
  */
-export function emitV3(doc: V3DocumentNode): string {
+export function emitV3(doc: DocumentNode): string {
   const emitter = new V3MarkdownEmitter();
   return emitter.emit(doc);
 }

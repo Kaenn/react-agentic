@@ -27,7 +27,7 @@ import {
   XmlBlock,
   ExecutionContext,
   Table,
-} from '../../jsx.js';
+} from '../jsx.js';
 
 // Import runtime functions
 import {
@@ -91,7 +91,7 @@ export default (
     ]}
   >
     {() => {
-      // Variable declarations with typed ScriptVars
+      // Variable declarations with typed RuntimeVars
       const ctx = useRuntimeVar<NewProjectContext>('CTX');
       const questioning = useRuntimeVar<QuestioningContext>('QUESTIONING');
       const config = useRuntimeVar<WorkflowConfig>('CONFIG');
