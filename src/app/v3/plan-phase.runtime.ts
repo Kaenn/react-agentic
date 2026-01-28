@@ -13,6 +13,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { randomCatName } from 'cat-names';
 
 // ============================================================================
 // Types
@@ -54,6 +55,7 @@ export interface PlanPhaseContext {
     planner: string;
     checker: string;
   };
+  mascot: string;            // Random cat name for this phase
 }
 
 export interface ResearchContext {
@@ -200,6 +202,7 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     modelProfile: 'balanced',
     config: { workflowResearch: true, workflowPlanCheck: true },
     agentPaths: DEFAULT_AGENT_PATHS,
+    mascot: randomCatName(),
   });
 
   // Check .planning directory exists
@@ -327,6 +330,7 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     modelProfile,
     config,
     agentPaths,
+    mascot: randomCatName(),
   };
 }
 

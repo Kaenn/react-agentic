@@ -10,4 +10,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: 'node18',
+  // Don't bundle esbuild - it uses dynamic require internally
+  external: ['esbuild'],
 });

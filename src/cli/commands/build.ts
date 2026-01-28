@@ -40,8 +40,8 @@ import { createWatcher } from '../watcher.js';
 
 // V3 imports
 import { buildV3File, hasV3Imports } from '../../v3/cli/build-v3.js';
-import { mergeRuntimeResults } from '../../v3/emitter/index.js';
-import type { RuntimeEmitResult } from '../../v3/emitter/index.js';
+import { bundleSingleEntryRuntime } from '../../v3/emitter/index.js';
+import type { RuntimeFileInfo } from '../../v3/emitter/index.js';
 
 interface BuildOptions {
   out: string;
@@ -195,7 +195,7 @@ async function runBuild(
   const results: BuildResult[] = [];
   const mcpConfigs: { inputFile: string; doc: MCPConfigDocumentNode }[] = [];
   const allStateNames: string[] = [];
-  const v3RuntimeResults: RuntimeEmitResult[] = [];  // Collect V3 runtime results for merging
+  const v3RuntimeFiles: RuntimeFileInfo[] = [];  // Collect V3 runtime info for single-entry bundling
   let v3RuntimePath = '';  // Track the runtime output path
   let errorCount = 0;
 
@@ -211,7 +211,7 @@ async function runBuild(
 
       // V3 build path
       if (useV3) {
-        const v3Result = buildV3File(sourceFile, project, {
+        const v3Result = await buildV3File(sourceFile, project, {
           commandsOut: options.out,
           runtimeOut: options.runtimeOut || '.claude/runtime',
           dryRun: options.dryRun,
@@ -225,9 +225,9 @@ async function runBuild(
           size: Buffer.byteLength(v3Result.markdown, 'utf8'),
         });
 
-        // Collect runtime result for merging (instead of adding individually)
-        if (v3Result.runtimeResult) {
-          v3RuntimeResults.push(v3Result.runtimeResult);
+        // Collect runtime file info for single-entry bundling
+        if (v3Result.runtimeFileInfo) {
+          v3RuntimeFiles.push(v3Result.runtimeFileInfo);
           v3RuntimePath = v3Result.runtimePath;  // All V3 files share the same path
         }
 
@@ -353,18 +353,22 @@ async function runBuild(
     });
   }
 
-  // Merge all V3 runtime results into a single runtime.js
-  if (v3RuntimeResults.length > 0) {
-    const mergedRuntime = mergeRuntimeResults(v3RuntimeResults);
-    results.push({
-      inputFile: `${v3RuntimeResults.length} V3 file(s)`,
+  // Bundle all V3 runtimes using single-entry approach (deduplicates shared code)
+  if (v3RuntimeFiles.length > 0) {
+    const bundleResult = await bundleSingleEntryRuntime({
+      runtimeFiles: v3RuntimeFiles,
       outputPath: v3RuntimePath,
-      content: mergedRuntime.content,
-      size: Buffer.byteLength(mergedRuntime.content, 'utf8'),
     });
 
-    // Log any merge warnings
-    for (const warning of mergedRuntime.warnings) {
+    results.push({
+      inputFile: `${v3RuntimeFiles.length} V3 file(s)`,
+      outputPath: v3RuntimePath,
+      content: bundleResult.content,
+      size: Buffer.byteLength(bundleResult.content, 'utf8'),
+    });
+
+    // Log any bundle warnings
+    for (const warning of bundleResult.warnings) {
       logWarning(warning);
     }
   }

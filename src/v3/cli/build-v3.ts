@@ -3,7 +3,7 @@
  *
  * Transforms V3 TSX files to dual output:
  * - COMMAND.md (markdown for Claude)
- * - runtime.js (extracted TypeScript functions)
+ * - runtime.js (bundled TypeScript functions via esbuild)
  */
 
 import { SourceFile, Project, Node } from 'ts-morph';
@@ -20,7 +20,13 @@ import {
 } from '../parser/transformers/index.js';
 
 // V3 emitter
-import { emitV3, emitRuntime, isV3File } from '../emitter/index.js';
+import {
+  emitV3,
+  isV3File,
+  // Esbuild bundler
+  extractExportedFunctionNames,
+  type RuntimeFileInfo,
+} from '../emitter/index.js';
 
 // V3 IR
 import type { V3DocumentNode } from '../ir/index.js';
@@ -29,8 +35,9 @@ import type { V3DocumentNode } from '../ir/index.js';
 // Types
 // ============================================================================
 
-// Import RuntimeEmitResult type
+// Re-export for build.ts compatibility (legacy)
 import type { RuntimeEmitResult } from '../emitter/index.js';
+export type { RuntimeEmitResult };
 
 /**
  * V3 build result
@@ -38,15 +45,17 @@ import type { RuntimeEmitResult } from '../emitter/index.js';
 export interface V3BuildResult {
   /** Generated markdown content */
   markdown: string;
-  /** Generated runtime.js content (empty if no runtime functions) */
+  /** Generated runtime.js content (empty - bundling happens at end) */
   runtime: string;
-  /** Full runtime result for merging (null if no runtime functions) */
+  /** Full runtime result for merging (null if no runtime functions) - LEGACY */
   runtimeResult: RuntimeEmitResult | null;
+  /** Runtime file info for single-entry bundling (null if no runtime functions) */
+  runtimeFileInfo: RuntimeFileInfo | null;
   /** Path where markdown should be written */
   markdownPath: string;
   /** Path where runtime should be written */
   runtimePath: string;
-  /** List of runtime functions extracted */
+  /** List of runtime functions extracted (without namespace prefix) */
   runtimeFunctions: string[];
   /** Any warnings during build */
   warnings: string[];
@@ -141,6 +150,23 @@ function isV3Command(element: Node): boolean {
 // ============================================================================
 
 /**
+ * Resolve runtime file path from import path
+ */
+function resolveRuntimePath(tsxFilePath: string, importPath: string): string {
+  const tsxDir = path.dirname(tsxFilePath);
+  let resolved = path.resolve(tsxDir, importPath);
+
+  // Convert .js extension to .ts for TypeScript source
+  if (resolved.endsWith('.js')) {
+    resolved = resolved.replace(/\.js$/, '.ts');
+  } else if (!resolved.endsWith('.ts')) {
+    resolved += '.ts';
+  }
+
+  return resolved;
+}
+
+/**
  * Build a V3 file to markdown and runtime.js
  *
  * @param sourceFile - Source file to build
@@ -148,11 +174,11 @@ function isV3Command(element: Node): boolean {
  * @param options - Build options
  * @returns Build result with content and paths
  */
-export function buildV3File(
+export async function buildV3File(
   sourceFile: SourceFile,
   project: Project,
   options: V3BuildOptions
-): V3BuildResult {
+): Promise<V3BuildResult> {
   const filePath = sourceFile.getFilePath();
   const basename = path.basename(filePath, '.tsx');
   const warnings: string[] = [];
@@ -184,22 +210,29 @@ export function buildV3File(
   // Phase 4: Emit markdown
   const markdown = emitV3(document);
 
-  // Phase 5: Emit runtime (if any runtime functions used)
+  // Phase 5: Extract runtime info (bundling happens at the end for all files)
   const runtimeFunctionNames = getRuntimeFunctionNames(ctx);
   const runtimeImportPaths = getRuntimeImportPaths(ctx);
 
-  let runtime = '';
-  let runtimeResultData: RuntimeEmitResult | null = null;
-  if (runtimeFunctionNames.length > 0) {
-    runtimeResultData = emitRuntime(
-      project,
-      filePath,
-      runtimeFunctionNames,
-      runtimeImportPaths,
-      ctx.namespace // Pass namespace for function prefixing
-    );
-    runtime = runtimeResultData.content;
-    warnings.push(...runtimeResultData.warnings);
+  let runtimeFileInfo: RuntimeFileInfo | null = null;
+
+  if (runtimeFunctionNames.length > 0 && runtimeImportPaths.length > 0) {
+    // Resolve the first runtime import path (typically the .runtime.ts file)
+    const runtimeFilePath = resolveRuntimePath(filePath, runtimeImportPaths[0]);
+
+    try {
+      // Parse the runtime file to extract exported functions
+      const runtimeSourceFile = project.addSourceFileAtPath(runtimeFilePath);
+      const exportedFunctions = extractExportedFunctionNames(runtimeSourceFile);
+
+      runtimeFileInfo = {
+        sourcePath: runtimeFilePath,
+        namespace: ctx.namespace!,
+        exportedFunctions,
+      };
+    } catch (e) {
+      warnings.push(`Failed to parse runtime file: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   // Determine output paths
@@ -208,8 +241,9 @@ export function buildV3File(
 
   return {
     markdown,
-    runtime,
-    runtimeResult: runtimeResultData,
+    runtime: '', // Bundling happens at the end
+    runtimeResult: null, // Legacy field, no longer used
+    runtimeFileInfo,
     markdownPath,
     runtimePath,
     runtimeFunctions: runtimeFunctionNames,
