@@ -3,28 +3,10 @@
  */
 import { Command } from 'commander';
 import { globby } from 'globby';
-import { writeFile, mkdir, copyFile, readFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { Node } from 'ts-morph';
 import type { Project } from 'ts-morph';
-import {
-  createProject,
-  findRootJsxElement,
-  transform,
-  emit,
-  emitAgent,
-  emitSkill,
-  emitSkillFile,
-  emitSettings,
-  mergeSettings,
-  getAttributeValue,
-  resolveTypeImport,
-  extractInterfaceProperties,
-  extractPromptPlaceholders,
-} from '../../index.js';
-import type { DocumentNode, AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, StateDocumentNode } from '../../index.js';
-import { emitState, generateMainInitSkill } from '../../emitter/state-emitter.js';
-import type { SourceFile } from 'ts-morph';
+import { createProject } from '../../parser/utils/project.js';
 import {
   logSuccess,
   logError,
@@ -35,10 +17,10 @@ import {
   logTranspileError,
   BuildResult,
 } from '../output.js';
-import { TranspileError, CrossFileError, formatCrossFileError } from '../errors.js';
+import { TranspileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 
-// V3 imports
+// Build imports
 import { buildV3File, hasV3Imports } from '../../v3/cli/build-v3.js';
 import { bundleSingleEntryRuntime, bundleCodeSplit } from '../../v3/emitter/index.js';
 import type { RuntimeFileInfo } from '../../v3/emitter/index.js';
@@ -47,137 +29,9 @@ interface BuildOptions {
   out: string;
   dryRun?: boolean;
   watch?: boolean;
-  v3?: boolean;
   runtimeOut?: string;
   codeSplit?: boolean;
   minify?: boolean;
-}
-
-/**
- * Validate SpawnAgent nodes against their Agent interfaces
- *
- * Checks:
- * 1. If SpawnAgent has inputType, verify the type can be resolved
- * 2. Verify prompt placeholders cover all required interface properties
- *
- * @param doc - Document node containing potential SpawnAgent children
- * @param sourceFile - Source file for import resolution
- * @returns Array of validation errors
- */
-function validateSpawnAgents(
-  doc: DocumentNode | AgentDocumentNode,
-  sourceFile: SourceFile
-): CrossFileError[] {
-  const errors: CrossFileError[] = [];
-
-  for (const child of doc.children) {
-    if (child.kind !== 'spawnAgent' || !child.inputType) {
-      continue;
-    }
-
-    const typeName = child.inputType.name;
-
-    // Try to resolve the type import
-    const resolved = resolveTypeImport(typeName, sourceFile);
-    if (!resolved) {
-      // Type not found - create error at SpawnAgent location
-      // Note: We can't get node location after transformation, so this requires
-      // storing location during transformation or re-parsing
-      // For now, create error without precise location
-      errors.push(
-        new CrossFileError(
-          `Cannot resolve type '${typeName}' for SpawnAgent validation`,
-          { file: sourceFile.getFilePath(), line: 1, column: 1 },
-          undefined,
-          sourceFile.getFullText()
-        )
-      );
-      continue;
-    }
-
-    // Extract interface properties and prompt placeholders
-    const properties = extractInterfaceProperties(resolved.interface);
-
-    // When using input prop instead of prompt, validation is handled differently:
-    // - Object literal: check if properties match interface (done at transform time)
-    // - Variable ref: runtime validation only
-    // Only validate prompt-based SpawnAgent calls
-    if (!child.prompt) {
-      continue; // Skip validation for input-based SpawnAgent
-    }
-
-    const placeholders = extractPromptPlaceholders(child.prompt);
-
-    // Check for missing required properties
-    const requiredProps = properties.filter(p => p.required);
-    const missing = requiredProps.filter(p => !placeholders.has(p.name));
-
-    if (missing.length > 0) {
-      const missingNames = missing.map(p => `'${p.name}'`).join(', ');
-      const agentLocation = {
-        file: resolved.sourceFile.getFilePath(),
-        line: resolved.interface.getStartLineNumber(),
-        column: 1,
-      };
-
-      errors.push(
-        new CrossFileError(
-          `SpawnAgent prompt missing required properties: ${missingNames}`,
-          { file: sourceFile.getFilePath(), line: 1, column: 1 },
-          agentLocation,
-          sourceFile.getFullText()
-        )
-      );
-    }
-  }
-
-  return errors;
-}
-
-/**
- * Process a skill document into build outputs
- */
-function processSkill(
-  doc: SkillDocumentNode,
-  inputFile: string
-): BuildResult[] {
-  const skillName = doc.frontmatter.name;
-  const skillDir = `.claude/skills/${skillName}`;
-  const inputDir = path.dirname(inputFile);
-
-  const results: BuildResult[] = [];
-
-  // 1. Generate SKILL.md
-  const skillMd = emitSkill(doc);
-  const skillMdResult: BuildResult = {
-    inputFile,
-    outputPath: `${skillDir}/SKILL.md`,
-    content: skillMd,
-    size: Buffer.byteLength(skillMd, 'utf8'),
-  };
-
-  // Attach statics to SKILL.md result (processed during write phase)
-  if (doc.statics.length > 0) {
-    skillMdResult.statics = doc.statics.map(s => ({
-      src: path.resolve(inputDir, s.src),
-      dest: `${skillDir}/${s.dest || path.basename(s.src)}`,
-    }));
-  }
-
-  results.push(skillMdResult);
-
-  // 2. Generate SkillFiles
-  for (const file of doc.files) {
-    const content = emitSkillFile(file);
-    results.push({
-      inputFile,
-      outputPath: `${skillDir}/${file.name}`,
-      content,
-      size: Buffer.byteLength(content, 'utf8'),
-    });
-  }
-
-  return results;
 }
 
 /**
@@ -195,141 +49,50 @@ async function runBuild(
   }
 
   const results: BuildResult[] = [];
-  const mcpConfigs: { inputFile: string; doc: MCPConfigDocumentNode }[] = [];
-  const allStateNames: string[] = [];
-  const v3RuntimeFiles: RuntimeFileInfo[] = [];  // Collect V3 runtime info for single-entry bundling
-  let v3RuntimePath = '';  // Track the runtime output path
+  const runtimeFiles: RuntimeFileInfo[] = [];
+  let runtimePath = '';
   let errorCount = 0;
 
-  // Phase 1: Process all files and collect results
+  // Process all files
   for (const inputFile of tsxFiles) {
     try {
       // Parse file
       const sourceFile = project.addSourceFileAtPath(inputFile);
 
-      // Check for V3 mode (explicit flag or auto-detect)
+      // Check if file uses V3 features (useScriptVar, runtimeFn)
       const fileContent = sourceFile.getFullText();
-      const useV3 = options.v3 || hasV3Imports(fileContent);
+      const isV3 = hasV3Imports(fileContent);
 
-      // V3 build path
-      if (useV3) {
-        const v3Result = await buildV3File(sourceFile, project, {
-          commandsOut: options.out,
-          runtimeOut: options.runtimeOut || '.claude/runtime',
-          dryRun: options.dryRun,
-        });
-
-        // Add markdown result
-        results.push({
-          inputFile,
-          outputPath: v3Result.markdownPath,
-          content: v3Result.markdown,
-          size: Buffer.byteLength(v3Result.markdown, 'utf8'),
-        });
-
-        // Collect runtime file info for single-entry bundling
-        if (v3Result.runtimeFileInfo) {
-          v3RuntimeFiles.push(v3Result.runtimeFileInfo);
-          v3RuntimePath = v3Result.runtimePath;  // All V3 files share the same path
-        }
-
-        // Log warnings
-        for (const warning of v3Result.warnings) {
-          logWarning(warning);
-        }
-
-        continue; // Skip v1 processing
+      if (!isV3) {
+        // Skip non-V3 files with warning
+        logWarning(`Skipping ${inputFile}: V1 files are no longer supported. Please migrate to V3.`);
+        continue;
       }
 
-      // V1 build path
-      // Find root JSX
-      const root = findRootJsxElement(sourceFile);
-      if (!root) {
-        throw new Error('No JSX element found in file');
+      // Build V3 file
+      const v3Result = await buildV3File(sourceFile, project, {
+        commandsOut: options.out,
+        runtimeOut: options.runtimeOut || '.claude/runtime',
+        dryRun: options.dryRun,
+      });
+
+      // Add markdown result
+      results.push({
+        inputFile,
+        outputPath: v3Result.markdownPath,
+        content: v3Result.markdown,
+        size: Buffer.byteLength(v3Result.markdown, 'utf8'),
+      });
+
+      // Collect runtime file info for bundling
+      if (v3Result.runtimeFileInfo) {
+        runtimeFiles.push(v3Result.runtimeFileInfo);
+        runtimePath = v3Result.runtimePath;
       }
 
-      // Transform to IR (pass sourceFile for error location context)
-      const doc = transform(root, sourceFile);
-
-      // Determine output path and emit based on document type
-      const basename = path.basename(inputFile, '.tsx');
-
-      if (doc.kind === 'skillDocument') {
-        // Skill: multi-file output to .claude/skills/{name}/
-        const skillResults = processSkill(doc, inputFile);
-        results.push(...skillResults);
-      } else if (doc.kind === 'agentDocument') {
-        // Agent: emit with GSD format (pass sourceFile for structured_returns)
-        const markdown = emitAgent(doc, sourceFile);
-
-        // Get folder prop for output path (need to re-parse for this)
-        // The folder prop affects output path but is not in frontmatter
-        const folder = (Node.isJsxElement(root) || Node.isJsxSelfClosingElement(root))
-          ? getAttributeValue(
-              Node.isJsxElement(root) ? root.getOpeningElement() : root,
-              'folder'
-            )
-          : undefined;
-
-        // Route to .claude/agents/{folder?}/{basename}.md
-        const agentDir = folder
-          ? path.join('.claude/agents', folder)
-          : '.claude/agents';
-        const outputPath = path.join(agentDir, `${basename}.md`);
-
-        results.push({
-          inputFile,
-          outputPath,
-          content: markdown,
-          size: Buffer.byteLength(markdown, 'utf8'),
-        });
-      } else if (doc.kind === 'mcpConfigDocument') {
-        // MCP config: collect servers for batch merge at end
-        mcpConfigs.push({
-          inputFile,
-          doc,
-        });
-        // Don't add to results - settings.json handled separately after loop
-      } else if (doc.kind === 'document') {
-        // Command: emit with standard format, use --out option
-        const markdown = emit(doc);
-        const outputPath = path.join(options.out, `${basename}.md`);
-
-        // Run validation pass for documents with SpawnAgent
-        const validationErrors = validateSpawnAgents(doc, sourceFile);
-        for (const valError of validationErrors) {
-          errorCount++;
-          console.error(formatCrossFileError(valError));
-        }
-        // Note: Validation errors are logged but build continues (warning mode)
-        // To make validation blocking, add: if (validationErrors.length > 0) continue;
-
-        results.push({
-          inputFile,
-          outputPath,
-          content: markdown,
-          size: Buffer.byteLength(markdown, 'utf8'),
-        });
-      } else if (doc.kind === 'stateDocument') {
-        // State: multi-file output to .claude/skills/{skill-name}/SKILL.md
-        const stateDoc = doc as StateDocumentNode;
-        const result = await emitState(stateDoc);
-
-        // Track state name for main init generation
-        allStateNames.push(result.stateName);
-
-        // Write all skill files as directories (Claude Code expects skill directories)
-        for (const skill of result.skills) {
-          // Convert "task-state.init.md" to "task-state.init/SKILL.md"
-          const skillName = skill.filename.replace(/\.md$/, '');
-          const skillPath = `.claude/skills/${skillName}/SKILL.md`;
-          results.push({
-            inputFile,
-            outputPath: skillPath,
-            content: skill.content,
-            size: Buffer.byteLength(skill.content, 'utf8'),
-          });
-        }
+      // Log warnings
+      for (const warning of v3Result.warnings) {
+        logWarning(warning);
       }
     } catch (error) {
       errorCount++;
@@ -342,34 +105,21 @@ async function runBuild(
     }
   }
 
-  // Generate main init skill if any states were processed
-  if (allStateNames.length > 0) {
-    const mainInit = generateMainInitSkill(allStateNames);
-    // Convert "init.all.md" to "init.all/SKILL.md"
-    const skillName = mainInit.filename.replace(/\.md$/, '');
-    results.push({
-      inputFile: 'generated',
-      outputPath: `.claude/skills/${skillName}/SKILL.md`,
-      content: mainInit.content,
-      size: Buffer.byteLength(mainInit.content, 'utf8'),
-    });
-  }
-
-  // Bundle all V3 runtimes
-  if (v3RuntimeFiles.length > 0) {
+  // Bundle all runtimes
+  if (runtimeFiles.length > 0) {
     const runtimeOutDir = options.runtimeOut || '.claude/runtime';
 
     if (options.codeSplit) {
       // Code-split mode: generate dispatcher + per-namespace modules
       const bundleResult = await bundleCodeSplit({
-        runtimeFiles: v3RuntimeFiles,
+        runtimeFiles,
         outputDir: runtimeOutDir,
         minify: options.minify,
       });
 
       // Add dispatcher
       results.push({
-        inputFile: `${v3RuntimeFiles.length} V3 file(s) (dispatcher)`,
+        inputFile: `${runtimeFiles.length} file(s) (dispatcher)`,
         outputPath: path.join(runtimeOutDir, 'runtime.js'),
         content: bundleResult.dispatcherContent,
         size: Buffer.byteLength(bundleResult.dispatcherContent, 'utf8'),
@@ -392,14 +142,14 @@ async function runBuild(
     } else {
       // Single-entry mode (default): one bundled runtime.js
       const bundleResult = await bundleSingleEntryRuntime({
-        runtimeFiles: v3RuntimeFiles,
-        outputPath: v3RuntimePath,
+        runtimeFiles,
+        outputPath: runtimePath,
         minify: options.minify,
       });
 
       results.push({
-        inputFile: `${v3RuntimeFiles.length} V3 file(s)`,
-        outputPath: v3RuntimePath,
+        inputFile: `${runtimeFiles.length} file(s)`,
+        outputPath: runtimePath,
         content: bundleResult.content,
         size: Buffer.byteLength(bundleResult.content, 'utf8'),
       });
@@ -411,57 +161,15 @@ async function runBuild(
     }
   }
 
-  // Merge all MCP configs into settings.json
-  if (mcpConfigs.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allServers: Record<string, any> = {};
-
-    for (const { doc } of mcpConfigs) {
-      const servers = emitSettings(doc);
-      Object.assign(allServers, servers);
-    }
-
-    if (!options.dryRun) {
-      await mergeSettings('.mcp.json', allServers);
-    }
-
-    // Log success for MCP configs
-    for (const { inputFile } of mcpConfigs) {
-      logSuccess(inputFile, '.mcp.json');
-    }
-
-    // Add to results for tree display (file already written by mergeSettings)
-    const settingsContent = JSON.stringify(allServers, null, 2);
-    results.push({
-      inputFile: mcpConfigs.map(c => c.inputFile).join(', '),
-      outputPath: '.mcp.json',
-      content: settingsContent,
-      size: Buffer.byteLength(settingsContent, 'utf8'),
-      skipWrite: true,  // Already written by mergeSettings
-    });
-  }
-
-  // Phase 2: Write files (unless dry-run) and display tree
+  // Write files (unless dry-run)
   if (!options.dryRun) {
-    // Write all files (ensure directory exists per-file since Agents may have different paths)
     for (const result of results) {
-      // Skip files already written (e.g., settings.json handled by mergeSettings)
       if (result.skipWrite) continue;
 
       const outputDir = path.dirname(result.outputPath);
       await mkdir(outputDir, { recursive: true });
       await writeFile(result.outputPath, result.content, 'utf-8');
       logSuccess(result.inputFile, result.outputPath);
-
-      // Copy static files if present (skills only)
-      if (result.statics) {
-        for (const staticFile of result.statics) {
-          const destDir = path.dirname(staticFile.dest);
-          await mkdir(destDir, { recursive: true });
-          await copyFile(staticFile.src, staticFile.dest);
-          logSuccess(staticFile.src, staticFile.dest);
-        }
-      }
     }
   }
 
@@ -483,10 +191,9 @@ export const buildCommand = new Command('build')
   .option('-o, --out <dir>', 'Output directory', '.claude/commands')
   .option('-d, --dry-run', 'Preview output without writing files')
   .option('-w, --watch', 'Watch for changes and rebuild automatically')
-  .option('--v3', 'Use V3 hybrid runtime mode (TypeScript functions + Markdown)')
-  .option('--runtime-out <dir>', 'Runtime output directory for V3 mode', '.claude/runtime')
-  .option('--code-split', 'Split runtime into per-namespace modules (V3 only)')
-  .option('--minify', 'Minify runtime bundles (V3 only)')
+  .option('--runtime-out <dir>', 'Runtime output directory', '.claude/runtime')
+  .option('--code-split', 'Split runtime into per-namespace modules')
+  .option('--minify', 'Minify runtime bundles')
   .action(async (patterns: string[], options: BuildOptions) => {
     // Disallow --dry-run with --watch
     if (options.watch && options.dryRun) {

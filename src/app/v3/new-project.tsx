@@ -17,9 +17,9 @@ import {
   Command,
   useScriptVar,
   runtimeFn,
-  V3If,
-  V3Else,
-  V3Loop,
+  If,
+  Else,
+  Loop,
   Break,
   Return,
   AskUser,
@@ -160,17 +160,17 @@ export default (
 
           <Init.Call args={{ arguments: '$ARGUMENTS' }} output={ctx} />
 
-          <V3If condition={ctx.error}>
+          <If condition={ctx.error}>
             <p>
               <b>Error:</b> {ctx.error}
             </p>
             <Return status="ERROR" message="Initialization failed" />
-          </V3If>
+          </If>
 
-          <V3If condition={!ctx.gitInitialized}>
+          <If condition={!ctx.gitInitialized}>
             <p>Initializing git repository...</p>
             <pre>git init</pre>
-          </V3If>
+          </If>
 
           {/* ============================================================ */}
           {/* PHASE 2: Brownfield Detection */}
@@ -178,7 +178,7 @@ export default (
 
           <h2>Phase 2: Brownfield Check</h2>
 
-          <V3If condition={ctx.brownfield.hasCodeFiles && !ctx.brownfield.hasCodebaseMap}>
+          <If condition={ctx.brownfield.hasCodeFiles && !ctx.brownfield.hasCodebaseMap}>
             <p>Existing code detected in this directory:</p>
             <pre>{ctx.brownfield.codeFilesPreview}</pre>
 
@@ -201,18 +201,18 @@ export default (
               output={userChoice}
             />
 
-            <V3If condition={userChoice === 'map'}>
+            <If condition={userChoice === 'map'}>
               <p>Run `/gsd:map-codebase` first, then return to `/gsd:new-project`</p>
               <Return status="CHECKPOINT" message="Map codebase first" />
-            </V3If>
-          </V3If>
-          <V3Else>
+            </If>
+          </If>
+          <Else>
             <p>
               {ctx.brownfield.hasCodebaseMap
                 ? 'Codebase already mapped. Using existing analysis.'
                 : 'Greenfield project - no existing code detected.'}
             </p>
-          </V3Else>
+          </Else>
 
           {/* ============================================================ */}
           {/* PHASE 3: Deep Questioning */}
@@ -258,7 +258,7 @@ export default (
             </p>
           </XmlBlock>
 
-          <V3Loop max={10} counter={iteration}>
+          <Loop max={10} counter={iteration}>
             <p>
               Continue exploring with the user. When you could write a clear PROJECT.md, proceed to
               the decision gate.
@@ -278,10 +278,10 @@ export default (
               output={userChoice}
             />
 
-            <V3If condition={userChoice === 'create'}>
+            <If condition={userChoice === 'create'}>
               <Break message="Ready to create PROJECT.md" />
-            </V3If>
-          </V3Loop>
+            </If>
+          </Loop>
 
           {/* ============================================================ */}
           {/* PHASE 4: Write PROJECT.md */}
@@ -545,7 +545,7 @@ git commit -m "chore: add project config"`}</pre>
             output={userChoice}
           />
 
-          <V3If condition={userChoice === 'research'}>
+          <If condition={userChoice === 'research'}>
             <pre>{`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► RESEARCHING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`}</pre>
@@ -639,22 +639,22 @@ git commit -m "chore: add project config"`}</pre>
 
             <ParseAgentStatus.Call args={{ output: agentOutput }} output={agentStatus} />
 
-            <V3If condition={agentStatus.status === 'BLOCKED'}>
+            <If condition={agentStatus.status === 'BLOCKED'}>
               <p>
                 <b>Research blocked:</b> {agentStatus.message}
               </p>
               <Return status="BLOCKED" message="Research blocked" />
-            </V3If>
+            </If>
 
             <pre>{`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► RESEARCH COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`}</pre>
 
             <p>Files: `.planning/research/`</p>
-          </V3If>
-          <V3Else>
+          </If>
+          <Else>
             <p>Skipping research — proceeding to requirements.</p>
-          </V3Else>
+          </Else>
 
           {/* ============================================================ */}
           {/* PHASE 7: Define Requirements */}
@@ -698,7 +698,7 @@ git commit -m "chore: add project config"`}</pre>
             </div>
           </XmlBlock>
 
-          <V3Loop max={5} counter={iteration}>
+          <Loop max={5} counter={iteration}>
             <p>
               Present full requirements list for user confirmation. Show every requirement (not just
               counts).
@@ -714,10 +714,10 @@ git commit -m "chore: add project config"`}</pre>
               output={userChoice}
             />
 
-            <V3If condition={userChoice === 'yes'}>
+            <If condition={userChoice === 'yes'}>
               <Break message="Requirements confirmed" />
-            </V3If>
-          </V3Loop>
+            </If>
+          </Loop>
 
           <BuildRequirementsMd.Call args={{ requirements: requirements }} output={reqMdContent} />
 
@@ -756,13 +756,13 @@ git commit -m "docs: define v1 requirements"`}</pre>
 
           <ParseAgentStatus.Call args={{ output: agentOutput }} output={agentStatus} />
 
-          <V3If condition={agentStatus.status === 'BLOCKED'}>
+          <If condition={agentStatus.status === 'BLOCKED'}>
             <p>
               <b>Roadmap blocked:</b> {agentStatus.message}
             </p>
             <p>Work with user to resolve, then re-spawn.</p>
             <Return status="BLOCKED" message="Roadmap creation blocked" />
-          </V3If>
+          </If>
 
           <ParseRoadmapSummary.Call args={{ roadmapPath: '.planning/ROADMAP.md' }} output={roadmapSummary} />
 
@@ -773,7 +773,7 @@ git commit -m "docs: define v1 requirements"`}</pre>
             <b>{roadmapSummary.phaseCount} phases</b> | <b>{roadmapSummary.requirementCount} requirements mapped</b> | All v1 requirements covered
           </p>
 
-          <V3Loop max={5} counter={iteration}>
+          <Loop max={5} counter={iteration}>
             <AskUser
               question="Does this roadmap structure work for you?"
               header="Roadmap"
@@ -785,16 +785,16 @@ git commit -m "docs: define v1 requirements"`}</pre>
               output={userChoice}
             />
 
-            <V3If condition={userChoice === 'approve'}>
+            <If condition={userChoice === 'approve'}>
               <Break message="Roadmap approved" />
-            </V3If>
+            </If>
 
-            <V3If condition={userChoice === 'review'}>
+            <If condition={userChoice === 'review'}>
               <p>Display raw ROADMAP.md:</p>
               <pre>cat .planning/ROADMAP.md</pre>
-            </V3If>
+            </If>
 
-            <V3If condition={userChoice === 'adjust'}>
+            <If condition={userChoice === 'adjust'}>
               <p>Get user's adjustment notes, then re-spawn roadmapper with revision context.</p>
 
               <BuildRoadmapperPrompt.Call
@@ -816,8 +816,8 @@ git commit -m "docs: define v1 requirements"`}</pre>
               />
 
               <ParseRoadmapSummary.Call args={{ roadmapPath: '.planning/ROADMAP.md' }} output={roadmapSummary} />
-            </V3If>
-          </V3Loop>
+            </If>
+          </Loop>
 
           <p>Committing roadmap (after approval):</p>
           <pre>{`git add .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md

@@ -12,8 +12,8 @@ import {
   Command,
   useScriptVar,
   runtimeFn,
-  V3If,
-  V3Else,
+  If,
+  Else,
 } from '../../jsx.js';
 
 // Define runtime function types
@@ -81,12 +81,12 @@ export default (
           />
 
           {/* Typed conditional based on result */}
-          <V3If condition={ctx.error}>
+          <If condition={ctx.error}>
             <p>Error initializing project</p>
-          </V3If>
-          <V3Else>
+          </If>
+          <Else>
             <p>Successfully initialized project</p>
-          </V3Else>
+          </Else>
         </>
       );
     }}

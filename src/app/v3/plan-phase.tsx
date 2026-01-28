@@ -17,9 +17,9 @@ import {
   Command,
   useScriptVar,
   runtimeFn,
-  V3If,
-  V3Else,
-  V3Loop,
+  If,
+  Else,
+  Loop,
   Break,
   Return,
   AskUser,
@@ -142,11 +142,11 @@ export default (
               output={ctx}
             />
 
-            <V3If condition={ctx.error}>
+            <If condition={ctx.error}>
               <p><b>Error:</b> {ctx.error}</p>
               <p>Run <code>/gsd:new-project</code> first if .planning/ directory is missing.</p>
               <Return status="ERROR" message="Initialization failed" />
-            </V3If>
+            </If>
 
             <p>Phase {ctx.phaseId}: {ctx.phaseName}</p>
             <p>Directory: {ctx.phaseDir}</p>
@@ -169,15 +169,15 @@ export default (
 
             <h2>Step 2: Handle Research</h2>
 
-            <V3If condition={ctx.flags.gaps}>
+            <If condition={ctx.flags.gaps}>
               <p>Gap closure mode — skipping research (using VERIFICATION.md instead)</p>
-            </V3If>
-            <V3Else>
-              <V3If condition={ctx.flags.skipResearch}>
+            </If>
+            <Else>
+              <If condition={ctx.flags.skipResearch}>
                 <p>Research skipped (--skip-research flag)</p>
-              </V3If>
-              <V3Else>
-                <V3If condition={ctx.needsResearch}>
+              </If>
+              <Else>
+                <If condition={ctx.needsResearch}>
                   <pre>{`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► RESEARCHING PHASE ${ctx.phaseId}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`}</pre>
@@ -211,7 +211,7 @@ export default (
                     output={agentStatus}
                   />
 
-                  <V3If condition={agentStatus.status === 'BLOCKED'}>
+                  <If condition={agentStatus.status === 'BLOCKED'}>
                     <p><b>Research blocked:</b> {agentStatus.message}</p>
 
                     <AskUser
@@ -225,26 +225,26 @@ export default (
                       output={userChoice}
                     />
 
-                    <V3If condition={userChoice === 'abort'}>
+                    <If condition={userChoice === 'abort'}>
                       <Return status="BLOCKED" message="User aborted due to research blocker" />
-                    </V3If>
-                    <V3If condition={userChoice === 'skip'}>
+                    </If>
+                    <If condition={userChoice === 'skip'}>
                       <p>Skipping research, proceeding to planning...</p>
-                    </V3If>
-                    <V3If condition={userChoice === 'context'}>
+                    </If>
+                    <If condition={userChoice === 'context'}>
                       <p>Please provide additional context, then run /gsd:plan-phase {ctx.phaseId} again.</p>
                       <Return status="CHECKPOINT" message="Waiting for user context" />
-                    </V3If>
-                  </V3If>
-                  <V3Else>
+                    </If>
+                  </If>
+                  <Else>
                     <p>Research complete. Proceeding to planning...</p>
-                  </V3Else>
-                </V3If>
-                <V3Else>
+                  </Else>
+                </If>
+                <Else>
                   <p>Using existing research: {ctx.phaseDir}/{ctx.phaseId}-RESEARCH.md</p>
-                </V3Else>
-              </V3Else>
-            </V3Else>
+                </Else>
+              </Else>
+            </Else>
 
             {/* ============================================================ */}
             {/* STEP 3: Check Existing Plans */}
@@ -257,7 +257,7 @@ export default (
               output={existingPlans}
             />
 
-            <V3If condition={existingPlans.hasPlans}>
+            <If condition={existingPlans.hasPlans}>
               <p>Found {existingPlans.planCount} existing plan(s):</p>
               <pre>{existingPlans.planSummary}</pre>
 
@@ -272,7 +272,7 @@ export default (
                 output={userChoice}
               />
 
-              <V3If condition={userChoice === 'view'}>
+              <If condition={userChoice === 'view'}>
                 <ReadAndDisplayPlans.Call
                   args={{ phaseDir: ctx.phaseDir }}
                   output={plansDisplay}
@@ -290,21 +290,21 @@ export default (
                   output={userChoice}
                 />
 
-                <V3If condition={userChoice === 'done'}>
+                <If condition={userChoice === 'done'}>
                   <p>Keeping existing plans. Run /gsd:execute-phase {ctx.phaseId} when ready.</p>
                   <Return status="SUCCESS" message="Using existing plans" />
-                </V3If>
-              </V3If>
+                </If>
+              </If>
 
-              <V3If condition={userChoice === 'replan'}>
+              <If condition={userChoice === 'replan'}>
                 <p>Archiving existing plans...</p>
                 <ArchiveExistingPlans.Call
                   args={{ phaseDir: ctx.phaseDir }}
                   output={_void}
                 />
                 <p>Existing plans archived. Starting fresh...</p>
-              </V3If>
-            </V3If>
+              </If>
+            </If>
 
             {/* ============================================================ */}
             {/* STEP 4: Spawn gsd-planner Agent */}
@@ -345,7 +345,7 @@ export default (
               output={agentStatus}
             />
 
-            <V3If condition={agentStatus.status === 'CHECKPOINT'}>
+            <If condition={agentStatus.status === 'CHECKPOINT'}>
               <p><b>Checkpoint reached:</b> {agentStatus.message}</p>
               <p>Planner needs user input to continue.</p>
 
@@ -359,12 +359,12 @@ export default (
                 output={userChoice}
               />
 
-              <V3If condition={userChoice === 'pause'}>
+              <If condition={userChoice === 'pause'}>
                 <Return status="CHECKPOINT" message="Planning paused at checkpoint" />
-              </V3If>
-            </V3If>
+              </If>
+            </If>
 
-            <V3If condition={agentStatus.status === 'INCONCLUSIVE'}>
+            <If condition={agentStatus.status === 'INCONCLUSIVE'}>
               <p><b>Planning inconclusive:</b> {agentStatus.message}</p>
 
               <AskUser
@@ -378,19 +378,19 @@ export default (
                 output={userChoice}
               />
 
-              <V3If condition={userChoice === 'manual'}>
+              <If condition={userChoice === 'manual'}>
                 <p>Create plans manually in {ctx.phaseDir}/, then run /gsd:execute-phase {ctx.phaseId}</p>
                 <Return status="CHECKPOINT" message="Manual planning requested" />
-              </V3If>
-              <V3If condition={userChoice === 'context'}>
+              </If>
+              <If condition={userChoice === 'context'}>
                 <p>Please provide additional context, then run /gsd:plan-phase {ctx.phaseId} again.</p>
                 <Return status="CHECKPOINT" message="Waiting for user context" />
-              </V3If>
-            </V3If>
+              </If>
+            </If>
 
-            <V3Else>
+            <Else>
               <p>Planner completed. Plans created in {ctx.phaseDir}/</p>
-            </V3Else>
+            </Else>
 
             {/* ============================================================ */}
             {/* STEP 5: Verification Loop */}
@@ -398,19 +398,19 @@ export default (
 
             <h2>Step 5: Verification Loop</h2>
 
-            <V3If condition={ctx.flags.skipVerify}>
+            <If condition={ctx.flags.skipVerify}>
               <p>Verification skipped (--skip-verify flag)</p>
-            </V3If>
-            <V3Else>
-              <V3If condition={!ctx.config.workflowPlanCheck}>
+            </If>
+            <Else>
+              <If condition={!ctx.config.workflowPlanCheck}>
                 <p>Verification disabled in config (workflow.plan_check: false)</p>
-              </V3If>
-              <V3Else>
+              </If>
+              <Else>
                 <pre>{`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  GSD ► VERIFYING PLANS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`}</pre>
 
-                <V3Loop max={4} counter={iteration}>
+                <Loop max={4} counter={iteration}>
                   <p>◆ Iteration {iteration}/3: Spawning plan checker...</p>
 
                   <BuildCheckerPrompt.Call
@@ -434,16 +434,16 @@ export default (
                     output={agentStatus}
                   />
 
-                  <V3If condition={agentStatus.status === 'PASSED'}>
+                  <If condition={agentStatus.status === 'PASSED'}>
                     <p>✓ Plans verified. Ready for execution.</p>
                     <Break message="Verification passed" />
-                  </V3If>
+                  </If>
 
-                  <V3If condition={agentStatus.status === 'ISSUES_FOUND'}>
+                  <If condition={agentStatus.status === 'ISSUES_FOUND'}>
                     <p>Checker found issues:</p>
                     <pre>{agentStatus.issues}</pre>
 
-                    <V3If condition={iteration >= 3}>
+                    <If condition={iteration >= 3}>
                       <p><b>Max iterations reached.</b> {agentStatus.issues.length} issue(s) remain.</p>
 
                       <AskUser
@@ -457,15 +457,15 @@ export default (
                         output={userChoice}
                       />
 
-                      <V3If condition={userChoice === 'abandon'}>
+                      <If condition={userChoice === 'abandon'}>
                         <Return status="ERROR" message="Verification failed after max iterations" />
-                      </V3If>
-                      <V3If condition={userChoice === 'force'}>
+                      </If>
+                      <If condition={userChoice === 'force'}>
                         <p>Proceeding with issues. Consider fixing manually.</p>
                         <Break message="User forced proceed" />
-                      </V3If>
-                    </V3If>
-                    <V3Else>
+                      </If>
+                    </If>
+                    <Else>
                       <p>Sending back to planner for revision... (iteration {iteration}/3)</p>
 
                       <BuildPlannerPrompt.Call
@@ -490,11 +490,11 @@ export default (
                       />
 
                       <p>Plans revised. Re-checking...</p>
-                    </V3Else>
-                  </V3If>
-                </V3Loop>
-              </V3Else>
-            </V3Else>
+                    </Else>
+                  </If>
+                </Loop>
+              </Else>
+            </Else>
 
             {/* ============================================================ */}
             {/* STEP 6: Generate Final Summary */}

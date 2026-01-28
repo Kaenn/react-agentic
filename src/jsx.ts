@@ -5,219 +5,102 @@
  * and never executed at runtime. They exist to provide TypeScript type checking.
  *
  * This file re-exports all components from their organized module locations.
- * For implementation details, see:
- * - src/primitives/ - Basic markdown building blocks
- * - src/workflow/ - Framework helpers for agentic flows
  */
 
 // ============================================================================
-// Primitives - Basic Markdown Building Blocks
+// Core Components
 // ============================================================================
 
-// Markdown and XML components
 export {
-  Markdown,
-  XmlBlock,
-  type MarkdownProps,
-  type XmlBlockProps,
-} from './primitives/markdown.js';
-
-// Bash code block
-export {
-  Bash,
-  type BashProps,
-} from './primitives/bash.js';
-
-// Schema-based declarations
-export {
-  defineVars,
-  defineFiles,
-  defineContext,
-  type VarDef,
-  type VarSchema,
-  type VarsFromSchema,
-  type FileDef,
-  type FileSchema,
-  type FileRef,
-  type FilesFromSchema,
-  type AgentDef,
-  type ContextDef,
-  type Context,
-} from './primitives/schema.js';
-
-// File reading
-export {
-  ReadFiles,
-  type ReadFilesProps,
-} from './primitives/files.js';
-
-// Template primitives
-export {
-  PromptTemplate,
-  type PromptTemplateProps,
-} from './primitives/template.js';
-
-// Variable system
-export {
-  useVariable,
-  Assign,
-  AssignGroup,
-  type VariableRef,
-  type AssignProps,
-  type AssignGroupProps,
-} from './primitives/variables.js';
-
-// Conditional logic and test builders
-export {
-  If,
-  Else,
-  Loop,
-  fileExists,
-  dirExists,
-  isEmpty,
-  notEmpty,
-  equals,
-  and,
-  or,
-  type IfProps,
-  type ElseProps,
-  type LoopProps,
-} from './primitives/control.js';
-
-// Structured data components
-export {
-  Table,
-  List,
-  type TableProps,
-  type ListProps,
-  type TableAlignment,
-} from './primitives/structured.js';
-
-// Step workflow primitive
-export {
-  Step,
-  type StepProps,
-  type StepVariant,
-} from './primitives/step.js';
-
-// ============================================================================
-// Workflow - Framework Helpers for Agentic Flows
-// ============================================================================
-
-// Command component
-export {
+  // Document components
   Command,
-  type CommandProps,
-  type CommandContext,
-} from './workflow/Command.js';
-
-// Agent system
-export {
   Agent,
   SpawnAgent,
   OnStatus,
+
+  // Content components
+  Markdown,
+  XmlBlock,
+  Table,
+  List,
+
+  // Control flow
+  If,
+  Else,
+  Loop,
+  Break,
+  Return,
+  AskUser,
+
+  // Runtime primitives
+  useScriptVar,
+  runtimeFn,
+
+  // Utilities
   useOutput,
   defineAgent,
   isAgentRef,
   getAgentName,
   getAgentPath,
+  isScriptVar,
+  getScriptVarInfo,
+  toJqExpression,
+  toJqPath,
+  isRuntimeFn,
+  getRuntimeFnRegistry,
+  clearRuntimeFnRegistry,
+  getRuntimeFn,
+
+  // Markers
+  IF_MARKER,
+  ELSE_MARKER,
+  LOOP_MARKER,
+  BREAK_MARKER,
+  RETURN_MARKER,
+  ASK_USER_MARKER,
+
+  // Types
+  type CommandProps,
+  type CommandContext,
   type AgentProps,
+  type AgentContext,
+  type AgentStatus,
+  type BaseOutput,
   type SpawnAgentProps,
   type V3SpawnAgentProps,
   type OnStatusProps,
   type OutputRef,
-  type AgentStatus,
-  type BaseOutput,
-  type AgentContext,
   type AgentRef,
   type DefineAgentConfig,
-} from './workflow/agents/index.js';
-
-// State management
-export {
-  State,
-  Operation,
-  ReadState,
-  WriteState,
-  useStateRef,
-  type StateProps,
-  type OperationProps,
-  type SQLiteConfig,
-  type ReadStateProps,
-  type WriteStateProps,
-  type StateRef,
-} from './workflow/state/index.js';
-
-// Skill system
-export {
-  Skill,
-  SkillFile,
-  SkillStatic,
-  type SkillProps,
-  type SkillFileProps,
-  type SkillStaticProps,
-} from './workflow/skill/index.js';
-
-// MCP configuration
-export {
-  MCPServer,
-  MCPStdioServer,
-  MCPHTTPServer,
-  MCPConfig,
-  type MCPServerProps,
-  type MCPStdioServerProps,
-  type MCPHTTPServerProps,
-  type MCPConfigProps,
-} from './workflow/mcp/index.js';
-
-// ============================================================================
-// Sections - Semantic XML Wrapper Components
-// ============================================================================
-
-// Semantic section components
-export {
-  ExecutionContext,
-  SuccessCriteria,
-  XmlSection,
-  OfferNext,
-  DeviationRules,
-  CommitRules,
-  WaveExecution,
-  CheckpointHandling,
-  type ExecutionContextProps,
-  type SuccessCriteriaProps,
-  type SuccessCriteriaItem,
-  type XmlSectionProps,
-  type OfferNextProps,
-  type OfferNextRoute,
-  type XmlWrapperProps,
-} from './workflow/sections/index.js';
-
-// ============================================================================
-// V3 Hybrid Runtime Components
-// ============================================================================
-
-// V3 primitives (also available via 'react-agentic/v3')
-export {
-  useScriptVar,
-  runtimeFn,
-  V3If,
-  V3Else,
-  V3Loop,
-  Break,
-  Return,
-  AskUser,
+  type MarkdownProps,
+  type XmlBlockProps,
+  type TableProps,
+  type TableAlignment,
+  type ListProps,
+  type IfProps,
+  type ElseProps,
+  type LoopProps,
+  type BreakProps,
+  type ReturnProps,
+  type ReturnStatus,
+  type Condition,
+  type AskUserProps,
+  type AskUserOption,
   type ScriptVar,
   type ScriptVarProxy,
   type OrScriptVar,
   type AllowScriptVars,
+  type RuntimeFunction,
+  type RuntimeCallProps,
+  type RuntimeCallComponent,
   type RuntimeFnComponent,
-  type V3IfProps,
-  type V3ElseProps,
-  type V3LoopProps,
-  type BreakProps,
-  type ReturnProps,
-  type ReturnStatus,
-  type AskUserProps,
-  type AskUserOption,
-} from './v3/primitives/index.js';
+} from './components/index.js';
+
+// ============================================================================
+// Semantic Components (merged from V1 sections)
+// ============================================================================
+
+export {
+  ExecutionContext,
+  type ExecutionContextProps,
+} from './workflow/sections/index.js';

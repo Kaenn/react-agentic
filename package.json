@@ -8,6 +8,22 @@
   "bin": {
     "react-agentic": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/react-agentic.git"
+  },
+  "homepage": "https://github.com/your-org/react-agentic#readme",
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
@@ -15,7 +31,8 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "watch": "node dist/cli/index.js build -w --code-split",
-    "build:agentic": "node dist/cli/index.js build 'src/app/**/*.tsx' --code-split --minify"
+    "build:agentic": "node dist/cli/index.js build 'src/app/**/*.tsx' --code-split --minify",
+    "prepublishOnly": "npm run build && npm run typecheck"
   },
   "keywords": [
     "claude",
@@ -23,12 +40,22 @@
     "markdown",
     "tsx",
     "typescript",
-    "cli"
+    "cli",
+    "agentic",
+    "ai"
   ],
   "author": "",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "@types/react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
   },
   "dependencies": {
     "cat-names": "^4.0.0",

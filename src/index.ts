@@ -1,36 +1,181 @@
 /**
  * react-agentic - Compile-time safety for Claude Code commands
  *
- * Main entry point - exports IR types and emitter functionality.
+ * Main entry point - exports components, IR types, and build functions.
  */
 
-// IR types
-export * from './ir/index.js';
+// ============================================================================
+// Components - Compile-time JSX components
+// ============================================================================
 
-// Markdown emitter
-export * from './emitter/index.js';
-
-// Settings emitter (re-exported from emitter/index.js via wildcard, explicit for clarity)
-// emitSettings, mergeSettings - for MCP configuration to settings.json
-
-// Parser
-export * from './parser/index.js';
-
-// JSX components and types
-export { Agent, Assign, Bash, CheckpointHandling, Command, CommitRules, DeviationRules, ExecutionContext, If, Else, List, Markdown, MCPConfig, MCPServer, MCPStdioServer, MCPHTTPServer, OfferNext, OnStatus, PromptTemplate, ReadFiles, Skill, SkillFile, SkillStatic, SpawnAgent, SuccessCriteria, Table, useOutput, useVariable, useStateRef, ReadState, WaveExecution, WriteState, XmlBlock, XmlSection, State, Operation, defineVars, defineFiles, defineContext } from './jsx.js';
-export type { AgentProps, AgentStatus, AssignProps, BaseOutput, BashProps, CommandProps, Context, ContextDef, AgentDef, ExecutionContextProps, ElseProps, FileDef, FileRef, FileSchema, FilesFromSchema, IfProps, ListProps, MarkdownProps, MCPConfigProps, MCPServerProps, MCPStdioServerProps, MCPHTTPServerProps, OfferNextProps, OfferNextRoute, OnStatusProps, OutputRef, PromptTemplateProps, ReadFilesProps, ReadStateProps, SkillFileProps, SkillProps, SkillStaticProps, SpawnAgentProps, StateRef, SuccessCriteriaProps, SuccessCriteriaItem, TableProps, TableAlignment, VarDef, VariableRef, VarSchema, VarsFromSchema, WriteStateProps, XmlBlockProps, XmlSectionProps, XmlWrapperProps, StateProps, OperationProps, SQLiteConfig } from './jsx.js';
-
-// Provider templates for State component
-export { getProvider, getProviderAsync, type ProviderTemplate, type GeneratedSkill } from './providers/index.js';
-
-// State System
 export {
-  StateAdapter,
-  StateConfig,
-  FileAdapter,
-  getNestedValue,
-  setNestedValue,
-} from './state/index.js';
+  // Core components
+  Command,
+  Agent,
+  SpawnAgent,
+  OnStatus,
+  Markdown,
+  XmlBlock,
+  Table,
+  List,
 
-// V3 Hybrid Runtime (separate namespace)
-export * as v3 from './v3/index.js';
+  // Control flow
+  If,
+  Else,
+  Loop,
+  Break,
+  Return,
+  AskUser,
+
+  // Runtime primitives
+  useScriptVar,
+  runtimeFn,
+
+  // Agent utilities
+  useOutput,
+  defineAgent,
+  isAgentRef,
+  getAgentName,
+  getAgentPath,
+
+  // ScriptVar utilities
+  isScriptVar,
+  getScriptVarInfo,
+  toJqExpression,
+  toJqPath,
+
+  // RuntimeFn utilities
+  isRuntimeFn,
+  getRuntimeFnRegistry,
+  clearRuntimeFnRegistry,
+  getRuntimeFn,
+
+  // Markers
+  IF_MARKER,
+  ELSE_MARKER,
+  LOOP_MARKER,
+  BREAK_MARKER,
+  RETURN_MARKER,
+  ASK_USER_MARKER,
+
+  // Types
+  type CommandProps,
+  type CommandContext,
+  type AgentProps,
+  type AgentContext,
+  type AgentStatus,
+  type BaseOutput,
+  type SpawnAgentProps,
+  type V3SpawnAgentProps,
+  type OnStatusProps,
+  type OutputRef,
+  type AgentRef,
+  type DefineAgentConfig,
+  type MarkdownProps,
+  type XmlBlockProps,
+  type TableProps,
+  type TableAlignment,
+  type ListProps,
+  type IfProps,
+  type ElseProps,
+  type LoopProps,
+  type BreakProps,
+  type ReturnProps,
+  type ReturnStatus,
+  type Condition,
+  type AskUserProps,
+  type AskUserOption,
+  type ScriptVar,
+  type ScriptVarProxy,
+  type OrScriptVar,
+  type AllowScriptVars,
+  type RuntimeFunction,
+  type RuntimeCallProps,
+  type RuntimeCallComponent,
+  type RuntimeFnComponent,
+} from './components/index.js';
+
+// ============================================================================
+// IR Types (from V3)
+// ============================================================================
+
+export * from './v3/ir/index.js';
+
+// ============================================================================
+// Emitters (from V3)
+// ============================================================================
+
+export {
+  V3MarkdownEmitter,
+  emitV3,
+  emitRuntime,
+  extractFunctions,
+  generateRuntime,
+  isV3File,
+  bundleSingleEntryRuntime,
+  bundleCodeSplit,
+  extractExportedFunctionNames,
+  type ExtractedFunction,
+  type RuntimeEmitResult,
+  type RuntimeFileInfo,
+  type SingleEntryBundleResult,
+  type CodeSplitBundleResult,
+} from './v3/emitter/index.js';
+
+// ============================================================================
+// Transformers (from V3)
+// ============================================================================
+
+export {
+  type V3TransformContext,
+  type V3TransformResult,
+  type ScriptVarInfo,
+  type RuntimeFunctionInfo,
+  createV3Context,
+  extractScriptVarDeclarations,
+  extractRuntimeFnDeclarations,
+  transformV3Command,
+  transformToV3Block,
+  transformV3BlockChildren,
+  getRuntimeFunctionNames,
+  getRuntimeImportPaths,
+} from './v3/parser/transformers/index.js';
+
+// ============================================================================
+// Build Functions
+// ============================================================================
+
+export {
+  buildV3File,
+  detectV3,
+  hasV3Imports,
+  type V3BuildResult,
+  type V3BuildOptions,
+} from './v3/cli/build-v3.js';
+
+// ============================================================================
+// Parser Utilities (for CLI compatibility)
+// ============================================================================
+
+export { createProject } from './parser/utils/project.js';
+export { findRootJsxElement, transform, getAttributeValue, resolveTypeImport, extractInterfaceProperties, extractPromptPlaceholders } from './parser/index.js';
+
+// ============================================================================
+// V1 Emitters (for backward compatibility during transition)
+// ============================================================================
+
+export { emit, emitAgent, emitSkill, emitSkillFile, emitSettings, mergeSettings } from './emitter/index.js';
+
+// ============================================================================
+// V1 IR Types (for backward compatibility during transition)
+// ============================================================================
+
+export type {
+  DocumentNode as V1DocumentNode,
+  AgentDocumentNode,
+  SkillDocumentNode,
+  MCPConfigDocumentNode,
+  StateDocumentNode,
+  BlockNode as V1BlockNode,
+  InlineNode,
+} from './ir/nodes.js';
