@@ -28,10 +28,14 @@ export {
   bundleRuntimeFile,
   mergeAndWrapRuntimes,
   extractExportedFunctionNames,
-  // New functions (single-entry bundling)
+  // Single-entry bundling
   generateRuntimeEntryPoint,
   bundleSingleEntryRuntime,
   wrapWithCLI,
+  // Code-split bundling
+  generateNamespaceEntry,
+  generateDispatcher,
+  bundleCodeSplit,
   // Types
   type BundledRuntime,
   type BundleRuntimeOptions,
@@ -39,4 +43,6 @@ export {
   type RuntimeFileInfo,
   type SingleEntryBundleOptions,
   type SingleEntryBundleResult,
+  type CodeSplitBundleOptions,
+  type CodeSplitBundleResult,
 } from './esbuild-bundler.js';

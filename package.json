@@ -14,8 +14,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "watch": "node dist/cli/index.js build -w",
-    "build:agentic": "node dist/cli/index.js build"
+    "watch": "node dist/cli/index.js build -w --code-split",
+    "build:agentic": "node dist/cli/index.js build 'src/app/**/*.tsx' --code-split --minify"
   },
   "keywords": [
     "claude",

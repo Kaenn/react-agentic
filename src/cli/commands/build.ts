@@ -40,7 +40,7 @@ import { createWatcher } from '../watcher.js';
 
 // V3 imports
 import { buildV3File, hasV3Imports } from '../../v3/cli/build-v3.js';
-import { bundleSingleEntryRuntime } from '../../v3/emitter/index.js';
+import { bundleSingleEntryRuntime, bundleCodeSplit } from '../../v3/emitter/index.js';
 import type { RuntimeFileInfo } from '../../v3/emitter/index.js';
 
 interface BuildOptions {
@@ -49,6 +49,8 @@ interface BuildOptions {
   watch?: boolean;
   v3?: boolean;
   runtimeOut?: string;
+  codeSplit?: boolean;
+  minify?: boolean;
 }
 
 /**
@@ -353,23 +355,59 @@ async function runBuild(
     });
   }
 
-  // Bundle all V3 runtimes using single-entry approach (deduplicates shared code)
+  // Bundle all V3 runtimes
   if (v3RuntimeFiles.length > 0) {
-    const bundleResult = await bundleSingleEntryRuntime({
-      runtimeFiles: v3RuntimeFiles,
-      outputPath: v3RuntimePath,
-    });
+    const runtimeOutDir = options.runtimeOut || '.claude/runtime';
 
-    results.push({
-      inputFile: `${v3RuntimeFiles.length} V3 file(s)`,
-      outputPath: v3RuntimePath,
-      content: bundleResult.content,
-      size: Buffer.byteLength(bundleResult.content, 'utf8'),
-    });
+    if (options.codeSplit) {
+      // Code-split mode: generate dispatcher + per-namespace modules
+      const bundleResult = await bundleCodeSplit({
+        runtimeFiles: v3RuntimeFiles,
+        outputDir: runtimeOutDir,
+        minify: options.minify,
+      });
 
-    // Log any bundle warnings
-    for (const warning of bundleResult.warnings) {
-      logWarning(warning);
+      // Add dispatcher
+      results.push({
+        inputFile: `${v3RuntimeFiles.length} V3 file(s) (dispatcher)`,
+        outputPath: path.join(runtimeOutDir, 'runtime.js'),
+        content: bundleResult.dispatcherContent,
+        size: Buffer.byteLength(bundleResult.dispatcherContent, 'utf8'),
+      });
+
+      // Add each namespace module
+      for (const [namespace, content] of bundleResult.moduleContents) {
+        results.push({
+          inputFile: `${namespace} module`,
+          outputPath: path.join(runtimeOutDir, `${namespace}.js`),
+          content,
+          size: Buffer.byteLength(content, 'utf8'),
+        });
+      }
+
+      // Log any bundle warnings
+      for (const warning of bundleResult.warnings) {
+        logWarning(warning);
+      }
+    } else {
+      // Single-entry mode (default): one bundled runtime.js
+      const bundleResult = await bundleSingleEntryRuntime({
+        runtimeFiles: v3RuntimeFiles,
+        outputPath: v3RuntimePath,
+        minify: options.minify,
+      });
+
+      results.push({
+        inputFile: `${v3RuntimeFiles.length} V3 file(s)`,
+        outputPath: v3RuntimePath,
+        content: bundleResult.content,
+        size: Buffer.byteLength(bundleResult.content, 'utf8'),
+      });
+
+      // Log any bundle warnings
+      for (const warning of bundleResult.warnings) {
+        logWarning(warning);
+      }
     }
   }
 
@@ -447,6 +485,8 @@ export const buildCommand = new Command('build')
   .option('-w, --watch', 'Watch for changes and rebuild automatically')
   .option('--v3', 'Use V3 hybrid runtime mode (TypeScript functions + Markdown)')
   .option('--runtime-out <dir>', 'Runtime output directory for V3 mode', '.claude/runtime')
+  .option('--code-split', 'Split runtime into per-namespace modules (V3 only)')
+  .option('--minify', 'Minify runtime bundles (V3 only)')
   .action(async (patterns: string[], options: BuildOptions) => {
     // Disallow --dry-run with --watch
     if (options.watch && options.dryRun) {
