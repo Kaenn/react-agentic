@@ -15,7 +15,7 @@
 
 import {
   Command,
-  useScriptVar,
+  useRuntimeVar,
   runtimeFn,
   If,
   Else,
@@ -79,21 +79,21 @@ export default (
   >
     {() => {
       // Variable declarations with typed ScriptVars
-      const ctx = useScriptVar<PlanPhaseContext>('CTX');
-      const existingPlans = useScriptVar<{ hasPlans: boolean; planCount: number; planFiles: string[]; planSummary: string }>('EXISTING_PLANS');
-      const researcherPrompt = useScriptVar<PromptResult>('RESEARCHER_PROMPT');
-      const plannerPrompt = useScriptVar<PromptResult>('PLANNER_PROMPT');
-      const checkerPrompt = useScriptVar<{ prompt: string; phaseGoal: string }>('CHECKER_PROMPT');
-      const agentOutput = useScriptVar<string>('AGENT_OUTPUT');
-      const agentStatus = useScriptVar<{ status: 'COMPLETE' | 'BLOCKED' | 'INCONCLUSIVE' | 'CHECKPOINT' | 'PASSED' | 'ISSUES_FOUND'; message: string; issues: string[] }>('AGENT_STATUS');
-      const userChoice = useScriptVar<string>('USER_CHOICE');
-      const iteration = useScriptVar<number>('ITERATION');
-      const summary = useScriptVar<PlanSummary>('SUMMARY');
-      const summaryMd = useScriptVar<string>('SUMMARY_MD');
-      const plansDisplay = useScriptVar<string>('PLANS_DISPLAY');
-      const checkerPassed = useScriptVar<boolean>('CHECKER_PASSED');
-      const forcedResearch = useScriptVar<boolean>('FORCED_RESEARCH');
-      const _void = useScriptVar<void>('_VOID'); // Placeholder for void returns
+      const ctx = useRuntimeVar<PlanPhaseContext>('CTX');
+      const existingPlans = useRuntimeVar<{ hasPlans: boolean; planCount: number; planFiles: string[]; planSummary: string }>('EXISTING_PLANS');
+      const researcherPrompt = useRuntimeVar<PromptResult>('RESEARCHER_PROMPT');
+      const plannerPrompt = useRuntimeVar<PromptResult>('PLANNER_PROMPT');
+      const checkerPrompt = useRuntimeVar<{ prompt: string; phaseGoal: string }>('CHECKER_PROMPT');
+      const agentOutput = useRuntimeVar<string>('AGENT_OUTPUT');
+      const agentStatus = useRuntimeVar<{ status: 'COMPLETE' | 'BLOCKED' | 'INCONCLUSIVE' | 'CHECKPOINT' | 'PASSED' | 'ISSUES_FOUND'; message: string; issues: string[] }>('AGENT_STATUS');
+      const userChoice = useRuntimeVar<string>('USER_CHOICE');
+      const iteration = useRuntimeVar<number>('ITERATION');
+      const summary = useRuntimeVar<PlanSummary>('SUMMARY');
+      const summaryMd = useRuntimeVar<string>('SUMMARY_MD');
+      const plansDisplay = useRuntimeVar<string>('PLANS_DISPLAY');
+      const checkerPassed = useRuntimeVar<boolean>('CHECKER_PASSED');
+      const forcedResearch = useRuntimeVar<boolean>('FORCED_RESEARCH');
+      const _void = useRuntimeVar<void>('_VOID'); // Placeholder for void returns
 
       return (
         <>

@@ -142,7 +142,7 @@ export function transformAskUser(
   const outputRef = parseScriptVarRef(outputExpr, ctx);
   if (!outputRef) {
     throw ctx.createError(
-      'AskUser output must be a useScriptVar reference',
+      'AskUser output must be a useRuntimeVar reference',
       outputExpr
     );
   }

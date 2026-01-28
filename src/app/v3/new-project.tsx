@@ -15,7 +15,7 @@
 
 import {
   Command,
-  useScriptVar,
+  useRuntimeVar,
   runtimeFn,
   If,
   Else,
@@ -92,23 +92,23 @@ export default (
   >
     {() => {
       // Variable declarations with typed ScriptVars
-      const ctx = useScriptVar<NewProjectContext>('CTX');
-      const questioning = useScriptVar<QuestioningContext>('QUESTIONING');
-      const config = useScriptVar<WorkflowConfig>('CONFIG');
-      const requirements = useScriptVar<RequirementsData>('REQUIREMENTS');
-      const roadmapSummary = useScriptVar<RoadmapSummary>('ROADMAP_SUMMARY');
-      const userChoice = useScriptVar<string>('USER_CHOICE');
-      const agentOutput = useScriptVar<string>('AGENT_OUTPUT');
-      const agentStatus = useScriptVar<AgentResult>('AGENT_STATUS');
-      const researcherPrompts = useScriptVar<ResearcherPrompt[]>('RESEARCHER_PROMPTS');
-      const iteration = useScriptVar<number>('ITERATION');
-      const projectMdContent = useScriptVar<{ content: string; path: string }>('PROJECT_MD');
-      const configContent = useScriptVar<{ content: string; path: string }>('CONFIG_JSON');
-      const reqMdContent = useScriptVar<{ content: string; path: string }>('REQUIREMENTS_MD');
-      const synthesizerPrompt = useScriptVar<{ prompt: string }>('SYNTHESIZER_PROMPT');
-      const roadmapperPrompt = useScriptVar<{ prompt: string }>('ROADMAPPER_PROMPT');
-      const completionSummary = useScriptVar<{ summary: string }>('COMPLETION_SUMMARY');
-      const _void = useScriptVar<void>('_VOID');
+      const ctx = useRuntimeVar<NewProjectContext>('CTX');
+      const questioning = useRuntimeVar<QuestioningContext>('QUESTIONING');
+      const config = useRuntimeVar<WorkflowConfig>('CONFIG');
+      const requirements = useRuntimeVar<RequirementsData>('REQUIREMENTS');
+      const roadmapSummary = useRuntimeVar<RoadmapSummary>('ROADMAP_SUMMARY');
+      const userChoice = useRuntimeVar<string>('USER_CHOICE');
+      const agentOutput = useRuntimeVar<string>('AGENT_OUTPUT');
+      const agentStatus = useRuntimeVar<AgentResult>('AGENT_STATUS');
+      const researcherPrompts = useRuntimeVar<ResearcherPrompt[]>('RESEARCHER_PROMPTS');
+      const iteration = useRuntimeVar<number>('ITERATION');
+      const projectMdContent = useRuntimeVar<{ content: string; path: string }>('PROJECT_MD');
+      const configContent = useRuntimeVar<{ content: string; path: string }>('CONFIG_JSON');
+      const reqMdContent = useRuntimeVar<{ content: string; path: string }>('REQUIREMENTS_MD');
+      const synthesizerPrompt = useRuntimeVar<{ prompt: string }>('SYNTHESIZER_PROMPT');
+      const roadmapperPrompt = useRuntimeVar<{ prompt: string }>('ROADMAPPER_PROMPT');
+      const completionSummary = useRuntimeVar<{ summary: string }>('COMPLETION_SUMMARY');
+      const _void = useRuntimeVar<void>('_VOID');
 
       return (
         <>

@@ -1,7 +1,7 @@
 /**
  * Script Variable Transformer
  *
- * Extracts useScriptVar<T>('NAME') declarations from source files.
+ * Extracts useRuntimeVar<T>('NAME') declarations from source files.
  * Populates the V3TransformContext with variable info for reference resolution.
  */
 
@@ -14,11 +14,11 @@ import type { ScriptVarDeclNode, ScriptVarRefNode } from '../../ir/index.js';
 // ============================================================================
 
 /**
- * Extract all useScriptVar declarations from a source file
+ * Extract all useRuntimeVar declarations from a source file
  *
  * Searches for patterns like:
- * - const ctx = useScriptVar<Type>('NAME')
- * - const { a, b } = useScriptVar<Type>('NAME') (not supported, error)
+ * - const ctx = useRuntimeVar<Type>('NAME')
+ * - const { a, b } = useRuntimeVar<Type>('NAME') (not supported, error)
  *
  * @param sourceFile - Source file to scan
  * @param ctx - Transform context to populate
@@ -34,15 +34,15 @@ export function extractScriptVarDeclarations(
     const init = node.getInitializer();
     if (!init || !Node.isCallExpression(init)) return;
 
-    // Check if it's a useScriptVar call
+    // Check if it's a useRuntimeVar call
     const expr = init.getExpression();
-    if (!Node.isIdentifier(expr) || expr.getText() !== 'useScriptVar') return;
+    if (!Node.isIdentifier(expr) || expr.getText() !== 'useRuntimeVar') return;
 
     // Get the variable name argument (first arg)
     const args = init.getArguments();
     if (args.length < 1) {
       throw ctx.createError(
-        'useScriptVar requires a variable name argument',
+        'useRuntimeVar requires a variable name argument',
         init
       );
     }
@@ -50,7 +50,7 @@ export function extractScriptVarDeclarations(
     const nameArg = args[0];
     if (!Node.isStringLiteral(nameArg)) {
       throw ctx.createError(
-        'useScriptVar argument must be a string literal',
+        'useRuntimeVar argument must be a string literal',
         nameArg
       );
     }
@@ -61,7 +61,7 @@ export function extractScriptVarDeclarations(
     // Check for destructuring (not supported)
     if (identifierName.includes('{') || identifierName.includes('[')) {
       throw ctx.createError(
-        'useScriptVar does not support destructuring. Use: const ctx = useScriptVar<T>("NAME")',
+        'useRuntimeVar does not support destructuring. Use: const ctx = useRuntimeVar<T>("NAME")',
         node
       );
     }

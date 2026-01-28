@@ -59,7 +59,7 @@ async function runBuild(
       // Parse file
       const sourceFile = project.addSourceFileAtPath(inputFile);
 
-      // Check if file uses V3 features (useScriptVar, runtimeFn)
+      // Check if file uses V3 features (useRuntimeVar, runtimeFn)
       const fileContent = sourceFile.getFullText();
       const isV3 = hasV3Imports(fileContent);
 

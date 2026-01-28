@@ -1025,7 +1025,7 @@ ${allFunctionNames.map(n => `    ${n},`).join('\n')}
  * Check if a source file contains V3 runtime usage
  *
  * Looks for:
- * - useScriptVar imports/usage
+ * - useRuntimeVar imports/usage
  * - runtimeFn imports/usage
  *
  * @param sourceFile - Source file to check
@@ -1037,12 +1037,12 @@ export function isV3File(sourceFile: SourceFile): boolean {
   sourceFile.forEachDescendant((node) => {
     if (hasV3Usage) return; // Early exit
 
-    // Check for useScriptVar call
+    // Check for useRuntimeVar call
     if (Node.isCallExpression(node)) {
       const expr = node.getExpression();
       if (Node.isIdentifier(expr)) {
         const name = expr.getText();
-        if (name === 'useScriptVar' || name === 'runtimeFn') {
+        if (name === 'useRuntimeVar' || name === 'runtimeFn') {
           hasV3Usage = true;
         }
       }

@@ -67,7 +67,7 @@ export interface IfProps {
  * Works with ScriptVar for type-safe runtime checks.
  *
  * @example
- * const ctx = useScriptVar<{ error?: string }>('CTX');
+ * const ctx = useRuntimeVar<{ error?: string }>('CTX');
  *
  * <If condition={ctx.error}>
  *   <p>Error occurred: {ctx.error}</p>
@@ -133,7 +133,7 @@ export interface LoopProps {
    * Useful for conditional logic based on iteration count.
    *
    * @example
-   * const i = useScriptVar<number>('I');
+   * const i = useRuntimeVar<number>('I');
    * <Loop max={5} counter={i}>
    *   <p>Iteration: {i}</p>
    * </Loop>

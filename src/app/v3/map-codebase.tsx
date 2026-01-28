@@ -16,7 +16,7 @@
 
 import {
   Command,
-  useScriptVar,
+  useRuntimeVar,
   runtimeFn,
   If,
   Else,
@@ -71,16 +71,16 @@ export default (
   >
     {() => {
       // Variable declarations with typed ScriptVars
-      const ctx = useScriptVar<MapCodebaseContext>('CTX');
-      const userChoice = useScriptVar<string>('USER_CHOICE');
-      const techPrompt = useScriptVar<AgentPrompt>('TECH_PROMPT');
-      const archPrompt = useScriptVar<AgentPrompt>('ARCH_PROMPT');
-      const qualityPrompt = useScriptVar<AgentPrompt>('QUALITY_PROMPT');
-      const concernsPrompt = useScriptVar<AgentPrompt>('CONCERNS_PROMPT');
-      const verification = useScriptVar<VerificationResult>('VERIFICATION');
-      const summary = useScriptVar<SummaryData>('SUMMARY');
-      const summaryMd = useScriptVar<string>('SUMMARY_MD');
-      const _void = useScriptVar<void>('_VOID'); // Placeholder for void returns
+      const ctx = useRuntimeVar<MapCodebaseContext>('CTX');
+      const userChoice = useRuntimeVar<string>('USER_CHOICE');
+      const techPrompt = useRuntimeVar<AgentPrompt>('TECH_PROMPT');
+      const archPrompt = useRuntimeVar<AgentPrompt>('ARCH_PROMPT');
+      const qualityPrompt = useRuntimeVar<AgentPrompt>('QUALITY_PROMPT');
+      const concernsPrompt = useRuntimeVar<AgentPrompt>('CONCERNS_PROMPT');
+      const verification = useRuntimeVar<VerificationResult>('VERIFICATION');
+      const summary = useRuntimeVar<SummaryData>('SUMMARY');
+      const summaryMd = useRuntimeVar<string>('SUMMARY_MD');
+      const _void = useRuntimeVar<void>('_VOID'); // Placeholder for void returns
 
       return (
         <>

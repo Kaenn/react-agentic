@@ -116,7 +116,7 @@ const runtimeFnRegistry = new Map<string, RuntimeFunction<object, unknown>>();
  * export default (
  *   <Command name="setup">
  *     {() => {
- *       const result = useScriptVar<InitResult>('RESULT');
+ *       const result = useRuntimeVar<InitResult>('RESULT');
  *       return (
  *         <>
  *           <Init.Call args={{ projectPath: "." }} output={result} />

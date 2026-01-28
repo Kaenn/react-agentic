@@ -15,7 +15,7 @@ import type { ScriptVarDeclNode } from '../../ir/index.js';
 // ============================================================================
 
 /**
- * Information about a useScriptVar declaration
+ * Information about a useRuntimeVar declaration
  */
 export interface ScriptVarInfo {
   /** Variable name (shell variable) */

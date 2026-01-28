@@ -267,7 +267,7 @@ export function detectV3(sourceFile: SourceFile): boolean {
  */
 export function hasV3Imports(content: string): boolean {
   return (
-    content.includes('useScriptVar') ||
+    content.includes('useRuntimeVar') ||
     content.includes('runtimeFn') ||
     content.includes('from \'react-agentic/v3\'') ||
     content.includes('from "react-agentic/v3"')

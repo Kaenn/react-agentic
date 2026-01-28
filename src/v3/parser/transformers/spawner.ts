@@ -194,7 +194,7 @@ export function transformV3SpawnAgent(
     const outputRef = parseScriptVarRef(outputExpr, ctx);
     if (!outputRef) {
       throw ctx.createError(
-        'SpawnAgent output must be a useScriptVar reference',
+        'SpawnAgent output must be a useRuntimeVar reference',
         outputExpr
       );
     }

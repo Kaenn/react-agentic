@@ -155,7 +155,7 @@ export interface V3SpawnAgentProps<TInput = unknown> {
   input?: ScriptVarProxy<TInput> | Partial<AllowScriptVars<TInput>>;
   /**
    * ScriptVar to store the agent's output.
-   * Only available in V3 commands using useScriptVar.
+   * Only available in V3 commands using useRuntimeVar.
    */
   output?: ScriptVarProxy<string>;
   /** Optional extra instructions appended to the auto-generated prompt */

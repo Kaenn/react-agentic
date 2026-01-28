@@ -28,7 +28,7 @@ export {
   AskUser,
 
   // Runtime primitives
-  useScriptVar,
+  useRuntimeVar,
   runtimeFn,
 
   // Agent utilities

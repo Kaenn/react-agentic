@@ -73,7 +73,7 @@ export {
 // ============================================================================
 
 export {
-  useScriptVar,
+  useRuntimeVar,
   isScriptVar,
   getScriptVarInfo,
   toJqExpression,

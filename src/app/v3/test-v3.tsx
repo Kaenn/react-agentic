@@ -2,7 +2,7 @@
  * Test V3 Command
  *
  * Demonstrates V3 hybrid runtime features:
- * - useScriptVar for typed runtime variables
+ * - useRuntimeVar for typed runtime variables
  * - runtimeFn for TypeScript function extraction
  * - V3 If/Else with typed conditions
  * - AskUser for user prompts
@@ -10,7 +10,7 @@
 
 import {
   Command,
-  useScriptVar,
+  useRuntimeVar,
   runtimeFn,
   If,
   Else,
@@ -61,7 +61,7 @@ export default (
   <Command name="test-v3" description="Test V3 hybrid runtime features">
     {() => {
       // Declare typed script variable
-      const ctx = useScriptVar<InitResult>('CTX');
+      const ctx = useRuntimeVar<InitResult>('CTX');
 
       return (
         <>

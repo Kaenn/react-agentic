@@ -296,7 +296,7 @@ export function transformV3Loop(
     const ref = parseScriptVarRef(counterExpr, ctx);
     if (!ref) {
       throw ctx.createError(
-        'V3Loop counter must be a useScriptVar reference',
+        'V3Loop counter must be a useRuntimeVar reference',
         counterExpr
       );
     }

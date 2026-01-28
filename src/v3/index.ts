@@ -4,7 +4,7 @@
  * Exports all V3 primitives, types, IR nodes, and build functions.
  *
  * Usage:
- * import { useScriptVar, runtimeFn, If, Loop } from 'react-agentic/v3';
+ * import { useRuntimeVar, runtimeFn, If, Loop } from 'react-agentic/v3';
  */
 
 // ============================================================================
@@ -13,7 +13,7 @@
 
 export {
   // Script Variable System
-  useScriptVar,
+  useRuntimeVar,
   isScriptVar,
   getScriptVarInfo,
   toJqExpression,

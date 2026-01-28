@@ -6,7 +6,7 @@
 
 // Script Variable System
 export {
-  useScriptVar,
+  useRuntimeVar,
   isScriptVar,
   getScriptVarInfo,
   toJqExpression,

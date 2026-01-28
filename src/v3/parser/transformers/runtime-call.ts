@@ -135,7 +135,7 @@ export function transformRuntimeCall(
   const outputRef = parseScriptVarRef(outputExpr, ctx);
   if (!outputRef) {
     throw ctx.createError(
-      `${wrapperName}.Call output must be a useScriptVar reference`,
+      `${wrapperName}.Call output must be a useRuntimeVar reference`,
       outputExpr
     );
   }

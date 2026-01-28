@@ -5,7 +5,7 @@
  * The proxy pattern captures property access for jq expression generation.
  *
  * Usage:
- * const ctx = useScriptVar<MyType>('CTX');
+ * const ctx = useRuntimeVar<MyType>('CTX');
  * // ctx.error becomes $(echo "$CTX" | jq -r '.error')
  * // ctx.user.name becomes $(echo "$CTX" | jq -r '.user.name')
  */
@@ -48,7 +48,7 @@ export type ScriptVar<T> = string & ScriptVarMeta<T>;
  * Each property access returns a new proxy with extended path
  *
  * @example
- * const ctx = useScriptVar<{user: {name: string}}>('CTX');
+ * const ctx = useRuntimeVar<{user: {name: string}}>('CTX');
  * ctx.__path // []
  * ctx.user.__path // ['user']
  * ctx.user.name.__path // ['user', 'name']
@@ -129,7 +129,7 @@ function createScriptVarProxy<T>(varName: string, path: string[]): ScriptVarProx
  *   data: { count: number };
  * }
  *
- * const ctx = useScriptVar<Context>('CTX');
+ * const ctx = useRuntimeVar<Context>('CTX');
  *
  * // In JSX:
  * <If condition={ctx.error}>...</If>
@@ -138,7 +138,7 @@ function createScriptVarProxy<T>(varName: string, path: string[]): ScriptVarProx
  * <p>Count: {ctx.data.count}</p>
  * // Emits: Count: $(echo "$CTX" | jq -r '.data.count')
  */
-export function useScriptVar<T>(name: string): ScriptVarProxy<T> {
+export function useRuntimeVar<T>(name: string): ScriptVarProxy<T> {
   return createScriptVarProxy<T>(name, []);
 }
 

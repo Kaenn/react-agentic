@@ -91,7 +91,7 @@ export interface AskUserProps {
  * in subsequent If conditions or interpolation.
  *
  * @example
- * const dbChoice = useScriptVar<string>('DB_CHOICE');
+ * const dbChoice = useRuntimeVar<string>('DB_CHOICE');
  *
  * <AskUser
  *   question="Which database should we use?"

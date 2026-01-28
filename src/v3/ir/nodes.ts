@@ -19,7 +19,7 @@ import type { BlockNode as V1BlockNode, InlineNode } from '../../ir/nodes.js';
 /**
  * Script variable declaration
  *
- * Created from useScriptVar<T>('NAME') calls.
+ * Created from useRuntimeVar<T>('NAME') calls.
  * Tracks the variable name and TypeScript type for validation.
  */
 export interface ScriptVarDeclNode {
