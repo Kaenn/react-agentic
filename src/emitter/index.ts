@@ -8,8 +8,8 @@ export { emit, emitAgent, emitSkill, emitSkillFile, MarkdownEmitter } from './em
 export { emitSettings, mergeSettings } from './settings.js';
 export { emitState, generateMainInitSkill, type StateEmitResult } from './state-emitter.js';
 
-// V3 Emitters
-export { emitV3, V3MarkdownEmitter } from './v3-markdown-emitter.js';
+// Runtime Emitters
+export { emitDocument, RuntimeMarkdownEmitter } from './runtime-markdown-emitter.js';
 export {
   emitRuntime,
   generateRuntime,
@@ -17,12 +17,12 @@ export {
   extractFunctions,
   extractConstants,
   extractFromImports,
-  isV3File,
+  isRuntimeFile,
   type ExtractedFunction,
   type ExtractedConstant,
   type RuntimeEmitResult,
   type ExtractFromImportsResult,
-} from './v3-runtime-emitter.js';
+} from './runtime-emitter.js';
 export {
   bundleRuntimeFile,
   bundleSingleEntryRuntime,
@@ -41,4 +41,4 @@ export {
   type SingleEntryBundleResult,
   type CodeSplitBundleOptions,
   type CodeSplitBundleResult,
-} from './v3-esbuild-bundler.js';
+} from './esbuild-bundler.js';

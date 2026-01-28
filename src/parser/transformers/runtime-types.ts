@@ -1,7 +1,7 @@
 /**
- * V3 Transform Context and Types
+ * Runtime Transform Context and Types
  *
- * Extends the v1 TransformContext with V3-specific tracking:
+ * Transform context with runtime-specific tracking:
  * - Runtime variable declarations
  * - Runtime function usage
  * - Import paths for extraction
@@ -53,18 +53,17 @@ export interface RuntimeFunctionInfo {
 }
 
 // ============================================================================
-// V3 Transform Context
+// Runtime Transform Context
 // ============================================================================
 
 /**
- * Context for V3 transformers
+ * Context for runtime transformers
  *
- * Extends the v1 context with V3-specific tracking.
- * Unlike v1 which tracks shell variables, V3 tracks:
+ * Tracks:
  * - RuntimeVar declarations (for type-safe references)
  * - RuntimeFn usage (for extraction to runtime.js)
  */
-export interface V3TransformContext {
+export interface RuntimeTransformContext {
   /** Source file being transformed */
   sourceFile: SourceFile | undefined;
 
@@ -104,15 +103,15 @@ function toCamelCase(str: string): string {
 }
 
 /**
- * Create a fresh V3 transform context
+ * Create a fresh runtime transform context
  *
  * @param sourceFile - Source file being transformed (optional)
  * @param namespace - Namespace for runtime functions (defaults to basename of sourceFile)
  */
-export function createV3Context(
+export function createRuntimeContext(
   sourceFile?: SourceFile,
   namespace?: string
-): V3TransformContext {
+): RuntimeTransformContext {
   // Derive namespace from source file if not provided
   let ns = namespace ?? '';
   if (!ns && sourceFile) {
@@ -142,12 +141,12 @@ export function createV3Context(
 // ============================================================================
 
 /**
- * Result of V3 transformation
+ * Result of runtime transformation
  *
  * Contains the document node and metadata needed for dual emission.
  */
-export interface V3TransformResult {
-  /** Transformed V3 document */
+export interface RuntimeTransformResult {
+  /** Transformed document */
   document: import('../../ir/index.js').DocumentNode;
 
   /** Runtime variable declarations (for markdown emission) */

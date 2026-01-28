@@ -6,7 +6,7 @@
  */
 
 import { Node, SourceFile } from 'ts-morph';
-import type { RuntimeFunctionInfo, V3TransformContext } from './v3-types.js';
+import type { RuntimeFunctionInfo, RuntimeTransformContext } from './runtime-types.js';
 
 // ============================================================================
 // Extraction
@@ -26,7 +26,7 @@ import type { RuntimeFunctionInfo, V3TransformContext } from './v3-types.js';
  */
 export function extractRuntimeFnDeclarations(
   sourceFile: SourceFile,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): void {
   // First, build a map of imports: local name -> import path
   const importMap = new Map<string, { path: string; isDefault: boolean }>();
@@ -118,7 +118,7 @@ export function extractRuntimeFnDeclarations(
  * Returns the list of function names (not wrapper names) that need
  * to be extracted to runtime.js.
  */
-export function getRuntimeFunctionNames(ctx: V3TransformContext): string[] {
+export function getRuntimeFunctionNames(ctx: RuntimeTransformContext): string[] {
   return Array.from(ctx.usedRuntimeFunctions);
 }
 
@@ -127,7 +127,7 @@ export function getRuntimeFunctionNames(ctx: V3TransformContext): string[] {
  *
  * Returns paths that need to be parsed for function extraction.
  */
-export function getRuntimeImportPaths(ctx: V3TransformContext): string[] {
+export function getRuntimeImportPaths(ctx: RuntimeTransformContext): string[] {
   return Array.from(ctx.runtimeImports);
 }
 
@@ -144,7 +144,7 @@ export function getRuntimeImportPaths(ctx: V3TransformContext): string[] {
  */
 export function resolveRuntimeFn(
   wrapperName: string,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): RuntimeFunctionInfo | undefined {
   return ctx.runtimeFunctions.get(wrapperName);
 }
@@ -154,7 +154,7 @@ export function resolveRuntimeFn(
  */
 export function isRuntimeFnWrapper(
   identifierName: string,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): boolean {
   return ctx.runtimeFunctions.has(identifierName);
 }
@@ -167,7 +167,7 @@ export function isRuntimeFnWrapper(
  */
 export function markRuntimeFnUsed(
   wrapperName: string,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): void {
   const info = ctx.runtimeFunctions.get(wrapperName);
   if (info) {

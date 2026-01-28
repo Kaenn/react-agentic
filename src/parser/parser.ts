@@ -968,7 +968,7 @@ export function extractVariableDeclarations(
 // ============================================================================
 
 import type { StateSchema, StateSchemaField } from '../ir/nodes.js';
-import type { InputProperty, InputValue } from '../ir/v3-nodes.js';
+import type { InputProperty, InputValue } from '../ir/runtime-nodes.js';
 
 /**
  * Check if an identifier references a useVariable result

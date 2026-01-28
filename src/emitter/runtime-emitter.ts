@@ -1031,7 +1031,7 @@ ${allFunctionNames.map(n => `    ${n},`).join('\n')}
  * @param sourceFile - Source file to check
  * @returns true if file uses V3 runtime features
  */
-export function isV3File(sourceFile: SourceFile): boolean {
+export function isRuntimeFile(sourceFile: SourceFile): boolean {
   let hasV3Usage = false;
 
   sourceFile.forEachDescendant((node) => {

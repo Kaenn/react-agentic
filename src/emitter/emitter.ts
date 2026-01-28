@@ -265,7 +265,7 @@ export class MarkdownEmitter {
       case 'askUser':
       case 'runtimeCall':
       case 'runtimeVarDecl':
-        throw new Error(`Runtime node '${node.kind}' should not be emitted via V1 emitter. Use emitV3() instead.`);
+        throw new Error(`Runtime node '${node.kind}' should not be emitted via V1 emitter. Use emitDocument() instead.`);
       default:
         return assertNever(node);
     }

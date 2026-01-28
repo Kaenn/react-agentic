@@ -213,7 +213,7 @@ export interface RawMarkdownNode {
   content: string;
 }
 
-// SpawnAgent types moved to v3-nodes.ts
+// SpawnAgent types moved to runtime-nodes.ts
 
 /**
  * Shell variable assignment from useVariable/Assign
@@ -239,7 +239,7 @@ export interface AssignGroupNode {
   assignments: AssignNode[];  // Child Assign nodes
 }
 
-// IfNode, ElseNode, LoopNode moved to v3-nodes.ts
+// IfNode, ElseNode, LoopNode moved to runtime-nodes.ts
 
 /**
  * Reference to an agent's output in the IR
@@ -351,7 +351,7 @@ export interface StepNode {
 
 /**
  * Base union of all block node types (without runtime nodes)
- * Use BlockNode from v3-nodes.ts for the full union including runtime nodes
+ * Use BlockNode from runtime-nodes.ts for the full union including runtime nodes
  */
 export type BaseBlockNode =
   | HeadingNode
@@ -387,7 +387,7 @@ type BlockNode = BaseBlockNode;
 // Special Nodes
 // ============================================================================
 
-// FrontmatterNode moved to v3-nodes.ts
+// FrontmatterNode moved to runtime-nodes.ts
 
 /**
  * Agent YAML frontmatter data
@@ -403,7 +403,7 @@ export interface AgentFrontmatterNode {
   outputType?: TypeReference; // Optional: second generic type parameter (e.g., 'ResearcherOutput')
 }
 
-// DocumentNode moved to v3-nodes.ts
+// DocumentNode moved to runtime-nodes.ts
 
 /**
  * Agent document root node

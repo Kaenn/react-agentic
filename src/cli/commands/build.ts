@@ -21,7 +21,7 @@ import { TranspileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 
 // Build imports
-import { buildV3File, hasV3Imports } from '../v3-build.js';
+import { buildRuntimeFile, hasRuntimeImports } from '../runtime-build.js';
 import { bundleSingleEntryRuntime, bundleCodeSplit } from '../../emitter/index.js';
 import type { RuntimeFileInfo } from '../../emitter/index.js';
 
@@ -59,18 +59,18 @@ async function runBuild(
       // Parse file
       const sourceFile = project.addSourceFileAtPath(inputFile);
 
-      // Check if file uses V3 features (useRuntimeVar, runtimeFn)
+      // Check if file uses runtime features (useRuntimeVar, runtimeFn)
       const fileContent = sourceFile.getFullText();
-      const isV3 = hasV3Imports(fileContent);
+      const isRuntime = hasRuntimeImports(fileContent);
 
-      if (!isV3) {
-        // Skip non-V3 files with warning
-        logWarning(`Skipping ${inputFile}: V1 files are no longer supported. Please migrate to V3.`);
+      if (!isRuntime) {
+        // Skip non-runtime files with warning
+        logWarning(`Skipping ${inputFile}: V1 files are no longer supported. Please migrate to runtime features.`);
         continue;
       }
 
-      // Build V3 file
-      const v3Result = await buildV3File(sourceFile, project, {
+      // Build runtime file
+      const buildResult = await buildRuntimeFile(sourceFile, project, {
         commandsOut: options.out,
         runtimeOut: options.runtimeOut || '.claude/runtime',
         dryRun: options.dryRun,
@@ -79,19 +79,19 @@ async function runBuild(
       // Add markdown result
       results.push({
         inputFile,
-        outputPath: v3Result.markdownPath,
-        content: v3Result.markdown,
-        size: Buffer.byteLength(v3Result.markdown, 'utf8'),
+        outputPath: buildResult.markdownPath,
+        content: buildResult.markdown,
+        size: Buffer.byteLength(buildResult.markdown, 'utf8'),
       });
 
       // Collect runtime file info for bundling
-      if (v3Result.runtimeFileInfo) {
-        runtimeFiles.push(v3Result.runtimeFileInfo);
-        runtimePath = v3Result.runtimePath;
+      if (buildResult.runtimeFileInfo) {
+        runtimeFiles.push(buildResult.runtimeFileInfo);
+        runtimePath = buildResult.runtimePath;
       }
 
       // Log warnings
-      for (const warning of v3Result.warnings) {
+      for (const warning of buildResult.warnings) {
         logWarning(warning);
       }
     } catch (error) {

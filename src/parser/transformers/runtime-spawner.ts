@@ -1,8 +1,8 @@
 /**
- * V3 SpawnAgent Transformer
+ * Runtime SpawnAgent Transformer
  *
- * Transforms V3 SpawnAgent elements with output capture.
- * Similar to v1 spawner but with RuntimeVar output binding.
+ * Transforms SpawnAgent elements with output capture.
+ * Supports RuntimeVar output binding.
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
@@ -13,9 +13,9 @@ import type {
   InputValue,
   RuntimeVarRefNode,
 } from '../../ir/index.js';
-import type { V3TransformContext } from './v3-types.js';
-import { parseRuntimeVarRef } from './v3-runtime-var.js';
-import { getAttributeValue, getAttributeExpression, extractJsonValue } from './v3-utils.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
+import { getAttributeValue, getAttributeExpression, extractJsonValue } from './runtime-utils.js';
 
 // ============================================================================
 // Input Parsing
@@ -31,7 +31,7 @@ import { getAttributeValue, getAttributeExpression, extractJsonValue } from './v
  */
 function parseInputValue(
   expr: Expression,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InputValue {
   // Check for RuntimeVar reference first
   const ref = parseRuntimeVarRef(expr, ctx);
@@ -55,7 +55,7 @@ function parseInputValue(
 }
 
 /**
- * Parse V3 SpawnAgent input prop
+ * Parse SpawnAgent input prop
  *
  * Handles:
  * - Object literal: input={{ key: value, ... }}
@@ -63,7 +63,7 @@ function parseInputValue(
  */
 function parseInput(
   expr: Expression,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): SpawnAgentInput {
   // Check for RuntimeVar reference (variable binding)
   const ref = parseRuntimeVarRef(expr, ctx);
@@ -124,7 +124,7 @@ function parseInput(
 // ============================================================================
 
 /**
- * Transform V3 SpawnAgent to SpawnAgentNode
+ * Transform SpawnAgent to SpawnAgentNode
  *
  * Input JSX:
  * <SpawnAgent
@@ -145,9 +145,9 @@ function parseInput(
  *   outputVar: 'RESULT'
  * }
  */
-export function transformV3SpawnAgent(
+export function transformRuntimeSpawnAgent(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): SpawnAgentNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

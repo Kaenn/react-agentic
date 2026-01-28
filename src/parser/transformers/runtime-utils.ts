@@ -1,8 +1,7 @@
 /**
- * V3 Transformer Utilities
+ * Runtime Transformer Utilities
  *
- * Helper functions for V3 transformers.
- * Some are adapted from v1 utils, others are V3-specific.
+ * Helper functions for runtime transformers.
  */
 
 import { Node, JsxOpeningElement, JsxSelfClosingElement, Expression } from 'ts-morph';

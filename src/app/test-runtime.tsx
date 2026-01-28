@@ -1,10 +1,10 @@
 /**
- * Test V3 Command
+ * Test Runtime Command
  *
- * Demonstrates V3 hybrid runtime features:
+ * Demonstrates runtime features:
  * - useRuntimeVar for typed runtime variables
  * - runtimeFn for TypeScript function extraction
- * - V3 If/Else with typed conditions
+ * - If/Else with typed conditions
  * - AskUser for user prompts
  */
 
@@ -54,21 +54,21 @@ async function initProject(args: InitArgs): Promise<InitResult> {
   }
 }
 
-// Wrap for V3 usage
+// Wrap for runtime usage
 const Init = runtimeFn(initProject);
 
 export default (
-  <Command name="test-v3" description="Test V3 hybrid runtime features">
+  <Command name="test-runtime" description="Test runtime features">
     {() => {
       // Declare typed script variable
       const ctx = useRuntimeVar<InitResult>('CTX');
 
       return (
         <>
-          <h2>V3 Test Command</h2>
+          <h2>Runtime Test Command</h2>
 
-         
-          This command demonstrates V3 features:
+
+          This command demonstrates runtime features:
           - TypeScript runtime functions
           - Typed conditions with RuntimeVar
           - jq-based variable access

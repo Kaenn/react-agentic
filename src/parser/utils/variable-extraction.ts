@@ -11,7 +11,7 @@ import {
   ArrowFunction,
 } from 'ts-morph';
 import type { StateSchema, StateSchemaField } from '../../ir/nodes.js';
-import type { InputProperty, InputValue } from '../../ir/v3-nodes.js';
+import type { InputProperty, InputValue } from '../../ir/runtime-nodes.js';
 
 // ============================================================================
 // Variable Declaration Extraction (useVariable hook)

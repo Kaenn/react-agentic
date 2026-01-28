@@ -1,26 +1,26 @@
 /**
- * V3 Central Transform Dispatcher
+ * Runtime Central Transform Dispatcher
  *
- * Routes JSX elements to appropriate V3 transformers.
- * Delegates unchanged elements (headings, lists, etc.) to v1 transformers.
+ * Routes JSX elements to appropriate runtime transformers.
+ * Delegates unchanged elements (headings, lists, etc.) to shared transformers.
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
-import type { V3TransformContext } from './v3-types.js';
-import { getElementName, extractText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './v3-utils.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
+import { getElementName, extractText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './runtime-utils.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
-// V3 transformers
-import { transformV3If, transformV3Else, transformV3Loop, transformBreak, transformReturn } from './v3-control.js';
-import { transformRuntimeCall, isRuntimeFnCall } from './v3-runtime-call.js';
-import { transformAskUser } from './v3-ask-user.js';
-import { transformV3SpawnAgent } from './v3-spawner.js';
+// Runtime transformers
+import { transformRuntimeIf, transformRuntimeElse, transformRuntimeLoop, transformBreak, transformReturn } from './runtime-control.js';
+import { transformRuntimeCall, isRuntimeFnCall } from './runtime-call.js';
+import { transformAskUser } from './runtime-ask-user.js';
+import { transformRuntimeSpawnAgent } from './runtime-spawner.js';
 
-// V3 inline transformer for RuntimeVar interpolation
-import { transformV3InlineChildren } from './v3-inline.js';
+// Runtime inline transformer for RuntimeVar interpolation
+import { transformRuntimeInlineChildren } from './runtime-inline.js';
 
-// V1 transformers for shared elements
+// Shared element transformers
 import { transformList, transformBlockquote, transformCodeBlock } from './html.js';
 import { transformTable, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
@@ -37,7 +37,7 @@ import type { GroupNode } from '../../ir/nodes.js';
  */
 function transformFragmentChildren(
   fragment: JsxFragment,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   return transformChildArray(fragment.getJsxChildren(), ctx);
 }
@@ -47,7 +47,7 @@ function transformFragmentChildren(
  */
 function transformChildArray(
   jsxChildren: Node[],
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   const blocks: BlockNode[] = [];
   let i = 0;
@@ -72,7 +72,7 @@ function transformChildArray(
 
       // Handle If with potential Else sibling
       if (childName === 'If' || childName === 'V3If') {
-        const ifNode = transformV3If(child, ctx, transformV3BlockChildrenWrapper);
+        const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildrenWrapper);
         blocks.push(ifNode);
 
         // Check for Else sibling
@@ -93,7 +93,7 @@ function transformChildArray(
           if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
             const siblingName = getElementName(sibling);
             if (siblingName === 'Else' || siblingName === 'V3Else') {
-              const elseNode = transformV3Else(sibling, ctx, transformV3BlockChildrenWrapper);
+              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildrenWrapper);
               blocks.push(elseNode);
               i = nextIndex;
             }
@@ -101,11 +101,11 @@ function transformChildArray(
           break;
         }
       } else {
-        const block = transformV3Element(child, ctx);
+        const block = transformRuntimeElement(child, ctx);
         if (block) blocks.push(block);
       }
     } else if (Node.isJsxExpression(child)) {
-      const block = transformToV3Block(child, ctx);
+      const block = transformToRuntimeBlock(child, ctx);
       if (block) blocks.push(block);
     }
 
@@ -118,9 +118,9 @@ function transformChildArray(
 /**
  * Wrapper to match the expected signature for control transformer callbacks
  */
-function transformV3BlockChildrenWrapper(
+function transformRuntimeBlockChildrenWrapper(
   parent: JsxElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   return transformChildArray(parent.getJsxChildren(), ctx);
 }
@@ -135,20 +135,20 @@ function transformV3BlockChildrenWrapper(
  * V1 transformers expect the v1 TransformContext, so we create
  * a compatible adapter that maps V3 fields.
  */
-function adaptToV1Context(v3Ctx: V3TransformContext): TransformContext {
+function adaptToSharedContext(runtimeCtx: RuntimeTransformContext): TransformContext {
   return {
-    sourceFile: v3Ctx.sourceFile,
-    visitedPaths: v3Ctx.visitedPaths,
+    sourceFile: runtimeCtx.sourceFile,
+    visitedPaths: runtimeCtx.visitedPaths,
     variables: new Map(), // V3 uses runtimeVars, not variables
     outputs: new Map(),
     stateRefs: new Map(),
     renderPropsContext: undefined,
-    createError: v3Ctx.createError,
+    createError: runtimeCtx.createError,
   };
 }
 
 // ============================================================================
-// V3 Div Transformer
+// Runtime Div Transformer
 // ============================================================================
 
 /**
@@ -157,9 +157,9 @@ function adaptToV1Context(v3Ctx: V3TransformContext): TransformContext {
  * - div without name attribute: creates GroupNode (tight spacing via '\n' not '\n\n')
  * - div with name attribute: creates XmlBlockNode with wrapper tags
  */
-function transformV3Div(
+function transformRuntimeDiv(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): XmlBlockNode | GroupNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -170,7 +170,7 @@ function transformV3Div(
 
   // Transform children using V3 transformers
   const children = Node.isJsxElement(node)
-    ? transformV3MixedChildren(node.getJsxChildren(), ctx)
+    ? transformRuntimeMixedChildren(node.getJsxChildren(), ctx)
     : [];
 
   // No name attribute: invisible grouping container with tight spacing
@@ -215,7 +215,7 @@ function transformV3Div(
 /**
  * Inline element set for V3 mixed content handling
  */
-const V3_INLINE_ELEMENTS = new Set([
+const RUNTIME_INLINE_ELEMENTS = new Set([
   'a', 'b', 'i', 'strong', 'em', 'code', 'span', 'br',
 ]);
 
@@ -224,9 +224,9 @@ const V3_INLINE_ELEMENTS = new Set([
  * Consecutive inline elements and text are wrapped in a single paragraph
  * Block elements are transformed using V3 dispatch
  */
-function transformV3MixedChildren(
+function transformRuntimeMixedChildren(
   jsxChildren: Node[],
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   const blocks: BlockNode[] = [];
   let inlineAccumulator: Node[] = [];
@@ -309,14 +309,14 @@ function transformV3MixedChildren(
     if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
       const name = getElementName(child);
 
-      if (V3_INLINE_ELEMENTS.has(name)) {
+      if (RUNTIME_INLINE_ELEMENTS.has(name)) {
         // Accumulate inline elements
         inlineAccumulator.push(child);
       } else {
         // Flush any accumulated inline content before block element
         flushInline();
         // Transform block element via V3 dispatch
-        const block = transformV3Element(child, ctx);
+        const block = transformRuntimeElement(child, ctx);
         if (block) blocks.push(block);
       }
     } else if (Node.isJsxExpression(child)) {
@@ -332,7 +332,7 @@ function transformV3MixedChildren(
 }
 
 // ============================================================================
-// V3 XmlBlock Transformer
+// Runtime XmlBlock Transformer
 // ============================================================================
 
 /**
@@ -350,13 +350,13 @@ function isValidXmlName(name: string): boolean {
 /**
  * Transform XmlBlock using V3 transformers for children
  *
- * This is a V3-specific version that uses transformV3BlockChildren
+ * This is a V3-specific version that uses transformRuntimeBlockChildren
  * instead of v1's transformBlockChildren, so nested V3 components
  * like Init.Call are properly recognized.
  */
-function transformV3XmlBlock(
+function transformRuntimeXmlBlock(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): XmlBlockNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -378,7 +378,7 @@ function transformV3XmlBlock(
 
   // Transform children using V3 transformers
   const children = Node.isJsxElement(node)
-    ? transformV3BlockChildren(node, ctx)
+    ? transformRuntimeBlockChildren(node, ctx)
     : [];
 
   return {
@@ -395,9 +395,9 @@ function transformV3XmlBlock(
 /**
  * Transform a JSX node to BlockNode
  */
-export function transformToV3Block(
+export function transformToRuntimeBlock(
   node: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode | null {
   // Whitespace-only text - skip
   if (Node.isJsxText(node)) {
@@ -408,7 +408,7 @@ export function transformToV3Block(
   }
 
   if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
-    return transformV3Element(node, ctx);
+    return transformRuntimeElement(node, ctx);
   }
 
   // JSX expressions - handle render functions and interpolation
@@ -439,7 +439,7 @@ export function transformToV3Block(
                   holder.result = transformFragmentChildren(inner, ctx);
                   traversal.stop();
                 } else if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
-                  const block = transformV3Element(inner, ctx);
+                  const block = transformRuntimeElement(inner, ctx);
                   if (block) holder.result = [block];
                   traversal.stop();
                 }
@@ -470,7 +470,7 @@ export function transformToV3Block(
         }
 
         if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
-          return transformV3Element(inner, ctx);
+          return transformRuntimeElement(inner, ctx);
         }
       }
 
@@ -486,30 +486,30 @@ export function transformToV3Block(
 /**
  * Route element transformation based on tag name
  */
-function transformV3Element(
+function transformRuntimeElement(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode | null {
   const name = getElementName(node);
 
   // ============================================================
-  // V3-Specific Components
+  // Runtime-Specific Components
   // ============================================================
 
-  // V3 If component (condition-based)
+  // If component (condition-based)
   if (name === 'If' || name === 'V3If') {
-    return transformV3If(node, ctx, transformV3BlockChildren);
+    return transformRuntimeIf(node, ctx, transformRuntimeBlockChildren);
   }
 
-  // V3 Else component
+  // Else component
   if (name === 'Else' || name === 'V3Else') {
     // Standalone Else is error (must follow If as sibling)
     throw ctx.createError('<Else> must follow <If> as sibling', node);
   }
 
-  // V3 Loop component (bounded)
+  // Loop component (bounded)
   if (name === 'Loop' || name === 'V3Loop') {
-    return transformV3Loop(node, ctx, transformV3BlockChildren);
+    return transformRuntimeLoop(node, ctx, transformRuntimeBlockChildren);
   }
 
   // Break component
@@ -532,23 +532,23 @@ function transformV3Element(
     return transformRuntimeCall(node, ctx);
   }
 
-  // V3 SpawnAgent (with output capture)
+  // SpawnAgent (with output capture)
   if (name === 'SpawnAgent') {
-    return transformV3SpawnAgent(node, ctx);
+    return transformRuntimeSpawnAgent(node, ctx);
   }
 
   // ============================================================
-  // Delegate to V1 Transformers (shared elements)
+  // Delegate to Shared Transformers (shared elements)
   // ============================================================
 
-  const v1Ctx = adaptToV1Context(ctx);
+  const sharedCtx = adaptToSharedContext(ctx);
 
   // Headings - use V3 inline transformer for RuntimeVar interpolation
   const headingMatch = name.match(/^h([1-6])$/);
   if (headingMatch) {
     const level = parseInt(headingMatch[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
     const children = Node.isJsxElement(node)
-      ? transformV3InlineChildren(node, ctx)
+      ? transformRuntimeInlineChildren(node, ctx)
       : [];
     return { kind: 'heading', level, children };
   }
@@ -556,7 +556,7 @@ function transformV3Element(
   // Paragraph - use V3 inline transformer for RuntimeVar interpolation
   if (name === 'p') {
     const children = Node.isJsxElement(node)
-      ? transformV3InlineChildren(node, ctx)
+      ? transformRuntimeInlineChildren(node, ctx)
       : [];
     return { kind: 'paragraph', children };
   }
@@ -568,30 +568,30 @@ function transformV3Element(
 
   // Lists
   if (name === 'ul') {
-    return transformList(node, false, v1Ctx) as BlockNode;
+    return transformList(node, false, sharedCtx) as BlockNode;
   }
   if (name === 'ol') {
-    return transformList(node, true, v1Ctx) as BlockNode;
+    return transformList(node, true, sharedCtx) as BlockNode;
   }
 
   // Blockquote
   if (name === 'blockquote') {
-    return transformBlockquote(node, v1Ctx) as BlockNode;
+    return transformBlockquote(node, sharedCtx) as BlockNode;
   }
 
   // Code block
   if (name === 'pre') {
-    return transformCodeBlock(node, v1Ctx) as BlockNode;
+    return transformCodeBlock(node, sharedCtx) as BlockNode;
   }
 
   // Div (XML block or group) - use V3 transformer for proper children handling
   if (name === 'div') {
-    return transformV3Div(node, ctx) as BlockNode;
+    return transformRuntimeDiv(node, ctx) as BlockNode;
   }
 
   // XmlBlock component - handle directly to use V3 transformers for children
   if (name === 'XmlBlock') {
-    return transformV3XmlBlock(node, ctx);
+    return transformRuntimeXmlBlock(node, ctx);
   }
 
   // ExecutionContext component
@@ -602,7 +602,7 @@ function transformV3Element(
     const paths = getStringArrayAttribute(openingElement, 'paths') ?? [];
     const prefix = getAttributeValue(openingElement, 'prefix') ?? '@';
     const children = Node.isJsxElement(node)
-      ? transformV3BlockChildren(node, ctx)
+      ? transformRuntimeBlockChildren(node, ctx)
       : [];
     return {
       kind: 'executionContext',
@@ -614,22 +614,22 @@ function transformV3Element(
 
   // Table component
   if (name === 'Table') {
-    return transformTable(node, v1Ctx) as BlockNode;
+    return transformTable(node, sharedCtx) as BlockNode;
   }
 
   // XmlSection
   if (name === 'XmlSection') {
-    return transformXmlSection(node, v1Ctx) as BlockNode;
+    return transformXmlSection(node, sharedCtx) as BlockNode;
   }
 
   // XML wrapper components
   if (['DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling'].includes(name)) {
-    return transformXmlWrapper(name, node, v1Ctx) as BlockNode;
+    return transformXmlWrapper(name, node, sharedCtx) as BlockNode;
   }
 
   // Markdown passthrough
   if (name === 'Markdown') {
-    return transformMarkdown(node, v1Ctx) as BlockNode;
+    return transformMarkdown(node, sharedCtx) as BlockNode;
   }
 
   throw ctx.createError(`Unsupported V3 element: <${name}>`, node);
@@ -642,9 +642,9 @@ function transformV3Element(
 /**
  * Transform JSX children to BlockNodes, handling If/Else sibling pairs
  */
-export function transformV3BlockChildren(
+export function transformRuntimeBlockChildren(
   parent: JsxElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   const jsxChildren = parent.getJsxChildren();
   const blocks: BlockNode[] = [];
@@ -667,7 +667,7 @@ export function transformV3BlockChildren(
 
       // Handle If with potential Else sibling
       if (childName === 'If' || childName === 'V3If') {
-        const ifNode = transformV3If(child, ctx, transformV3BlockChildren);
+        const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildren);
         blocks.push(ifNode);
 
         // Check for Else sibling
@@ -688,7 +688,7 @@ export function transformV3BlockChildren(
           if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
             const siblingName = getElementName(sibling);
             if (siblingName === 'Else' || siblingName === 'V3Else') {
-              const elseNode = transformV3Else(sibling, ctx, transformV3BlockChildren);
+              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildren);
               blocks.push(elseNode);
               i = nextIndex;
             }
@@ -696,11 +696,11 @@ export function transformV3BlockChildren(
           break;
         }
       } else {
-        const block = transformToV3Block(child, ctx);
+        const block = transformToRuntimeBlock(child, ctx);
         if (block) blocks.push(block);
       }
     } else {
-      const block = transformToV3Block(child, ctx);
+      const block = transformToRuntimeBlock(child, ctx);
       if (block) blocks.push(block);
     }
 
@@ -721,9 +721,9 @@ export function transformV3BlockChildren(
  * 1. Render props: <Command>{() => { return (<>...</>) }}</Command>
  * 2. Direct children: <Command>...</Command>
  */
-export function transformV3Command(
+export function transformRuntimeCommand(
   root: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): DocumentNode {
   // Extract frontmatter from Command props
   const openingElement = Node.isJsxElement(root)
@@ -784,11 +784,11 @@ export function transformV3Command(
         children = extractRenderPropsChildren(expr, ctx);
       } else {
         // Expression but not arrow function - treat as direct children
-        children = transformV3BlockChildren(root, ctx);
+        children = transformRuntimeBlockChildren(root, ctx);
       }
     } else {
       // Direct JSX children - no wrapper needed
-      children = transformV3BlockChildren(root, ctx);
+      children = transformRuntimeBlockChildren(root, ctx);
     }
   }
 
@@ -823,7 +823,7 @@ export function transformV3Command(
  */
 function extractRenderPropsChildren(
   arrowFn: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BlockNode[] {
   if (!Node.isArrowFunction(arrowFn)) return [];
 
@@ -848,7 +848,7 @@ function extractRenderPropsChildren(
             holder.result = transformChildArray(inner.getJsxChildren(), ctx);
             traversal.stop();
           } else if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
-            const block = transformV3Element(inner, ctx);
+            const block = transformRuntimeElement(inner, ctx);
             if (block) holder.result = [block];
             traversal.stop();
           }
@@ -870,7 +870,7 @@ function extractRenderPropsChildren(
   }
 
   if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner)) {
-    const block = transformV3Element(inner, ctx);
+    const block = transformRuntimeElement(inner, ctx);
     return block ? [block] : [];
   }
 

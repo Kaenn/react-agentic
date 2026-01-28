@@ -1,7 +1,7 @@
 /**
- * V3 Build Pipeline
+ * Runtime Build Pipeline
  *
- * Transforms V3 TSX files to dual output:
+ * Transforms TSX files to dual output:
  * - COMMAND.md (markdown for Claude)
  * - runtime.js (bundled TypeScript functions via esbuild)
  */
@@ -9,26 +9,26 @@
 import { SourceFile, Project, Node } from 'ts-morph';
 import path from 'path';
 
-// V3 parser
+// Runtime parser
 import {
-  createV3Context,
+  createRuntimeContext,
   extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
-  transformV3Command,
+  transformRuntimeCommand,
 } from '../parser/transformers/index.js';
 
-// V3 emitter
+// Runtime emitter
 import {
-  emitV3,
-  isV3File,
+  emitDocument,
+  isRuntimeFile,
   // Esbuild bundler
   extractExportedFunctionNames,
   type RuntimeFileInfo,
 } from '../emitter/index.js';
 
-// V3 IR
+// IR
 import type { DocumentNode } from '../ir/index.js';
 
 // ============================================================================
@@ -42,7 +42,7 @@ export type { RuntimeEmitResult };
 /**
  * V3 build result
  */
-export interface V3BuildResult {
+export interface RuntimeBuildResult {
   /** Generated markdown content */
   markdown: string;
   /** Generated runtime.js content (empty - bundling happens at end) */
@@ -64,7 +64,7 @@ export interface V3BuildResult {
 /**
  * V3 build options
  */
-export interface V3BuildOptions {
+export interface RuntimeBuildOptions {
   /** Output directory for commands */
   commandsOut: string;
   /** Output directory for runtime */
@@ -88,14 +88,14 @@ function unwrapParens(node: Node): Node {
 }
 
 /**
- * Find the root JSX element in a V3 source file
+ * Find the root JSX element in a runtime source file
  *
  * Looks for JSX in:
  * 1. export default <Command>...</Command>
  * 2. export default (<Command>...</Command>)
  * 3. Return statements within the file
  */
-function findV3RootElement(sourceFile: SourceFile): Node | null {
+function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
   let result: Node | null = null;
 
   // Use forEachDescendant to find JSX anywhere in file
@@ -133,7 +133,7 @@ function findV3RootElement(sourceFile: SourceFile): Node | null {
 /**
  * Check if the root element is a V3 Command
  */
-function isV3Command(element: Node): boolean {
+function isRuntimeCommand(element: Node): boolean {
   let tagName: string | null = null;
 
   if (Node.isJsxElement(element)) {
@@ -142,7 +142,7 @@ function isV3Command(element: Node): boolean {
     tagName = element.getTagNameNode().getText();
   }
 
-  return tagName === 'Command' || tagName === 'V3Command';
+  return tagName === 'Command' || tagName === 'RuntimeCommand';
 }
 
 // ============================================================================
@@ -167,48 +167,48 @@ function resolveRuntimePath(tsxFilePath: string, importPath: string): string {
 }
 
 /**
- * Build a V3 file to markdown and runtime.js
+ * Build a Runtime file to markdown and runtime.js
  *
  * @param sourceFile - Source file to build
  * @param project - ts-morph project for resolution
  * @param options - Build options
  * @returns Build result with content and paths
  */
-export async function buildV3File(
+export async function buildRuntimeFile(
   sourceFile: SourceFile,
   project: Project,
-  options: V3BuildOptions
-): Promise<V3BuildResult> {
+  options: RuntimeBuildOptions
+): Promise<RuntimeBuildResult> {
   const filePath = sourceFile.getFilePath();
   const basename = path.basename(filePath, '.tsx');
   const warnings: string[] = [];
 
-  // Create V3 transform context
-  const ctx = createV3Context(sourceFile);
+  // Create Runtime transform context
+  const ctx = createRuntimeContext(sourceFile);
 
   // Phase 1: Extract declarations
   extractRuntimeVarDeclarations(sourceFile, ctx);
   extractRuntimeFnDeclarations(sourceFile, ctx);
 
   // Phase 2: Find root element
-  const rootElement = findV3RootElement(sourceFile);
+  const rootElement = findRuntimeRootElement(sourceFile);
   if (!rootElement) {
     throw new Error(`No JSX element found in ${filePath}`);
   }
 
-  if (!isV3Command(rootElement)) {
-    throw new Error(`V3 file must have <Command> as root element`);
+  if (!isRuntimeCommand(rootElement)) {
+    throw new Error(`Runtime file must have <Command> as root element`);
   }
 
-  // Phase 3: Transform to V3 IR
+  // Phase 3: Transform to IR
   if (!Node.isJsxElement(rootElement) && !Node.isJsxSelfClosingElement(rootElement)) {
     throw new Error('Root element must be JSX');
   }
 
-  const document = transformV3Command(rootElement, ctx);
+  const document = transformRuntimeCommand(rootElement, ctx);
 
   // Phase 4: Emit markdown
-  const markdown = emitV3(document);
+  const markdown = emitDocument(document);
 
   // Phase 5: Extract runtime info (bundling happens at the end for all files)
   const runtimeFunctionNames = getRuntimeFunctionNames(ctx);
@@ -252,20 +252,20 @@ export async function buildV3File(
 }
 
 /**
- * Check if a source file is a V3 file
+ * Check if a source file is a runtime file
  *
- * Uses import detection to determine if file uses V3 features.
+ * Uses import detection to determine if file uses runtime features.
  */
-export function detectV3(sourceFile: SourceFile): boolean {
-  return isV3File(sourceFile);
+export function detectRuntime(sourceFile: SourceFile): boolean {
+  return isRuntimeFile(sourceFile);
 }
 
 /**
- * Quick check for V3 markers in file content
+ * Quick check for runtime markers in file content
  *
  * Faster than full parse - checks for import patterns.
  */
-export function hasV3Imports(content: string): boolean {
+export function hasRuntimeImports(content: string): boolean {
   return (
     content.includes('useRuntimeVar') ||
     content.includes('runtimeFn') ||

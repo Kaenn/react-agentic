@@ -95,22 +95,22 @@ export {
 } from './components/index.js';
 
 // ============================================================================
-// IR Types (from V3)
+// IR Types
 // ============================================================================
 
 export * from './ir/index.js';
 
 // ============================================================================
-// Emitters (from V3)
+// Emitters (Runtime)
 // ============================================================================
 
 export {
-  V3MarkdownEmitter,
-  emitV3,
+  RuntimeMarkdownEmitter,
+  emitDocument,
   emitRuntime,
   extractFunctions,
   generateRuntime,
-  isV3File,
+  isRuntimeFile,
   bundleSingleEntryRuntime,
   bundleCodeSplit,
   extractExportedFunctionNames,
@@ -122,20 +122,20 @@ export {
 } from './emitter/index.js';
 
 // ============================================================================
-// Transformers (from V3)
+// Transformers
 // ============================================================================
 
 export {
-  type V3TransformContext,
-  type V3TransformResult,
+  type RuntimeTransformContext,
+  type RuntimeTransformResult,
   type RuntimeVarInfo,
   type RuntimeFunctionInfo,
-  createV3Context,
+  createRuntimeContext,
   extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
-  transformV3Command,
-  transformToV3Block,
-  transformV3BlockChildren,
+  transformRuntimeCommand,
+  transformToRuntimeBlock,
+  transformRuntimeBlockChildren,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
 } from './parser/transformers/index.js';
@@ -145,12 +145,12 @@ export {
 // ============================================================================
 
 export {
-  buildV3File,
-  detectV3,
-  hasV3Imports,
-  type V3BuildResult,
-  type V3BuildOptions,
-} from './cli/v3-build.js';
+  buildRuntimeFile,
+  detectRuntime,
+  hasRuntimeImports,
+  type RuntimeBuildResult,
+  type RuntimeBuildOptions,
+} from './cli/runtime-build.js';
 
 // ============================================================================
 // Parser Utilities (for CLI compatibility)

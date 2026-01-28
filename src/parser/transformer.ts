@@ -194,7 +194,7 @@ export class Transformer {
   /**
    * Transform a root JSX element/fragment into AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
    *
-   * Note: Command documents use the V3 transformer (transformV3Command) for runtime feature support.
+   * Note: Command documents use the runtime transformer (transformRuntimeCommand) for runtime feature support.
    *
    * @param node - The root JSX element/fragment to transform
    * @param sourceFile - Optional source file for component composition resolution
@@ -239,16 +239,16 @@ export class Transformer {
 
     // Fragment or unwrapped element: not supported in V1 transformer
     // Documents must use a wrapper component (Command, Agent, Skill, MCPConfig, State)
-    // For Commands, use the V3 transformer which supports runtime features
+    // For Commands, use the runtime transformer which supports runtime features
     if (Node.isJsxFragment(node)) {
       throw new Error(
-        'JSX Fragment not supported. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use V3 transformer for <Command>.'
+        'JSX Fragment not supported. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use runtime transformer for <Command>.'
       );
     }
 
     // Single element without wrapper
     throw new Error(
-      `Unknown root element. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use V3 transformer for <Command>.`
+      `Unknown root element. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use runtime transformer for <Command>.`
     );
   }
 
@@ -292,12 +292,12 @@ export class Transformer {
   /**
    * Transform a Command element
    *
-   * NOTE: V1 Command transformer is deprecated. Commands should use the V3 transformer
+   * NOTE: This transformer is deprecated for Commands. Commands should use the runtime transformer
    * which supports runtime features (useRuntimeVar, If/Else/Loop, etc.).
    */
   private transformCommand(node: JsxElement | JsxSelfClosingElement): never {
     throw this.createError(
-      'V1 Command transformer is deprecated. Use the V3 transformer (transformV3Command) instead. ' +
+      'This transformer is deprecated for Commands. Use the runtime transformer (transformRuntimeCommand) instead. ' +
       'Commands should import from react-agentic and use runtime features (useRuntimeVar, If, Else, Loop).',
       node
     );

@@ -7,10 +7,10 @@
 
 import { Node, JsxElement, JsxSelfClosingElement } from 'ts-morph';
 import type { RuntimeCallNode } from '../../ir/index.js';
-import type { V3TransformContext } from './v3-types.js';
-import { resolveRuntimeFn, markRuntimeFnUsed } from './v3-runtime-fn.js';
-import { parseRuntimeVarRef } from './v3-runtime-var.js';
-import { getAttributeExpression, extractJsonValue } from './v3-utils.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
+import { resolveRuntimeFn, markRuntimeFnUsed } from './runtime-fn.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
+import { getAttributeExpression, extractJsonValue } from './runtime-utils.js';
 
 // ============================================================================
 // RuntimeFn.Call Detection
@@ -27,7 +27,7 @@ import { getAttributeExpression, extractJsonValue } from './v3-utils.js';
  */
 export function isRuntimeFnCall(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): boolean {
   const tagName = getTagName(node);
   if (!tagName) return false;
@@ -77,7 +77,7 @@ function getTagName(node: JsxElement | JsxSelfClosingElement): string | null {
  */
 export function transformRuntimeCall(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): RuntimeCallNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

@@ -1,7 +1,7 @@
 /**
- * V3 Inline Transformer
+ * Runtime Inline Transformer
  *
- * Extends V1 inline behavior with RuntimeVar interpolation.
+ * Inline content transformation with RuntimeVar interpolation.
  * When encountering property access expressions on RuntimeVar proxies,
  * emits jq expressions for runtime resolution.
  *
@@ -15,29 +15,28 @@
 
 import { Node, JsxElement } from 'ts-morph';
 import type { InlineNode } from '../../ir/nodes.js';
-import type { V3TransformContext } from './v3-types.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
 import { extractInlineText, getElementName, getAttributeValue } from '../utils/index.js';
 import { extractAllText } from './html.js';
 
 // ============================================================================
-// V3 Inline Children Transformation
+// Runtime Inline Children Transformation
 // ============================================================================
 
 /**
  * Transform JSX children to array of InlineNodes with RuntimeVar support
  *
- * Unlike v1's transformInlineChildren, this version recognizes RuntimeVar
- * property access and emits jq expressions for interpolation.
+ * Recognizes RuntimeVar property access and emits jq expressions for interpolation.
  */
-export function transformV3InlineChildren(
+export function transformRuntimeInlineChildren(
   node: JsxElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InlineNode[] {
   const children = node.getJsxChildren();
   const inlines: InlineNode[] = [];
 
   for (const child of children) {
-    const inline = transformV3ToInline(child, ctx);
+    const inline = transformRuntimeToInline(child, ctx);
     if (inline) {
       // Handle arrays (from template literals)
       if (Array.isArray(inline)) {
@@ -105,9 +104,9 @@ function trimBoundaryTextNodes(inlines: InlineNode[]): void {
 /**
  * Transform a single node to InlineNode with RuntimeVar support
  */
-function transformV3ToInline(
+function transformRuntimeToInline(
   node: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InlineNode | InlineNode[] | null {
   if (Node.isJsxText(node)) {
     const text = extractInlineText(node);
@@ -125,7 +124,7 @@ function transformV3ToInline(
 
   if (Node.isJsxElement(node)) {
     const name = getElementName(node);
-    return transformV3InlineElement(name, node, ctx);
+    return transformRuntimeInlineElement(name, node, ctx);
   }
 
   // Handle JSX expressions - this is where RuntimeVar magic happens
@@ -223,7 +222,7 @@ function collectPropertyPath(expr: Node): string[] {
  */
 function transformPropertyAccess(
   expr: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InlineNode | null {
   if (!Node.isPropertyAccessExpression(expr)) return null;
 
@@ -258,7 +257,7 @@ function transformPropertyAccess(
  */
 function transformTemplateLiteral(
   expr: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InlineNode[] {
   if (!Node.isTemplateExpression(expr)) return [];
 
@@ -314,19 +313,19 @@ function transformTemplateLiteral(
  * Transform inline JSX element to InlineNode
  * Handles b, i, strong, em, code, a
  */
-function transformV3InlineElement(
+function transformRuntimeInlineElement(
   name: string,
   node: JsxElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): InlineNode {
   // Bold
   if (name === 'b' || name === 'strong') {
-    return { kind: 'bold', children: transformV3InlineChildren(node, ctx) };
+    return { kind: 'bold', children: transformRuntimeInlineChildren(node, ctx) };
   }
 
   // Italic
   if (name === 'i' || name === 'em') {
-    return { kind: 'italic', children: transformV3InlineChildren(node, ctx) };
+    return { kind: 'italic', children: transformRuntimeInlineChildren(node, ctx) };
   }
 
   // Inline code
@@ -365,7 +364,7 @@ function transformV3InlineElement(
     if (!href) {
       throw ctx.createError('<a> element requires href attribute', node);
     }
-    const children = transformV3InlineChildren(node, ctx);
+    const children = transformRuntimeInlineChildren(node, ctx);
     return { kind: 'link', url: href, children };
   }
 

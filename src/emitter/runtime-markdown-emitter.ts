@@ -184,7 +184,7 @@ function conditionToProse(condition: Condition): string {
 /**
  * Emitter for V3 documents
  */
-export class V3MarkdownEmitter {
+export class RuntimeMarkdownEmitter {
   /**
    * Emit a complete V3 document
    */
@@ -562,7 +562,7 @@ Task(
 /**
  * Emit a V3 document to markdown
  */
-export function emitV3(doc: DocumentNode): string {
-  const emitter = new V3MarkdownEmitter();
+export function emitDocument(doc: DocumentNode): string {
+  const emitter = new RuntimeMarkdownEmitter();
   return emitter.emit(doc);
 }

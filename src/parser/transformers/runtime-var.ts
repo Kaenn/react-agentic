@@ -2,11 +2,11 @@
  * Runtime Variable Transformer
  *
  * Extracts useRuntimeVar<T>('NAME') declarations from source files.
- * Populates the V3TransformContext with variable info for reference resolution.
+ * Populates the RuntimeTransformContext with variable info for reference resolution.
  */
 
 import { Node, SourceFile } from 'ts-morph';
-import type { RuntimeVarInfo, V3TransformContext } from './v3-types.js';
+import type { RuntimeVarInfo, RuntimeTransformContext } from './runtime-types.js';
 import type { RuntimeVarDeclNode, RuntimeVarRefNode } from '../../ir/index.js';
 
 // ============================================================================
@@ -25,7 +25,7 @@ import type { RuntimeVarDeclNode, RuntimeVarRefNode } from '../../ir/index.js';
  */
 export function extractRuntimeVarDeclarations(
   sourceFile: SourceFile,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): void {
   // Find all variable declarations
   sourceFile.forEachDescendant((node) => {
@@ -98,7 +98,7 @@ export function extractRuntimeVarDeclarations(
  *
  * Used to include declarations in the V3Document.
  */
-export function getRuntimeVarDecls(ctx: V3TransformContext): RuntimeVarDeclNode[] {
+export function getRuntimeVarDecls(ctx: RuntimeTransformContext): RuntimeVarDeclNode[] {
   return Array.from(ctx.runtimeVars.values()).map(info => ({
     kind: 'runtimeVarDecl' as const,
     varName: info.varName,
@@ -119,7 +119,7 @@ export function getRuntimeVarDecls(ctx: V3TransformContext): RuntimeVarDeclNode[
  */
 export function resolveRuntimeVar(
   identifierName: string,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): RuntimeVarInfo | undefined {
   return ctx.runtimeVars.get(identifierName);
 }
@@ -138,7 +138,7 @@ export function resolveRuntimeVar(
  */
 export function parseRuntimeVarRef(
   node: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): RuntimeVarRefNode | null {
   // Build path by walking property access chain
   const path: string[] = [];
@@ -175,7 +175,7 @@ export function parseRuntimeVarRef(
  */
 export function isRuntimeVarReference(
   node: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): boolean {
   return parseRuntimeVarRef(node, ctx) !== null;
 }

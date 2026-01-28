@@ -1,10 +1,10 @@
 /**
- * V3 Control Flow Transformers
+ * Runtime Control Flow Transformers
  *
- * Transforms V3 control flow components to IR nodes:
- * - V3If -> IfNode (with Condition tree)
- * - V3Else -> ElseNode
- * - V3Loop -> LoopNode
+ * Transforms runtime control flow components to IR nodes:
+ * - If -> IfNode (with Condition tree)
+ * - Else -> ElseNode
+ * - Loop -> LoopNode
  * - Break -> BreakNode
  * - Return -> ReturnNode
  */
@@ -19,9 +19,9 @@ import type {
   Condition,
   BlockNode,
 } from '../../ir/index.js';
-import type { V3TransformContext } from './v3-types.js';
-import { parseRuntimeVarRef } from './v3-runtime-var.js';
-import { getAttributeValue, getAttributeExpression } from './v3-utils.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
+import { getAttributeValue, getAttributeExpression } from './runtime-utils.js';
 
 // ============================================================================
 // Condition Parsing
@@ -38,7 +38,7 @@ import { getAttributeValue, getAttributeExpression } from './v3-utils.js';
  */
 export function parseConditionExpression(
   node: Node,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): Condition {
   // Handle prefix unary expression (!expr)
   if (Node.isPrefixUnaryExpression(node)) {
@@ -179,7 +179,7 @@ export function parseConditionExpression(
   // Unknown expression - throw error
   throw ctx.createError(
     `Cannot parse condition expression: ${node.getText()}. ` +
-    'V3 conditions must use RuntimeVar references.',
+    'Conditions must use RuntimeVar references.',
     node
   );
 }
@@ -204,16 +204,16 @@ function extractLiteralValue(node: Node): string | number | boolean | undefined 
 }
 
 // ============================================================================
-// V3If Transformer
+// RuntimeIf Transformer
 // ============================================================================
 
 /**
- * Transform V3If component to IfNode
+ * Transform RuntimeIf component to IfNode
  */
-export function transformV3If(
+export function transformRuntimeIf(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext,
-  transformChildren: (node: JsxElement, ctx: V3TransformContext) => BlockNode[]
+  ctx: RuntimeTransformContext,
+  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
 ): IfNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -222,7 +222,7 @@ export function transformV3If(
   // Extract condition prop (required)
   const conditionExpr = getAttributeExpression(openingElement, 'condition');
   if (!conditionExpr) {
-    throw ctx.createError('V3If requires condition prop', openingElement);
+    throw ctx.createError('If requires condition prop', openingElement);
   }
 
   // Parse condition to Condition tree
@@ -241,16 +241,16 @@ export function transformV3If(
 }
 
 // ============================================================================
-// V3Else Transformer
+// RuntimeElse Transformer
 // ============================================================================
 
 /**
- * Transform V3Else component to ElseNode
+ * Transform RuntimeElse component to ElseNode
  */
-export function transformV3Else(
+export function transformRuntimeElse(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext,
-  transformChildren: (node: JsxElement, ctx: V3TransformContext) => BlockNode[]
+  ctx: RuntimeTransformContext,
+  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
 ): ElseNode {
   const children = Node.isJsxElement(node)
     ? transformChildren(node, ctx)
@@ -263,16 +263,16 @@ export function transformV3Else(
 }
 
 // ============================================================================
-// V3Loop Transformer
+// RuntimeLoop Transformer
 // ============================================================================
 
 /**
- * Transform V3Loop component to LoopNode
+ * Transform RuntimeLoop component to LoopNode
  */
-export function transformV3Loop(
+export function transformRuntimeLoop(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext,
-  transformChildren: (node: JsxElement, ctx: V3TransformContext) => BlockNode[]
+  ctx: RuntimeTransformContext,
+  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
 ): LoopNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -281,12 +281,12 @@ export function transformV3Loop(
   // Extract max prop (required)
   const maxStr = getAttributeValue(openingElement, 'max');
   if (!maxStr) {
-    throw ctx.createError('V3Loop requires max prop', openingElement);
+    throw ctx.createError('Loop requires max prop', openingElement);
   }
 
   const max = parseInt(maxStr, 10);
   if (isNaN(max) || max < 1) {
-    throw ctx.createError('V3Loop max must be a positive integer', openingElement);
+    throw ctx.createError('Loop max must be a positive integer', openingElement);
   }
 
   // Extract optional counter prop
@@ -296,7 +296,7 @@ export function transformV3Loop(
     const ref = parseRuntimeVarRef(counterExpr, ctx);
     if (!ref) {
       throw ctx.createError(
-        'V3Loop counter must be a useRuntimeVar reference',
+        'Loop counter must be a useRuntimeVar reference',
         counterExpr
       );
     }
@@ -325,7 +325,7 @@ export function transformV3Loop(
  */
 export function transformBreak(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): BreakNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -348,7 +348,7 @@ export function transformBreak(
  */
 export function transformReturn(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: V3TransformContext
+  ctx: RuntimeTransformContext
 ): ReturnNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
