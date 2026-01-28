@@ -52,9 +52,14 @@ export function extractText(node: JsxText): string | null {
  * (newlines + indentation between block elements).
  *
  * Preserves leading/trailing spaces as they separate inline elements.
+ *
+ * Note: We use getFullText() instead of getText() to preserve leading
+ * trivia (whitespace) that separates this text from previous elements.
  */
 export function extractInlineText(node: JsxText): string | null {
-  const raw = node.getText();
+  // Use getFullText() to include leading trivia (whitespace)
+  // getText() strips leading whitespace which breaks inline spacing
+  const raw = node.getFullText();
 
   // Skip purely structural whitespace (newlines with optional indentation)
   // These are formatting between block-level elements

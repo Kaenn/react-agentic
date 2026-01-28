@@ -123,6 +123,7 @@ export {
   getAgentPath,
   type AgentProps,
   type SpawnAgentProps,
+  type V3SpawnAgentProps,
   type OnStatusProps,
   type OutputRef,
   type AgentStatus,
@@ -191,3 +192,32 @@ export {
   type OfferNextRoute,
   type XmlWrapperProps,
 } from './workflow/sections/index.js';
+
+// ============================================================================
+// V3 Hybrid Runtime Components
+// ============================================================================
+
+// V3 primitives (also available via 'react-agentic/v3')
+export {
+  useScriptVar,
+  runtimeFn,
+  V3If,
+  V3Else,
+  V3Loop,
+  Break,
+  Return,
+  AskUser,
+  type ScriptVar,
+  type ScriptVarProxy,
+  type OrScriptVar,
+  type AllowScriptVars,
+  type RuntimeFnComponent,
+  type V3IfProps,
+  type V3ElseProps,
+  type V3LoopProps,
+  type BreakProps,
+  type ReturnProps,
+  type ReturnStatus,
+  type AskUserProps,
+  type AskUserOption,
+} from './v3/primitives/index.js';

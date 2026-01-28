@@ -11,6 +11,7 @@ import type { Context } from '../../primitives/schema.js';
 import type { AgentStatus, BaseOutput } from './types.js';
 import type { CommandContext } from '../Command.js';
 import type { AgentRef } from './AgentRef.js';
+import type { ScriptVarProxy, OrScriptVar, AllowScriptVars } from '../../v3/primitives/script-var.js';
 
 /**
  * Context available in Agent render props pattern
@@ -121,6 +122,47 @@ export interface SpawnAgentProps<TInput = unknown> {
 }
 
 /**
+ * V3-compatible SpawnAgent props with ScriptVar support
+ *
+ * Extends SpawnAgentProps to accept ScriptVar values for runtime interpolation
+ * and adds the `output` prop for capturing agent results.
+ *
+ * @typeParam TInput - Type interface to validate against Agent's contract (compile-time only)
+ */
+export interface V3SpawnAgentProps<TInput = unknown> {
+  /**
+   * Agent to spawn - either:
+   * - String: Agent name directly (e.g., 'gsd-researcher')
+   * - AgentRef: Type-safe reference from defineAgent()
+   * - ScriptVar: Runtime-resolved agent name
+   */
+  agent: OrScriptVar<string> | AgentRef<TInput>;
+  /** Model to use - supports static string or ScriptVar for runtime resolution */
+  model: OrScriptVar<string>;
+  /** Human-readable description of the task. Accepts static or ScriptVar. */
+  description: OrScriptVar<string>;
+  /**
+   * Enable "load from file" pattern for spawning.
+   * Accepts boolean, string path, or ScriptVar for runtime resolution.
+   */
+  loadFromFile?: OrScriptVar<string | boolean>;
+  /** Prompt content - supports multi-line and ScriptVar interpolation */
+  prompt?: OrScriptVar<string>;
+  /**
+   * Typed input - either a ScriptVar or an object where each value can be static or ScriptVar.
+   * Auto-generates structured prompt from Agent's interface contract.
+   */
+  input?: ScriptVarProxy<TInput> | Partial<AllowScriptVars<TInput>>;
+  /**
+   * ScriptVar to store the agent's output.
+   * Only available in V3 commands using useScriptVar.
+   */
+  output?: ScriptVarProxy<string>;
+  /** Optional extra instructions appended to the auto-generated prompt */
+  children?: ReactNode;
+}
+
+/**
  * Props for the OnStatus component
  */
 export interface OnStatusProps {
@@ -210,7 +252,7 @@ export function Agent<TInput = unknown, TOutput = unknown>(_props: AgentProps<TI
  *   input={{ task: "..." }}
  * />
  */
-export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput>): null {
+export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput> | V3SpawnAgentProps<TInput>): null {
   return null;
 }
 

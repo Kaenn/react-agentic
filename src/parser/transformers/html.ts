@@ -34,7 +34,8 @@ import {
   extractText,
 } from '../utils/index.js';
 import type { TransformContext } from './types.js';
-import { transformBlockChildren } from './dispatch.js';
+import { transformBlockChildren, transformToBlock } from './dispatch.js';
+import { transformToInline } from './inline.js';
 
 // ============================================================================
 // Inline Element Classification
@@ -131,10 +132,22 @@ export function transformListItem(
   const flushInlineSequence = () => {
     if (inlineSequence.length === 0) return;
 
-    // Process all inline nodes together, preserving spacing
-    // NOTE: This requires transformToInline which will be in inline.ts
-    // For now, throw error indicating dependency on dispatch (Plan 26-04)
-    throw new Error('transformListItem: inline content requires dispatch for transformToInline (Plan 26-04)');
+    // Transform accumulated inline content to a paragraph
+    const inlineNodes: InlineNode[] = [];
+    for (const inlineChild of inlineSequence) {
+      const inline = transformToInline(inlineChild, ctx);
+      if (inline) inlineNodes.push(inline);
+    }
+
+    if (inlineNodes.length > 0) {
+      // Trim boundary whitespace while preserving internal spacing
+      trimBoundaryInlines(inlineNodes);
+      if (inlineNodes.length > 0) {
+        children.push({ kind: 'paragraph', children: inlineNodes });
+      }
+    }
+
+    inlineSequence = [];
   };
 
   for (const child of jsxChildren) {
@@ -142,8 +155,9 @@ export function transformListItem(
       // Flush any pending inline content before block
       flushInlineSequence();
 
-      // Process block content - requires dispatch
-      throw new Error('transformListItem: block content requires dispatch (Plan 26-04)');
+      // Transform block content via dispatch
+      const block = transformToBlock(child, ctx);
+      if (block) children.push(block);
     } else {
       // Accumulate inline content (text, expressions, inline elements)
       inlineSequence.push(child);
@@ -154,6 +168,33 @@ export function transformListItem(
   flushInlineSequence();
 
   return { kind: 'listItem', children };
+}
+
+/**
+ * Trim boundary whitespace from inline nodes while preserving internal spacing
+ */
+function trimBoundaryInlines(inlines: InlineNode[]): void {
+  if (inlines.length === 0) return;
+
+  // Trim leading whitespace from first text node
+  const first = inlines[0];
+  if (first.kind === 'text') {
+    first.value = first.value.trimStart();
+    if (!first.value) {
+      inlines.shift();
+    }
+  }
+
+  if (inlines.length === 0) return;
+
+  // Trim trailing whitespace from last text node
+  const last = inlines[inlines.length - 1];
+  if (last.kind === 'text') {
+    last.value = last.value.trimEnd();
+    if (!last.value) {
+      inlines.pop();
+    }
+  }
 }
 
 // ============================================================================
@@ -343,11 +384,24 @@ export function transformMixedChildren(
   let inlineAccumulator: Node[] = [];
 
   const flushInline = () => {
-    if (inlineAccumulator.length > 0) {
-      // Transform accumulated inline content as a paragraph
-      // NOTE: This requires transformInlineNodes from inline.ts (Plan 26-04)
-      throw new Error('transformMixedChildren: inline accumulation requires dispatch (Plan 26-04)');
+    if (inlineAccumulator.length === 0) return;
+
+    // Transform accumulated inline content as a paragraph
+    const inlineNodes: InlineNode[] = [];
+    for (const inlineChild of inlineAccumulator) {
+      const inline = transformToInline(inlineChild, ctx);
+      if (inline) inlineNodes.push(inline);
     }
+
+    if (inlineNodes.length > 0) {
+      // Trim boundary whitespace while preserving internal spacing
+      trimBoundaryInlines(inlineNodes);
+      if (inlineNodes.length > 0) {
+        blocks.push({ kind: 'paragraph', children: inlineNodes });
+      }
+    }
+
+    inlineAccumulator = [];
   };
 
   for (const child of jsxChildren) {
@@ -370,8 +424,9 @@ export function transformMixedChildren(
       } else {
         // Flush any accumulated inline content before block element
         flushInline();
-        // Transform block element - requires dispatch
-        throw new Error('transformMixedChildren: block transformation requires dispatch (Plan 26-04)');
+        // Transform block element via dispatch
+        const block = transformToBlock(child, ctx);
+        if (block) blocks.push(block);
       }
     } else if (Node.isJsxExpression(child)) {
       // JSX expressions treated as inline

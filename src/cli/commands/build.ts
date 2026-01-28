@@ -3,7 +3,7 @@
  */
 import { Command } from 'commander';
 import { globby } from 'globby';
-import { writeFile, mkdir, copyFile } from 'fs/promises';
+import { writeFile, mkdir, copyFile, readFile } from 'fs/promises';
 import path from 'path';
 import { Node } from 'ts-morph';
 import type { Project } from 'ts-morph';
@@ -38,10 +38,17 @@ import {
 import { TranspileError, CrossFileError, formatCrossFileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 
+// V3 imports
+import { buildV3File, hasV3Imports } from '../../v3/cli/build-v3.js';
+import { mergeRuntimeResults } from '../../v3/emitter/index.js';
+import type { RuntimeEmitResult } from '../../v3/emitter/index.js';
+
 interface BuildOptions {
   out: string;
   dryRun?: boolean;
   watch?: boolean;
+  v3?: boolean;
+  runtimeOut?: string;
 }
 
 /**
@@ -188,6 +195,8 @@ async function runBuild(
   const results: BuildResult[] = [];
   const mcpConfigs: { inputFile: string; doc: MCPConfigDocumentNode }[] = [];
   const allStateNames: string[] = [];
+  const v3RuntimeResults: RuntimeEmitResult[] = [];  // Collect V3 runtime results for merging
+  let v3RuntimePath = '';  // Track the runtime output path
   let errorCount = 0;
 
   // Phase 1: Process all files and collect results
@@ -196,6 +205,41 @@ async function runBuild(
       // Parse file
       const sourceFile = project.addSourceFileAtPath(inputFile);
 
+      // Check for V3 mode (explicit flag or auto-detect)
+      const fileContent = sourceFile.getFullText();
+      const useV3 = options.v3 || hasV3Imports(fileContent);
+
+      // V3 build path
+      if (useV3) {
+        const v3Result = buildV3File(sourceFile, project, {
+          commandsOut: options.out,
+          runtimeOut: options.runtimeOut || '.claude/runtime',
+          dryRun: options.dryRun,
+        });
+
+        // Add markdown result
+        results.push({
+          inputFile,
+          outputPath: v3Result.markdownPath,
+          content: v3Result.markdown,
+          size: Buffer.byteLength(v3Result.markdown, 'utf8'),
+        });
+
+        // Collect runtime result for merging (instead of adding individually)
+        if (v3Result.runtimeResult) {
+          v3RuntimeResults.push(v3Result.runtimeResult);
+          v3RuntimePath = v3Result.runtimePath;  // All V3 files share the same path
+        }
+
+        // Log warnings
+        for (const warning of v3Result.warnings) {
+          logWarning(warning);
+        }
+
+        continue; // Skip v1 processing
+      }
+
+      // V1 build path
       // Find root JSX
       const root = findRootJsxElement(sourceFile);
       if (!root) {
@@ -309,6 +353,22 @@ async function runBuild(
     });
   }
 
+  // Merge all V3 runtime results into a single runtime.js
+  if (v3RuntimeResults.length > 0) {
+    const mergedRuntime = mergeRuntimeResults(v3RuntimeResults);
+    results.push({
+      inputFile: `${v3RuntimeResults.length} V3 file(s)`,
+      outputPath: v3RuntimePath,
+      content: mergedRuntime.content,
+      size: Buffer.byteLength(mergedRuntime.content, 'utf8'),
+    });
+
+    // Log any merge warnings
+    for (const warning of mergedRuntime.warnings) {
+      logWarning(warning);
+    }
+  }
+
   // Merge all MCP configs into settings.json
   if (mcpConfigs.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -381,6 +441,8 @@ export const buildCommand = new Command('build')
   .option('-o, --out <dir>', 'Output directory', '.claude/commands')
   .option('-d, --dry-run', 'Preview output without writing files')
   .option('-w, --watch', 'Watch for changes and rebuild automatically')
+  .option('--v3', 'Use V3 hybrid runtime mode (TypeScript functions + Markdown)')
+  .option('--runtime-out <dir>', 'Runtime output directory for V3 mode', '.claude/runtime')
   .action(async (patterns: string[], options: BuildOptions) => {
     // Disallow --dry-run with --watch
     if (options.watch && options.dryRun) {

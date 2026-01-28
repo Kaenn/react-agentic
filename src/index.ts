@@ -31,3 +31,6 @@ export {
   getNestedValue,
   setNestedValue,
 } from './state/index.js';
+
+// V3 Hybrid Runtime (separate namespace)
+export * as v3 from './v3/index.js';

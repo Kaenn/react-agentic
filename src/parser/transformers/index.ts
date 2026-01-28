@@ -30,9 +30,7 @@ export {
   isCustomComponent,
   isInlineElement,
   isValidXmlName,
-  trimBoundaryTextNodes,
   transformInlineNodes,
-  transformMixedChildren,
   // Constants
   HTML_ELEMENTS,
   INLINE_ELEMENTS,
