@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSD Progress Dashboard</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --border-color: #30363d;
+      --accent-green: #238636;
+      --accent-green-light: #3fb950;
+      --accent-blue: #58a6ff;
+      --accent-yellow: #d29922;
+      --accent-red: #f85149;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .dashboard {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .project-name {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .core-value {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* Progress Wheel */
+    .progress-section {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .progress-wheel-container {
+      flex-shrink: 0;
+    }
+
+    .progress-wheel {
+      width: 120px;
+      height: 120px;
+      transform: rotate(-90deg);
+    }
+
+    .progress-bg {
+      fill: none;
+      stroke: var(--bg-tertiary);
+      stroke-width: 8;
+    }
+
+    .progress-fill {
+      fill: none;
+      stroke: var(--accent-green-light);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease-in-out;
+    }
+
+    .progress-text {
+      transform: rotate(90deg);
+      transform-origin: center;
+      font-size: 24px;
+      font-weight: 600;
+      fill: var(--text-primary);
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    /* Status Cards */
+    .status-cards {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .status-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .status-card-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .status-card-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-in-progress, .in-progress { color: var(--accent-blue); }
+    .status-complete, .complete { color: var(--accent-green-light); }
+    .status-not-started, .not-started { color: var(--text-secondary); }
+
+    /* Phase List */
+    .phases-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .phase-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .phase-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .phase-item.current {
+      border: 1px solid var(--accent-blue);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .phase-number {
+      font-weight: 600;
+      color: var(--text-secondary);
+      min-width: 24px;
+    }
+
+    .phase-name {
+      flex: 1;
+    }
+
+    .phase-status {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .phase-status.complete {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--accent-green-light);
+    }
+
+    .phase-status.in-progress {
+      background: rgba(88, 166, 255, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .phase-status.not-started {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+
+    .phase-plans {
+      color: var(--text-secondary);
+      font-size: 12px;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* Blockers Section */
+    .blockers-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .blockers-section.empty {
+      border-color: var(--border-color);
+    }
+
+    .blocker-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .blocker-item:last-child {
+      border-bottom: none;
+    }
+
+    .blocker-icon {
+      color: var(--accent-red);
+      font-size: 16px;
+    }
+
+    .no-blockers {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-green-light);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+    }
+
+    /* Next Action */
+    .next-action {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .next-action-text {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    /* Velocity Stats */
+    .velocity-stats {
+      display: flex;
+      gap: 24px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .velocity-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Loading State */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    /* Error State */
+    .error {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--accent-red);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard" id="dashboard">
+    <div class="loading" id="loading">
+      Loading project state...
+    </div>
+  </div>
+
+  <!-- MCP App client module -->
+  <script type="module" src="/src/mcp-app.ts"></script>
+</body>
+</html>

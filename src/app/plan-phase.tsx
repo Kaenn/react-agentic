@@ -72,7 +72,7 @@ const ReadAndDisplayPlans = runtimeFn(readAndDisplayPlans);
 export default (
   <Command
     name="gsd:plan-phase-ra"
-    description="REACT AGENTIC22: Create detailed execution plan for a phase (PLAN.md) with verification loop"
+    description="REACT AGENTIC: Create detailed execution plan for a phase (PLAN.md) with verification loop"
     argumentHint="[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
     agent="gsd-planner"
     allowedTools={["Read", "Write", "Bash", "Glob", "Grep", "Task", "WebFetch", "mcp__context7__*"]}
@@ -138,7 +138,7 @@ export default (
             <p>Initialize context, parse arguments, validate environment:</p>
 
             <Init.Call
-              args={{ arguments: "$ARGUMENTS" }}
+              args={{ arguments: "$ARGUMENTS"}}
               output={ctx}
             />
 
