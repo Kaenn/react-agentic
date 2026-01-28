@@ -21,9 +21,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/react-agentic.git"
+    "url": "git+https://github.com/Kaenn/react-agentic.git"
   },
-  "homepage": "https://github.com/your-org/react-agentic#readme",
+  "homepage": "https://github.com/Kaenn/react-agentic#readme",
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
@@ -44,7 +44,7 @@
     "agentic",
     "ai"
   ],
-  "author": "",
+  "author": "Kaenn",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
