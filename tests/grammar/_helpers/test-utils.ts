@@ -6,6 +6,7 @@
  */
 
 import { expect } from 'vitest';
+import { Node } from 'ts-morph';
 import {
   createProject,
   parseSource,
@@ -64,6 +65,11 @@ export function transformCommandTsx(tsx: string): DocumentNode {
   const source = parseSource(project, tsx, fileName);
   const root = findRootJsxElement(source);
   if (!root) throw new Error('No JSX found');
+
+  // Guard against JsxFragment - transformRuntimeCommand only accepts JsxElement | JsxSelfClosingElement
+  if (!Node.isJsxElement(root) && !Node.isJsxSelfClosingElement(root)) {
+    throw new Error('Root element must be JsxElement or JsxSelfClosingElement, not JsxFragment');
+  }
 
   // Create runtime transform context
   const ctx = createRuntimeContext(source);
