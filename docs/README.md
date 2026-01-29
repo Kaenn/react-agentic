@@ -17,6 +17,7 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Structured Components](./structured-components.md) | Table and List with array props |
 | [Semantic Components](./semantic-components.md) | ExecutionContext for file references |
 | [Grammar Specification](./grammar.md) | Formal EBNF grammar, element reference, nesting rules |
+| [API Reference](./api-reference.md) | Low-level utility functions for tooling |
 
 ## Examples
 
