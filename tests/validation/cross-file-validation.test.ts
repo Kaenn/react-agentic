@@ -214,28 +214,182 @@ Research: {topic}`;
     });
   });
 
-  // NOTE: These validation tests test V1 transformer validation behavior.
-  // The V3 runtime transformer doesn't do this validation at transform time.
-  // Skipping until validation can be re-added as a separate lint/check phase.
-  describe.skip('SpawnAgent cross-file input validation (V1 validation - needs migration)', () => {
-    it('throws when input missing required property from local interface', () => {
-      // This test expects V1 validation behavior
+  describe('SpawnAgent cross-file input validation', () => {
+    it('detects when input missing required property from local interface', () => {
+      const source = `
+        export interface TaskInput {
+          goal: string;
+          context: string;
+        }
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <SpawnAgent<TaskInput>
+                agent="worker"
+                model="opus"
+                description="Task"
+                prompt="Goal: {goal}"
+              />
+            </Command>
+          );
+        }
+      `;
+      const file = parseSource(project, source, 'test-missing-1.tsx');
+      const root = findRootJsxElement(file);
+      const ctx = createRuntimeContext(file);
+      const doc = transformRuntimeCommand(root!, ctx);
+
+      const spawnAgent = doc.children.find(c => c.kind === 'spawnAgent');
+      const resolved = resolveTypeImport('TaskInput', file);
+      const props = extractInterfaceProperties(resolved!.interface);
+      const placeholders = extractPromptPlaceholders(spawnAgent!.prompt!);
+
+      const required = props.filter(p => p.required);
+      const missing = required.filter(p => !placeholders.has(p.name));
+
+      expect(missing.length).toBe(1);
+      expect(missing[0].name).toBe('context');
     });
 
     it('passes when all required properties provided for interface', () => {
-      // This test expects V1 validation behavior
+      const source = `
+        export interface TaskInput {
+          goal: string;
+          context: string;
+        }
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <SpawnAgent<TaskInput>
+                agent="worker"
+                model="opus"
+                description="Task"
+                prompt="Goal: {goal}, Context: {context}"
+              />
+            </Command>
+          );
+        }
+      `;
+      const file = parseSource(project, source, 'test-complete-1.tsx');
+      const root = findRootJsxElement(file);
+      const ctx = createRuntimeContext(file);
+      const doc = transformRuntimeCommand(root!, ctx);
+
+      const spawnAgent = doc.children.find(c => c.kind === 'spawnAgent');
+      const resolved = resolveTypeImport('TaskInput', file);
+      const props = extractInterfaceProperties(resolved!.interface);
+      const placeholders = extractPromptPlaceholders(spawnAgent!.prompt!);
+
+      const required = props.filter(p => p.required);
+      const missing = required.filter(p => !placeholders.has(p.name));
+
+      expect(missing.length).toBe(0);
     });
 
-    it('handles placeholder values in cross-file input validation', () => {
-      // This test expects V1 validation behavior
+    it('handles placeholder values in prompt validation', () => {
+      const source = `
+        export interface Input {
+          name: string;
+          value: string;
+        }
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <SpawnAgent<Input>
+                agent="worker"
+                model="opus"
+                description="Task"
+                prompt="Name: {name}, Value: {value}"
+              />
+            </Command>
+          );
+        }
+      `;
+      const file = parseSource(project, source, 'test-placeholders-1.tsx');
+      const root = findRootJsxElement(file);
+      const ctx = createRuntimeContext(file);
+      const doc = transformRuntimeCommand(root!, ctx);
+
+      const spawnAgent = doc.children.find(c => c.kind === 'spawnAgent');
+      const placeholders = extractPromptPlaceholders(spawnAgent!.prompt!);
+
+      expect(placeholders.has('name')).toBe(true);
+      expect(placeholders.has('value')).toBe(true);
+      expect(placeholders.size).toBe(2);
     });
 
-    it('throws when multiple required properties are missing', () => {
-      // This test expects V1 validation behavior
+    it('detects when multiple required properties are missing', () => {
+      const source = `
+        export interface MultiInput {
+          a: string;
+          b: string;
+          c: string;
+          optional?: string;
+        }
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <SpawnAgent<MultiInput>
+                agent="worker"
+                model="opus"
+                description="Task"
+                prompt="A: {a}"
+              />
+            </Command>
+          );
+        }
+      `;
+      const file = parseSource(project, source, 'test-multi-missing-1.tsx');
+      const root = findRootJsxElement(file);
+      const ctx = createRuntimeContext(file);
+      const doc = transformRuntimeCommand(root!, ctx);
+
+      const spawnAgent = doc.children.find(c => c.kind === 'spawnAgent');
+      const resolved = resolveTypeImport('MultiInput', file);
+      const props = extractInterfaceProperties(resolved!.interface);
+      const placeholders = extractPromptPlaceholders(spawnAgent!.prompt!);
+
+      const required = props.filter(p => p.required);
+      const missing = required.filter(p => !placeholders.has(p.name));
+
+      expect(missing.length).toBe(2);
+      expect(missing.map(m => m.name).sort()).toEqual(['b', 'c']);
     });
 
     it('passes when interface has only optional properties', () => {
-      // This test expects V1 validation behavior
+      const source = `
+        export interface OptionalInput {
+          optional1?: string;
+          optional2?: number;
+        }
+        export default function Test() {
+          return (
+            <Command name="test" description="Test">
+              <SpawnAgent<OptionalInput>
+                agent="worker"
+                model="opus"
+                description="Task"
+                prompt="Simple prompt with no placeholders"
+              />
+            </Command>
+          );
+        }
+      `;
+      const file = parseSource(project, source, 'test-optional-1.tsx');
+      const root = findRootJsxElement(file);
+      const ctx = createRuntimeContext(file);
+      const doc = transformRuntimeCommand(root!, ctx);
+
+      const spawnAgent = doc.children.find(c => c.kind === 'spawnAgent');
+      const resolved = resolveTypeImport('OptionalInput', file);
+      const props = extractInterfaceProperties(resolved!.interface);
+      const placeholders = extractPromptPlaceholders(spawnAgent!.prompt!);
+
+      const required = props.filter(p => p.required);
+      const missing = required.filter(p => !placeholders.has(p.name));
+
+      expect(required.length).toBe(0);
+      expect(missing.length).toBe(0);
     });
   });
 });
