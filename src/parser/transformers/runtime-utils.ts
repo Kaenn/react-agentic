@@ -201,6 +201,26 @@ export function extractText(node: Node): string {
   return normalized;
 }
 
+/**
+ * Extract markdown text from a JSX text node, preserving line breaks
+ *
+ * For markdown content where line breaks are meaningful:
+ * - Removes leading indentation from each line
+ * - Collapses multiple blank lines to single blank line
+ * - Trims overall content
+ */
+export function extractMarkdownText(node: Node): string {
+  if (!Node.isJsxText(node)) return '';
+
+  const text = node.getText();
+
+  // Split into lines, trim each line's indentation, rejoin
+  const lines = text.split('\n').map(line => line.trim());
+  // Collapse multiple blank lines to single blank line
+  const collapsed = lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  return collapsed.trim();
+}
+
 // ============================================================================
 // String Utilities
 // ============================================================================

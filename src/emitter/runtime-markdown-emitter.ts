@@ -252,6 +252,8 @@ export class RuntimeMarkdownEmitter {
         return node.children.map(c => this.emitBlock(c)).join('\n');
       case 'raw':
         return node.content;
+      case 'indent':
+        return this.emitIndent(node as import('../ir/nodes.js').IndentNode);
 
       // V1 nodes that shouldn't appear in runtime documents
       case 'assign':
@@ -552,6 +554,15 @@ Task(
 
     lines.push('</execution_context>');
     return lines.join('\n');
+  }
+
+  private emitIndent(node: import('../ir/nodes.js').IndentNode): string {
+    // Emit children content
+    const content = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
+
+    // Prepend spaces to each line
+    const indent = ' '.repeat(node.spaces);
+    return content.split('\n').map(line => line ? indent + line : line).join('\n');
   }
 }
 

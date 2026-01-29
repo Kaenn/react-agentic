@@ -12,8 +12,10 @@
 export {
   Markdown,
   XmlBlock,
+  Indent,
   type MarkdownProps,
   type XmlBlockProps,
+  type IndentProps,
 } from './markdown.js';
 
 // ============================================================================

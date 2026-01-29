@@ -21,6 +21,7 @@ export {
   // Content components
   Markdown,
   XmlBlock,
+  Indent,
   Table,
   List,
 
@@ -74,6 +75,7 @@ export {
   type DefineAgentConfig,
   type MarkdownProps,
   type XmlBlockProps,
+  type IndentProps,
   type TableProps,
   type TableAlignment,
   type ListProps,

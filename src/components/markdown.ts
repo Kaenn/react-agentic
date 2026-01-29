@@ -69,3 +69,37 @@ export interface XmlBlockProps {
 export function XmlBlock(_props: XmlBlockProps): null {
   return null;
 }
+
+// ============================================================================
+// Indent Component
+// ============================================================================
+
+/**
+ * Props for the Indent component
+ */
+export interface IndentProps {
+  /** Number of spaces to indent (default: 2) */
+  spaces?: number;
+  /** Block content to indent */
+  children?: ReactNode;
+}
+
+/**
+ * Indent component - indents content by a specified number of spaces
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * It's never executed at runtime.
+ *
+ * @example
+ * <Indent spaces={4}>
+ *   This content will be indented by 4 spaces.
+ *   Each line gets the same indentation.
+ * </Indent>
+ *
+ * Outputs:
+ *     This content will be indented by 4 spaces.
+ *     Each line gets the same indentation.
+ */
+export function Indent(_props: IndentProps): null {
+  return null;
+}

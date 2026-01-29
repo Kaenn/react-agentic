@@ -8,7 +8,7 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { getElementName, extractText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './runtime-utils.js';
+import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './runtime-utils.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
 // Runtime transformers
@@ -57,12 +57,17 @@ function transformChildArray(
 
     // Skip whitespace-only text
     if (Node.isJsxText(child)) {
-      const text = extractText(child);
+      const text = extractMarkdownText(child);
       if (!text) {
         i++;
         continue;
       }
-      blocks.push({ kind: 'paragraph', children: [{ kind: 'text', value: text }] });
+      // Multi-line content -> raw markdown, single-line -> paragraph
+      if (text.includes('\n')) {
+        blocks.push({ kind: 'raw', content: text });
+      } else {
+        blocks.push({ kind: 'paragraph', children: [{ kind: 'text', value: text }] });
+      }
       i++;
       continue;
     }
@@ -389,6 +394,43 @@ function transformRuntimeXmlBlock(
 }
 
 // ============================================================================
+// Runtime Indent Transformer
+// ============================================================================
+
+/**
+ * Transform Indent component
+ *
+ * Indents all children content by specified number of spaces.
+ */
+function transformRuntimeIndent(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Get optional spaces attribute (default: 2)
+  const spacesAttr = getAttributeValue(openingElement, 'spaces');
+  const spaces = spacesAttr ? parseInt(spacesAttr, 10) : 2;
+
+  if (isNaN(spaces) || spaces < 0) {
+    throw ctx.createError('Indent spaces prop must be a non-negative number', node);
+  }
+
+  // Transform children using V3 transformers
+  const children = Node.isJsxElement(node)
+    ? transformRuntimeBlockChildren(node, ctx)
+    : [];
+
+  return {
+    kind: 'indent',
+    spaces,
+    children: children as any[],
+  };
+}
+
+// ============================================================================
 // Main Dispatch
 // ============================================================================
 
@@ -401,9 +443,12 @@ export function transformToRuntimeBlock(
 ): BlockNode | null {
   // Whitespace-only text - skip
   if (Node.isJsxText(node)) {
-    const text = extractText(node);
+    const text = extractMarkdownText(node);
     if (!text) return null;
-    // Standalone text becomes paragraph
+    // Multi-line content -> raw markdown, single-line -> paragraph
+    if (text.includes('\n')) {
+      return { kind: 'raw', content: text };
+    }
     return { kind: 'paragraph', children: [{ kind: 'text', value: text }] };
   }
 
@@ -630,6 +675,11 @@ function transformRuntimeElement(
   // Markdown passthrough
   if (name === 'Markdown') {
     return transformMarkdown(node, sharedCtx) as BlockNode;
+  }
+
+  // Indent component - indents children by specified spaces
+  if (name === 'Indent') {
+    return transformRuntimeIndent(node, ctx);
   }
 
   throw ctx.createError(`Unsupported V3 element: <${name}>`, node);

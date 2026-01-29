@@ -20,6 +20,7 @@ import type {
   FrontmatterNode,
   GroupNode,
   HeadingNode,
+  IndentNode,
   InlineNode,
   ListItemNode,
   ListNode,
@@ -235,6 +236,8 @@ export class MarkdownEmitter {
         return this.emitGroup(node);
       case 'raw':
         return node.content;
+      case 'indent':
+        return this.emitIndent(node);
       case 'assign':
         return this.emitAssign(node);
       case 'assignGroup':
@@ -985,6 +988,15 @@ export class MarkdownEmitter {
   private emitGroup(node: GroupNode): string {
     // Join with single newline for tight spacing (vs double for normal blocks)
     return node.children.map((child) => this.emitBlock(child)).join('\n');
+  }
+
+  /**
+   * Emit Indent - prepends spaces to each line of content
+   */
+  private emitIndent(node: IndentNode): string {
+    const content = node.children.map((child) => this.emitBlock(child)).join('\n\n');
+    const indent = ' '.repeat(node.spaces);
+    return content.split('\n').map(line => line ? indent + line : line).join('\n');
   }
 }
 

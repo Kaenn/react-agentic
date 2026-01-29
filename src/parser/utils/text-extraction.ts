@@ -21,6 +21,22 @@ export function normalizeWhitespace(text: string): string {
 }
 
 /**
+ * Normalize whitespace for markdown block content
+ *
+ * Preserves line breaks (meaningful in markdown) while:
+ * - Removing leading indentation from each line
+ * - Collapsing multiple blank lines to single blank lines
+ * - Trimming overall content
+ */
+export function normalizeMarkdownWhitespace(text: string): string {
+  // Split into lines, trim each line's indentation, rejoin
+  const lines = text.split('\n').map(line => line.trim());
+  // Collapse multiple blank lines to single blank line
+  const collapsed = lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  return collapsed.trim();
+}
+
+/**
  * Normalize whitespace for inline text content
  *
  * Collapses multiple spaces/newlines to a single space but preserves
@@ -41,6 +57,20 @@ export function extractText(node: JsxText): string | null {
     return null;
   }
   const normalized = normalizeWhitespace(node.getText());
+  return normalized || null;
+}
+
+/**
+ * Extract markdown text content from a JsxText node
+ *
+ * Like extractText but preserves line breaks for markdown structure.
+ * Returns null for whitespace-only nodes.
+ */
+export function extractMarkdownText(node: JsxText): string | null {
+  if (isWhitespaceOnlyText(node)) {
+    return null;
+  }
+  const normalized = normalizeMarkdownWhitespace(node.getText());
   return normalized || null;
 }
 

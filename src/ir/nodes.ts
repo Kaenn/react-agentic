@@ -213,6 +213,15 @@ export interface RawMarkdownNode {
   content: string;
 }
 
+/**
+ * Indented block - prepends spaces to each line of content
+ */
+export interface IndentNode {
+  kind: 'indent';
+  spaces: number;                                         // Number of spaces to indent (default: 2)
+  children: BaseBlockNode[];
+}
+
 // SpawnAgent types moved to runtime-nodes.ts
 
 /**
@@ -367,6 +376,7 @@ export type BaseBlockNode =
   | XmlBlockNode
   | GroupNode
   | RawMarkdownNode
+  | IndentNode
   | AssignNode
   | AssignGroupNode
   | OnStatusNode
