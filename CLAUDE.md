@@ -21,6 +21,7 @@ Full documentation lives in [`docs/`](docs/README.md).
 | [Control Flow](docs/control-flow.md) | Conditionals and iteration | If/Else, Loop/Break, Return, AskUser |
 | [Structured Components](docs/structured-components.md) | Data-driven components | Table, List with array props |
 | [Semantic Components](docs/semantic-components.md) | Workflow-specific sections | ExecutionContext |
+| [Grammar Specification](docs/grammar.md) | Formal grammar reference | EBNF syntax, element props, nesting rules, V1/V3 matrix |
 
 ### Internal Documentation
 
