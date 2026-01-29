@@ -457,43 +457,54 @@ Convenience components that emit snake_case XML tags:
 
 ### State Components
 
+> **⚠️ Internal/Future**: These components are not yet available in the public API.
+> They are documented for internal development and may be exported in a future release.
+
 #### ReadState
 
 Read state value from registry.
 
 ```tsx
+const projectState = useStateRef<ProjectState>("projectContext");
+const stateVar = useVariable("STATE_JSON");
+
 <ReadState
-  stateKey="projectContext"
-  variableName="CTX"
+  state={projectState}
+  into={stateVar}
   field="user.name"
 />
 ```
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateKey` | `string` | Yes | State registry key |
-| `variableName` | `string` | Yes | Variable to store result |
-| `field` | `string` | No | Nested field path |
+| `state` | `StateRef<TSchema>` | Yes | State reference from `useStateRef` |
+| `into` | `VariableRef` | Yes | Variable to store result |
+| `field` | `string` | No | Nested field path (e.g., "user.preferences.theme") |
 
 #### WriteState
 
-Write state value to registry.
+Write state value to registry. Specify exactly one of: `field`+`value` OR `merge`.
 
 ```tsx
-<WriteState
-  stateKey="projectContext"
-  mode="field"
-  field="user.name"
-  value={{ type: 'variable', content: 'NAME' }}
-/>
+// Single field write (literal value)
+<WriteState state={projectState} field="name" value="my-project" />
+
+// Single field write (variable reference)
+const userInput = useVariable("USER_INPUT");
+<WriteState state={projectState} field="name" value={userInput} />
+
+// Merge partial update
+<WriteState state={projectState} merge={{ phase: 2, status: "active" }} />
 ```
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateKey` | `string` | Yes | State registry key |
-| `mode` | `'field' \| 'merge'` | Yes | Write mode |
-| `field` | `string` | No | Field path (for field mode) |
-| `value` | `{type: 'variable' \| 'literal', content: string}` | Yes | Value to write |
+| `state` | `StateRef<TSchema>` | Yes | State reference from `useStateRef` |
+| `field` | `string` | No* | Field path for single-field write |
+| `value` | `string \| VariableRef` | No* | Value to write (with field) |
+| `merge` | `Partial<TSchema>` | No* | Partial object for merge write |
+
+*Specify exactly one of: `field`+`value` OR `merge`.
 
 ### Control Flow Components (V3)
 
@@ -646,6 +657,9 @@ const Init = runtimeFn(initProject);
 
 ### Workflow Primitives
 
+> **⚠️ Internal/Future**: These components are not yet available in the public API.
+> They are documented for internal development and may be exported in a future release.
+
 #### Step
 
 Numbered workflow step.
@@ -717,6 +731,9 @@ Wrap content in markdown code fence.
 | `children` | `ReactNode` | No | Content to wrap |
 
 ### Variable Components
+
+> **⚠️ Internal/Future**: These components are not yet available in the public API.
+> They are documented for internal development and may be exported in a future release.
 
 #### Assign
 
@@ -826,62 +843,68 @@ InlineContent
 
 ## Version Matrix
 
-| Element | V1 (Static) | V3 (Runtime) | Notes |
-|---------|-------------|--------------|-------|
+| Element | V1 (Static) | V3 (Runtime) | Status | Notes |
+|---------|-------------|--------------|--------|-------|
 | **Document Roots** |
-| `<Command>` | ✅ | ✅ | |
-| `<Agent>` | ✅ | ✅ | |
+| `<Command>` | ✅ | ✅ | ✅ Public | |
+| `<Agent>` | ✅ | ✅ | ✅ Public | |
 | **HTML Blocks** |
-| `<h1>`-`<h6>` | ✅ | ✅ | |
-| `<p>` | ✅ | ✅ | |
-| `<ul>`, `<ol>`, `<li>` | ✅ | ✅ | |
-| `<blockquote>` | ✅ | ✅ | |
-| `<pre>`, `<code>` | ✅ | ✅ | |
-| `<div>` | ✅ | ✅ | |
-| `<hr>` | ✅ | ✅ | |
+| `<h1>`-`<h6>` | ✅ | ✅ | ✅ Public | |
+| `<p>` | ✅ | ✅ | ✅ Public | |
+| `<ul>`, `<ol>`, `<li>` | ✅ | ✅ | ✅ Public | |
+| `<blockquote>` | ✅ | ✅ | ✅ Public | |
+| `<pre>`, `<code>` | ✅ | ✅ | ✅ Public | |
+| `<div>` | ✅ | ✅ | ✅ Public | |
+| `<hr>` | ✅ | ✅ | ✅ Public | |
 | **Inline** |
-| `<b>`, `<strong>` | ✅ | ✅ | |
-| `<i>`, `<em>` | ✅ | ✅ | |
-| `<code>` (inline) | ✅ | ✅ | |
-| `<a>` | ✅ | ✅ | |
-| `<br>` | ✅ | ✅ | |
+| `<b>`, `<strong>` | ✅ | ✅ | ✅ Public | |
+| `<i>`, `<em>` | ✅ | ✅ | ✅ Public | |
+| `<code>` (inline) | ✅ | ✅ | ✅ Public | |
+| `<a>` | ✅ | ✅ | ✅ Public | |
+| `<br>` | ✅ | ✅ | ✅ Public | |
 | **Components** |
-| `<Markdown>` | ✅ | ✅ | |
-| `<XmlBlock>` | ✅ | ✅ | |
-| `<Table>` | ✅ | ✅ | |
-| `<List>` | ✅ | ✅ | |
-| `<Indent>` | ✅ | ✅ | |
-| `<ExecutionContext>` | ✅ | ✅ | |
-| `<SpawnAgent>` | ✅ | ✅ | V3 adds output prop |
-| `<OnStatus>` | ✅ | ✅ | |
-| `<Step>` | ✅ | ✅ | |
-| `<Bash>` | ✅ | ✅ | |
-| `<ReadFiles>` | ✅ | ✅ | |
-| `<PromptTemplate>` | ✅ | ✅ | |
-| `<Assign>` | ✅ | ✅ | |
-| `<AssignGroup>` | ✅ | ✅ | |
+| `<Markdown>` | ✅ | ✅ | ✅ Public | |
+| `<XmlBlock>` | ✅ | ✅ | ✅ Public | |
+| `<Table>` | ✅ | ✅ | ✅ Public | |
+| `<List>` | ✅ | ✅ | ✅ Public | |
+| `<Indent>` | ✅ | ✅ | ✅ Public | |
+| `<ExecutionContext>` | ✅ | ✅ | ✅ Public | |
+| `<SpawnAgent>` | ✅ | ✅ | ✅ Public | V3 adds output prop |
+| `<OnStatus>` | ✅ | ✅ | ✅ Public | |
+| **Workflow** |
+| `<Step>` | ✅ | ✅ | 🔒 Internal | |
+| `<Bash>` | ✅ | ✅ | 🔒 Internal | |
+| `<ReadFiles>` | ✅ | ✅ | 🔒 Internal | |
+| `<PromptTemplate>` | ✅ | ✅ | 🔒 Internal | |
+| **Variables** |
+| `<Assign>` | ✅ | ✅ | 🔒 Internal | |
+| `<AssignGroup>` | ✅ | ✅ | 🔒 Internal | |
 | **Semantic** |
-| `<SuccessCriteria>` | ✅ | ✅ | |
-| `<OfferNext>` | ✅ | ✅ | |
-| `<XmlSection>` | ✅ | ✅ | |
-| `<DeviationRules>` | ✅ | ✅ | XML wrapper |
-| `<CommitRules>` | ✅ | ✅ | XML wrapper |
-| `<WaveExecution>` | ✅ | ✅ | XML wrapper |
-| `<CheckpointHandling>` | ✅ | ✅ | XML wrapper |
+| `<SuccessCriteria>` | ✅ | ✅ | 🔒 Internal | |
+| `<OfferNext>` | ✅ | ✅ | 🔒 Internal | |
+| `<XmlSection>` | ✅ | ✅ | 🔒 Internal | |
+| `<DeviationRules>` | ✅ | ✅ | 🔒 Internal | XML wrapper |
+| `<CommitRules>` | ✅ | ✅ | 🔒 Internal | XML wrapper |
+| `<WaveExecution>` | ✅ | ✅ | 🔒 Internal | XML wrapper |
+| `<CheckpointHandling>` | ✅ | ✅ | 🔒 Internal | XML wrapper |
 | **State** |
-| `<ReadState>` | ✅ | ✅ | |
-| `<WriteState>` | ✅ | ✅ | |
+| `<ReadState>` | ✅ | ✅ | 🔒 Internal | |
+| `<WriteState>` | ✅ | ✅ | 🔒 Internal | |
 | **V3 Control Flow** |
-| `<If>` | ❌ | ✅ | Commands only |
-| `<Else>` | ❌ | ✅ | Commands only |
-| `<Loop>` | ❌ | ✅ | Commands only |
-| `<Break>` | ❌ | ✅ | Commands only |
-| `<Return>` | ❌ | ✅ | Commands only |
-| `<AskUser>` | ❌ | ✅ | Commands only |
+| `<If>` | ❌ | ✅ | ✅ Public | Commands only |
+| `<Else>` | ❌ | ✅ | ✅ Public | Commands only |
+| `<Loop>` | ❌ | ✅ | ✅ Public | Commands only |
+| `<Break>` | ❌ | ✅ | ✅ Public | Commands only |
+| `<Return>` | ❌ | ✅ | ✅ Public | Commands only |
+| `<AskUser>` | ❌ | ✅ | ✅ Public | Commands only |
 | **V3 Runtime** |
-| `useRuntimeVar()` | ❌ | ✅ | Hook for typed vars |
-| `runtimeFn()` | ❌ | ✅ | Function extraction |
-| `<Fn.Call>` | ❌ | ✅ | Runtime invocation |
+| `useRuntimeVar()` | ❌ | ✅ | ✅ Public | Hook for typed vars |
+| `runtimeFn()` | ❌ | ✅ | ✅ Public | Function extraction |
+| `<Fn.Call>` | ❌ | ✅ | ✅ Public | Runtime invocation |
+
+**Legend:**
+- ✅ Public: Exported in public API, ready for use
+- 🔒 Internal: Implemented but not yet exported, may be available in future release
 
 ### V3 Feature Detection
 
@@ -897,19 +920,25 @@ V3 features are automatically detected when you use:
 
 ### Element Summary
 
-| Category | Elements | Count |
-|----------|----------|-------|
-| Document Roots | Command, Agent | 2 |
-| HTML Block | h1-h6, p, ul, ol, li, blockquote, pre, code, div, hr | 12 |
-| Inline | b, strong, i, em, code, a, br | 7 |
-| Content Components | Markdown, XmlBlock, Table, List, Indent | 5 |
-| Semantic | ExecutionContext, SpawnAgent, OnStatus, SuccessCriteria, OfferNext, XmlSection | 6 |
-| XML Wrappers | DeviationRules, CommitRules, WaveExecution, CheckpointHandling | 4 |
-| Control Flow | If, Else, Loop, Break, Return, AskUser | 6 |
-| Workflow | Step, Bash, ReadFiles, PromptTemplate | 4 |
-| Variables | Assign, AssignGroup | 2 |
-| State | ReadState, WriteState | 2 |
-| **Total** | | **50** |
+| Category | Elements | Count | Status |
+|----------|----------|-------|--------|
+| Document Roots | Command, Agent | 2 | ✅ Public |
+| HTML Block | h1-h6, p, ul, ol, li, blockquote, pre, code, div, hr | 12 | ✅ Public |
+| Inline | b, strong, i, em, code, a, br | 7 | ✅ Public |
+| Content Components | Markdown, XmlBlock, Table, List, Indent | 5 | ✅ Public |
+| Communication | ExecutionContext, SpawnAgent, OnStatus | 3 | ✅ Public |
+| Control Flow | If, Else, Loop, Break, Return, AskUser | 6 | ✅ Public |
+| **Public Total** | | **35** | |
+| Semantic | SuccessCriteria, OfferNext, XmlSection | 3 | 🔒 Internal |
+| XML Wrappers | DeviationRules, CommitRules, WaveExecution, CheckpointHandling | 4 | 🔒 Internal |
+| Workflow | Step, Bash, ReadFiles, PromptTemplate | 4 | 🔒 Internal |
+| Variables | Assign, AssignGroup | 2 | 🔒 Internal |
+| State | ReadState, WriteState | 2 | 🔒 Internal |
+| **Internal Total** | | **15** | |
+| **Grand Total** | | **50** | |
+
+> **Note**: Internal components are documented for completeness but not yet exported in the public API.
+> They may be available in a future release.
 
 ### Props Quick Reference
 
