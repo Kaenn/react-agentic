@@ -58,7 +58,7 @@ async function initProject(args: InitArgs): Promise<InitResult> {
 const Init = runtimeFn(initProject);
 
 export default (
-  <Command name="test-runtime" description="Test runtime features">
+  <Command name="test-runtime2" description="Test runtime features" folder="glenn">
     {() => {
       // Declare typed script variable
       const ctx = useRuntimeVar<InitResult>('CTX');

@@ -317,6 +317,9 @@ export function transformCommand(
     data['agent'] = agent;
   }
 
+  // Optional folder prop (for subdirectory output path - not stored in frontmatter)
+  const folder = props.folder as string | undefined;
+
   // Optional array prop (check for allowedTools, map to allowed-tools)
   const allowedTools = props.allowedTools as string[] | undefined;
   if (allowedTools) {
@@ -334,14 +337,17 @@ export function transformCommand(
       // Build context values for interpolation
       // outputPath and sourcePath use placeholders - they're computed at build time
       const sourcePath = ctx.sourceFile?.getFilePath() ?? '';
-      // Output path follows convention: .claude/commands/{name}.md
-      const outputPath = `.claude/commands/${name}.md`;
+      // Output path follows convention: .claude/commands/{folder?/}{name}.md
+      const outputPath = folder
+        ? `.claude/commands/${folder}/${name}.md`
+        : `.claude/commands/${name}.md`;
 
       ctx.renderPropsContext = {
         paramName: renderPropsInfo.paramName,
         values: {
           name,
           description,
+          ...(folder && { folder }),
           outputPath,
           sourcePath,
         },
@@ -361,6 +367,7 @@ export function transformCommand(
   return {
     kind: 'document',
     frontmatter,
+    metadata: folder ? { folder } : undefined,
     runtimeVars: [],      // V1 doesn't use runtime vars
     runtimeFunctions: [], // V1 doesn't use runtime functions
     children

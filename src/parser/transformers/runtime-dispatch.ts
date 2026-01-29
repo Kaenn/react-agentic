@@ -839,6 +839,7 @@ export function transformRuntimeCommand(
     : root;
 
   const frontmatterData: Record<string, unknown> = {};
+  let folder: string | undefined;
 
   // Get standard Command props
   for (const attr of openingElement.getAttributes()) {
@@ -848,6 +849,19 @@ export function transformRuntimeCommand(
     const init = attr.getInitializer();
 
     if (!init) continue;
+
+    // Skip 'folder' - it's metadata, not frontmatter
+    if (name === 'folder') {
+      if (Node.isStringLiteral(init)) {
+        folder = init.getLiteralValue();
+      } else if (Node.isJsxExpression(init)) {
+        const expr = init.getExpression();
+        if (expr && Node.isStringLiteral(expr)) {
+          folder = expr.getLiteralValue();
+        }
+      }
+      continue;
+    }
 
     // Convert camelCase prop names to kebab-case for YAML frontmatter
     const yamlKey = camelToKebab(name);
@@ -915,6 +929,7 @@ export function transformRuntimeCommand(
     frontmatter: Object.keys(frontmatterData).length > 0
       ? { kind: 'frontmatter', data: frontmatterData }
       : undefined,
+    metadata: folder ? { folder } : undefined,
     runtimeVars,
     runtimeFunctions,
     children,

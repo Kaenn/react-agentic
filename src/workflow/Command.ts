@@ -19,6 +19,8 @@ export interface CommandContext {
   description: string;
   /** Skill name if invoked via skill (undefined otherwise) */
   skill?: string;
+  /** Subfolder for output path (e.g., "gsd" → .claude/commands/gsd/my-cmd.md) */
+  folder?: string;
   /** Resolved output path (e.g., .claude/commands/my-cmd.md) */
   outputPath: string;
   /** Source TSX file path */
@@ -39,6 +41,8 @@ export interface CommandProps {
   agent?: string;
   /** Optional list of allowed tools (maps to allowed-tools in frontmatter) */
   allowedTools?: string[];
+  /** Subfolder for output path (e.g., "gsd" → .claude/commands/gsd/my-cmd.md) */
+  folder?: string;
   /**
    * Optional unified context from defineContext()
    * Provides organized access to agents, variables, and files

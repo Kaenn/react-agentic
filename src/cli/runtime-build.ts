@@ -242,8 +242,13 @@ export async function buildRuntimeFile(
     }
   }
 
-  // Determine output paths
-  const markdownPath = path.join(options.commandsOut, `${basename}.md`);
+  // Extract folder from metadata (if present)
+  const folder = document.metadata?.folder;
+
+  // Determine output paths (with optional folder subdirectory)
+  const markdownPath = folder
+    ? path.join(options.commandsOut, folder, `${basename}.md`)
+    : path.join(options.commandsOut, `${basename}.md`);
   const runtimePath = path.join(options.runtimeOut, 'runtime.js');
 
   return {

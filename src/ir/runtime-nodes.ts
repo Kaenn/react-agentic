@@ -360,6 +360,14 @@ export interface FrontmatterNode {
 }
 
 /**
+ * Build-time metadata (not emitted to output)
+ */
+export interface DocumentMetadata {
+  /** Subfolder for output path (e.g., "gsd" → .claude/commands/gsd/cmd.md) */
+  folder?: string;
+}
+
+/**
  * Document root node
  *
  * Represents a command that produces dual output:
@@ -369,6 +377,8 @@ export interface FrontmatterNode {
 export interface DocumentNode {
   kind: 'document';
   frontmatter?: FrontmatterNode;
+  /** Build-time metadata (not emitted to output) */
+  metadata?: DocumentMetadata;
   /** Runtime variable declarations */
   runtimeVars: RuntimeVarDeclNode[];
   /** Runtime function names used (for extraction) */
