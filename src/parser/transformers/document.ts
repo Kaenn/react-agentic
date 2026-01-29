@@ -49,11 +49,20 @@ import {
   extractSqlArguments,
 } from '../utils/index.js';
 import type { TransformContext } from './types.js';
-import { transformBlockChildren } from './dispatch.js';
+import { transformBlockChildren as dispatchTransformBlockChildren } from './dispatch.js';
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/**
+ * Get transformBlockChildren function - uses context version if provided (V1),
+ * otherwise falls back to dispatch.js version (V3 runtime).
+ * This allows document transformers to work in both contexts.
+ */
+function getTransformBlockChildren(ctx: TransformContext) {
+  return ctx.transformBlockChildren ?? dispatchTransformBlockChildren;
+}
 
 /**
  * Merge Command/Agent props from spread attributes and explicit attributes
@@ -233,7 +242,7 @@ export function transformArrowFunctionBody(
           throw new Error('transformArrowFunctionBody: JSX element transformation requires dispatch (Plan 26-04)');
         }
         if (Node.isJsxFragment(returnExpr)) {
-          return transformBlockChildren(returnExpr.getJsxChildren(), ctx);
+          return getTransformBlockChildren(ctx)(returnExpr.getJsxChildren(), ctx);
         }
         // Handle parenthesized JSX: return (<div>...</div>)
         if (Node.isParenthesizedExpression(returnExpr)) {
@@ -242,7 +251,7 @@ export function transformArrowFunctionBody(
             throw new Error('transformArrowFunctionBody: JSX element transformation requires dispatch (Plan 26-04)');
           }
           if (Node.isJsxFragment(inner)) {
-            return transformBlockChildren(inner.getJsxChildren(), ctx);
+            return getTransformBlockChildren(ctx)(inner.getJsxChildren(), ctx);
           }
         }
       }
@@ -255,7 +264,7 @@ export function transformArrowFunctionBody(
     throw new Error('transformArrowFunctionBody: JSX element transformation requires dispatch (Plan 26-04)');
   }
   if (Node.isJsxFragment(body)) {
-    return transformBlockChildren(body.getJsxChildren(), ctx);
+    return getTransformBlockChildren(ctx)(body.getJsxChildren(), ctx);
   }
   // Handle parenthesized expression body: (ctx) => (<div>...</div>)
   if (Node.isParenthesizedExpression(body)) {
@@ -264,7 +273,7 @@ export function transformArrowFunctionBody(
       throw new Error('transformArrowFunctionBody: JSX element transformation requires dispatch (Plan 26-04)');
     }
     if (Node.isJsxFragment(inner)) {
-      return transformBlockChildren(inner.getJsxChildren(), ctx);
+      return getTransformBlockChildren(ctx)(inner.getJsxChildren(), ctx);
     }
   }
 
@@ -366,7 +375,7 @@ export function transformCommand(
       ctx.renderPropsContext = undefined;
     } else {
       // Regular children pattern
-      children = transformBlockChildren(node.getJsxChildren(), ctx);
+      children = getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx);
     }
   }
 
@@ -471,7 +480,7 @@ export function transformAgent(
       ctx.renderPropsContext = undefined;
     } else {
       // Regular children pattern
-      children = transformBlockChildren(node.getJsxChildren(), ctx);
+      children = getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx);
     }
   }
 
@@ -613,7 +622,7 @@ export function transformSkillFile(
 
   // Transform children as file content
   const children = Node.isJsxElement(node)
-    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    ? getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx)
     : [];
 
   return {

@@ -346,3 +346,77 @@ export function extractJsonValue(expr: Expression): unknown {
   // Unknown - return as string representation
   return expr.getText();
 }
+
+// ============================================================================
+// If/Else Sibling Lookahead
+// ============================================================================
+
+/**
+ * Get the element name from a JSX element
+ * Local helper for sibling processing
+ */
+function getJsxElementName(node: Node): string {
+  if (Node.isJsxElement(node)) {
+    return node.getOpeningElement().getTagNameNode().getText();
+  }
+  if (Node.isJsxSelfClosingElement(node)) {
+    return node.getTagNameNode().getText();
+  }
+  return '';
+}
+
+/**
+ * Result of processing If/Else siblings
+ */
+export interface IfElseSiblingResult {
+  /** Whether an Else sibling was found and processed */
+  hasElse: boolean;
+  /** The index to continue from (points past the Else if found, or at original position if not) */
+  nextIndex: number;
+}
+
+/**
+ * Process potential Else sibling after an If element
+ *
+ * This is a helper to DRY up the If/Else sibling lookahead pattern that appears
+ * multiple times in runtime-dispatch.ts.
+ *
+ * @param jsxChildren - Array of JSX children being processed
+ * @param ifIndex - Current index of the If element
+ * @param onElseFound - Callback when Else sibling is found, receives the Else node
+ * @returns Result with hasElse flag and nextIndex to continue from
+ */
+export function processIfElseSiblings(
+  jsxChildren: Node[],
+  ifIndex: number,
+  onElseFound: (elseNode: Node) => void
+): IfElseSiblingResult {
+  let nextIndex = ifIndex + 1;
+
+  while (nextIndex < jsxChildren.length) {
+    const sibling = jsxChildren[nextIndex];
+
+    // Skip whitespace-only text
+    if (Node.isJsxText(sibling)) {
+      const text = extractText(sibling);
+      if (!text) {
+        nextIndex++;
+        continue;
+      }
+    }
+
+    // Check if next non-whitespace is Else
+    if (Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling)) {
+      const siblingName = getJsxElementName(sibling);
+      if (siblingName === 'Else' || siblingName === 'V3Else') {
+        onElseFound(sibling);
+        return { hasElse: true, nextIndex };
+      }
+    }
+
+    // Not an Else, break out
+    break;
+  }
+
+  return { hasElse: false, nextIndex: ifIndex };
+}

@@ -4,6 +4,7 @@
 
 import type { SourceFile, Node } from 'ts-morph';
 import type { ExtractedVariable } from '../parser.js';
+import type { BlockNode } from '../../ir/index.js';
 
 /**
  * Context values available for render props interpolation
@@ -14,6 +15,12 @@ export interface RenderPropsContext {
   /** Context values that can be interpolated */
   values: Record<string, string>;
 }
+
+/**
+ * Function signature for transformBlockChildren
+ * Allows document transformers to work in both V1 (Transformer class) and V3 (runtime) contexts
+ */
+export type TransformBlockChildrenFn = (children: Node[], ctx: TransformContext) => BlockNode[];
 
 /**
  * Transform context passed to all transformer functions
@@ -34,4 +41,9 @@ export interface TransformContext {
   renderPropsContext: RenderPropsContext | undefined;
   /** Create error with source location */
   createError: (message: string, node: Node) => Error;
+  /**
+   * Optional transformBlockChildren function for V1 context delegation.
+   * When provided, document transformers use this instead of the dispatch.js import.
+   */
+  transformBlockChildren?: TransformBlockChildrenFn;
 }

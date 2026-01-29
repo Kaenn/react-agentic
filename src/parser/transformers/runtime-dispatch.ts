@@ -8,7 +8,7 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute, isCustomComponent } from './runtime-utils.js';
+import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings } from './runtime-utils.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
 // Runtime transformers
@@ -81,30 +81,13 @@ function transformChildArray(
         const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildrenWrapper);
         blocks.push(ifNode);
 
-        // Check for Else sibling
-        let nextIndex = i + 1;
-        while (nextIndex < jsxChildren.length) {
-          const sibling = jsxChildren[nextIndex];
-
-          // Skip whitespace
-          if (Node.isJsxText(sibling)) {
-            const text = extractText(sibling);
-            if (!text) {
-              nextIndex++;
-              continue;
-            }
-          }
-
-          // Check if next non-whitespace is Else
-          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
-            const siblingName = getElementName(sibling);
-            if (siblingName === 'Else' || siblingName === 'V3Else') {
-              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildrenWrapper);
-              blocks.push(elseNode);
-              i = nextIndex;
-            }
-          }
-          break;
+        // Check for Else sibling using helper
+        const result = processIfElseSiblings(jsxChildren, i, (elseNode) => {
+          const elseBlockNode = transformRuntimeElse(elseNode as JsxElement | JsxSelfClosingElement, ctx, transformRuntimeBlockChildrenWrapper);
+          blocks.push(elseBlockNode);
+        });
+        if (result.hasElse) {
+          i = result.nextIndex;
         }
       } else {
         const block = transformRuntimeElement(child, ctx);
@@ -307,30 +290,13 @@ function transformRuntimeMixedChildren(
         const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildren);
         blocks.push(ifNode);
 
-        // Check for Else sibling
-        let nextIndex = i + 1;
-        while (nextIndex < jsxChildren.length) {
-          const sibling = jsxChildren[nextIndex];
-
-          // Skip whitespace
-          if (Node.isJsxText(sibling)) {
-            const text = extractText(sibling);
-            if (!text) {
-              nextIndex++;
-              continue;
-            }
-          }
-
-          // Check if next non-whitespace is Else
-          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
-            const siblingName = getElementName(sibling);
-            if (siblingName === 'Else' || siblingName === 'V3Else') {
-              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildren);
-              blocks.push(elseNode);
-              i = nextIndex;
-            }
-          }
-          break;
+        // Check for Else sibling using helper
+        const result = processIfElseSiblings(jsxChildren, i, (elseNode) => {
+          const elseBlockNode = transformRuntimeElse(elseNode as JsxElement | JsxSelfClosingElement, ctx, transformRuntimeBlockChildren);
+          blocks.push(elseBlockNode);
+        });
+        if (result.hasElse) {
+          i = result.nextIndex;
         }
       } else {
         // Block element - flush accumulated content first
@@ -808,30 +774,17 @@ export function transformRuntimeBlockChildren(
         const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildren);
         blocks.push(ifNode);
 
-        // Check for Else sibling
-        let nextIndex = i + 1;
-        while (nextIndex < jsxChildren.length) {
-          const sibling = jsxChildren[nextIndex];
-
-          // Skip whitespace
-          if (Node.isJsxText(sibling)) {
-            const text = extractText(sibling);
-            if (!text) {
-              nextIndex++;
-              continue;
-            }
-          }
-
-          // Check if next non-whitespace is Else
-          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
-            const siblingName = getElementName(sibling);
-            if (siblingName === 'Else' || siblingName === 'V3Else') {
-              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildren);
-              blocks.push(elseNode);
-              i = nextIndex;
-            }
-          }
-          break;
+        // Check for Else sibling using helper
+        const siblingResult = processIfElseSiblings(jsxChildren, i, (elseNode) => {
+          const elseBlock = transformRuntimeElse(
+            elseNode as JsxElement | JsxSelfClosingElement,
+            ctx,
+            transformRuntimeBlockChildren
+          );
+          blocks.push(elseBlock);
+        });
+        if (siblingResult.hasElse) {
+          i = siblingResult.nextIndex;
         }
       } else {
         const block = transformToRuntimeBlock(child, ctx);

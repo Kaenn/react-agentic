@@ -68,6 +68,15 @@ import type {
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
+// Document transformers - extracted functions for Agent, Skill, MCPConfig, State
+import {
+  transformAgent as documentTransformAgent,
+  transformSkill as documentTransformSkill,
+  transformMCPConfig as documentTransformMCPConfig,
+  transformState as documentTransformState,
+} from './transformers/document.js';
+import type { TransformContext } from './transformers/types.js';
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -192,6 +201,24 @@ export class Transformer {
   }
 
   /**
+   * Build a TransformContext from instance state for delegation to document transformers
+   */
+  private buildContext(): TransformContext {
+    return {
+      sourceFile: this.sourceFile,
+      visitedPaths: this.visitedPaths,
+      variables: this.variables,
+      outputs: this.outputs,
+      stateRefs: this.stateRefs,
+      renderPropsContext: this.renderPropsContext,
+      createError: this.createError.bind(this),
+      // Provide V1 transformBlockChildren - ignores ctx since we use instance state
+      transformBlockChildren: (children: Node[], _ctx: TransformContext) =>
+        this.transformBlockChildren(children),
+    };
+  }
+
+  /**
    * Transform a root JSX element/fragment into AgentDocumentNode, SkillDocumentNode, MCPConfigDocumentNode, or StateDocumentNode
    *
    * Note: Command documents use the runtime transformer (transformRuntimeCommand) for runtime feature support.
@@ -305,272 +332,18 @@ export class Transformer {
 
   /**
    * Transform an Agent element to AgentDocumentNode with frontmatter
+   * Delegates to document.ts transformAgent()
    */
   private transformAgent(node: JsxElement | JsxSelfClosingElement): AgentDocumentNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    // Extract required props
-    const name = getAttributeValue(openingElement, 'name');
-    const description = getAttributeValue(openingElement, 'description');
-
-    if (!name) {
-      throw this.createError('Agent requires name prop', openingElement);
-    }
-    if (!description) {
-      throw this.createError('Agent requires description prop', openingElement);
-    }
-
-    // Extract optional props
-    const tools = getAttributeValue(openingElement, 'tools');
-    const color = getAttributeValue(openingElement, 'color');
-
-    // Extract generic type arguments if present (TInput, TOutput)
-    const typeArgs = extractTypeArguments(node);
-    let inputType: TypeReference | undefined;
-    let outputType: TypeReference | undefined;
-
-    if (typeArgs && typeArgs.length > 0) {
-      inputType = {
-        kind: 'typeReference',
-        name: typeArgs[0],
-        resolved: false,  // Will be resolved in validation phase
-      };
-    }
-    if (typeArgs && typeArgs.length > 1) {
-      outputType = {
-        kind: 'typeReference',
-        name: typeArgs[1],
-        resolved: false,  // Will be resolved in validation phase
-      };
-    }
-
-    // Build frontmatter (using spread for optional fields)
-    const frontmatter: AgentFrontmatterNode = {
-      kind: 'agentFrontmatter',
-      name,
-      description,
-      ...(tools && { tools }),
-      ...(color && { color }),
-      ...(inputType && { inputType }),
-      ...(outputType && { outputType }),
-    };
-
-    // Transform children - check for render props pattern
-    let children: BlockNode[] = [];
-    if (Node.isJsxElement(node)) {
-      const renderPropsInfo = analyzeRenderPropsChildren(node);
-
-      if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction && renderPropsInfo.paramName) {
-        // Build context values for interpolation
-        const sourcePath = this.sourceFile?.getFilePath() ?? '';
-        // Output path follows convention: .claude/agents/{name}.md
-        const outputPath = `.claude/agents/${name}.md`;
-
-        this.renderPropsContext = {
-          paramName: renderPropsInfo.paramName,
-          values: {
-            name,
-            description,
-            outputPath,
-            sourcePath,
-          },
-        };
-
-        // Render props pattern: transform arrow function body
-        children = this.transformArrowFunctionBody(renderPropsInfo.arrowFunction);
-
-        // Clear context after transformation
-        this.renderPropsContext = undefined;
-      } else {
-        // Regular children pattern
-        children = this.transformBlockChildren(node.getJsxChildren());
-      }
-    }
-
-    return { kind: 'agentDocument', frontmatter, children: children as BaseBlockNode[] };
+    return documentTransformAgent(node, this.buildContext());
   }
 
   /**
    * Transform a Skill element to SkillDocumentNode with frontmatter, body, files, and statics
+   * Delegates to document.ts transformSkill()
    */
   private transformSkill(node: JsxElement | JsxSelfClosingElement): SkillDocumentNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    // Extract required props
-    const name = getAttributeValue(openingElement, 'name');
-    const description = getAttributeValue(openingElement, 'description');
-
-    if (!name) {
-      throw this.createError('Skill requires name prop', openingElement);
-    }
-    if (!description) {
-      throw this.createError('Skill requires description prop', openingElement);
-    }
-
-    // Validate skill name (lowercase, numbers, hyphens only)
-    if (!/^[a-z0-9-]+$/.test(name)) {
-      throw this.createError(
-        `Skill name must be lowercase letters, numbers, and hyphens only: '${name}'`,
-        openingElement
-      );
-    }
-
-    // Extract optional props
-    const disableModelInvocation = this.getBooleanAttribute(openingElement, 'disableModelInvocation');
-    const userInvocable = this.getBooleanAttribute(openingElement, 'userInvocable');
-    const allowedTools = getArrayAttributeValue(openingElement, 'allowedTools');
-    const argumentHint = getAttributeValue(openingElement, 'argumentHint');
-    const model = getAttributeValue(openingElement, 'model');
-    const context = getAttributeValue(openingElement, 'context') as 'fork' | undefined;
-    const agent = getAttributeValue(openingElement, 'agent');
-
-    // Build frontmatter
-    const frontmatter: SkillFrontmatterNode = {
-      kind: 'skillFrontmatter',
-      name,
-      description,
-      ...(disableModelInvocation !== undefined && { disableModelInvocation }),
-      ...(userInvocable !== undefined && { userInvocable }),
-      ...(allowedTools && allowedTools.length > 0 && { allowedTools }),
-      ...(argumentHint && { argumentHint }),
-      ...(model && { model }),
-      ...(context && { context }),
-      ...(agent && { agent }),
-    };
-
-    // Process children: separate body content, SkillFile, and SkillStatic
-    const { children, files, statics } = this.processSkillChildren(node);
-
-    return {
-      kind: 'skillDocument',
-      frontmatter,
-      children: children as BaseBlockNode[],
-      files,
-      statics,
-    };
-  }
-
-  /**
-   * Process Skill children into body content, SkillFile nodes, and SkillStatic nodes
-   */
-  private processSkillChildren(node: JsxElement | JsxSelfClosingElement): {
-    children: BlockNode[];
-    files: SkillFileNode[];
-    statics: SkillStaticNode[];
-  } {
-    if (Node.isJsxSelfClosingElement(node)) {
-      return { children: [], files: [], statics: [] };
-    }
-
-    const children: BlockNode[] = [];
-    const files: SkillFileNode[] = [];
-    const statics: SkillStaticNode[] = [];
-    const jsxChildren = node.getJsxChildren();
-
-    for (const child of jsxChildren) {
-      // Skip whitespace-only text
-      if (Node.isJsxText(child)) {
-        const text = extractText(child);
-        if (!text) continue;
-      }
-
-      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
-        const childName = getElementName(child);
-
-        if (childName === 'SkillFile') {
-          files.push(this.transformSkillFile(child));
-          continue;
-        }
-
-        if (childName === 'SkillStatic') {
-          statics.push(this.transformSkillStatic(child));
-          continue;
-        }
-      }
-
-      // Regular body content
-      const block = this.transformToBlock(child);
-      if (block) children.push(block);
-    }
-
-    return { children, files, statics };
-  }
-
-  /**
-   * Transform SkillFile element to SkillFileNode
-   */
-  private transformSkillFile(node: JsxElement | JsxSelfClosingElement): SkillFileNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    const name = getAttributeValue(openingElement, 'name');
-    if (!name) {
-      throw this.createError('SkillFile requires name prop', openingElement);
-    }
-
-    // Transform children as file content
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'skillFile',
-      name,
-      children: children as BaseBlockNode[],
-    };
-  }
-
-  /**
-   * Transform SkillStatic element to SkillStaticNode
-   */
-  private transformSkillStatic(node: JsxElement | JsxSelfClosingElement): SkillStaticNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    const src = getAttributeValue(openingElement, 'src');
-    if (!src) {
-      throw this.createError('SkillStatic requires src prop', openingElement);
-    }
-
-    const dest = getAttributeValue(openingElement, 'dest');
-
-    return {
-      kind: 'skillStatic',
-      src,
-      ...(dest && { dest }),
-    };
-  }
-
-  /**
-   * Get boolean attribute value from JSX element
-   * Handles: disableModelInvocation (true), disableModelInvocation={true}, disableModelInvocation={false}
-   */
-  private getBooleanAttribute(
-    element: JsxOpeningElement | JsxSelfClosingElement,
-    name: string
-  ): boolean | undefined {
-    const attr = element.getAttribute(name);
-    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
-
-    const init = attr.getInitializer();
-    // Boolean attribute without value: disableModelInvocation (means true)
-    if (!init) return true;
-
-    // JSX expression: disableModelInvocation={true}
-    if (Node.isJsxExpression(init)) {
-      const expr = init.getExpression();
-      if (expr && (expr.getText() === 'true' || expr.getText() === 'false')) {
-        return expr.getText() === 'true';
-      }
-    }
-
-    return undefined;
+    return documentTransformSkill(node, this.buildContext());
   }
 
   private transformFragmentChildren(node: JsxFragment): BlockNode[] {
@@ -2998,241 +2771,10 @@ export class Transformer {
   /**
    * Transform an MCPConfig element to MCPConfigDocumentNode
    * MCPConfig wraps multiple MCPServer elements into a single document
+   * Delegates to document.ts transformMCPConfig()
    */
   private transformMCPConfig(node: JsxElement | JsxSelfClosingElement): MCPConfigDocumentNode {
-    const servers: MCPServerNode[] = [];
-
-    // Process children - expect MCPServer elements
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        // Skip whitespace-only text
-        if (Node.isJsxText(child)) {
-          const text = extractText(child);
-          if (!text) continue;
-        }
-
-        if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
-          const tagName = getElementName(child);
-
-          if (tagName === 'MCPServer' || tagName === 'MCPStdioServer' || tagName === 'MCPHTTPServer') {
-            servers.push(this.transformMCPServer(child));
-          } else {
-            throw this.createError(
-              `MCPConfig can only contain MCPServer, MCPStdioServer, or MCPHTTPServer elements. Got: <${tagName}>`,
-              child
-            );
-          }
-        }
-      }
-    }
-
-    if (servers.length === 0) {
-      throw this.createError('MCPConfig must contain at least one MCP server', node);
-    }
-
-    return {
-      kind: 'mcpConfigDocument',
-      servers,
-    };
-  }
-
-  /**
-   * Transform an MCPServer, MCPStdioServer, or MCPHTTPServer element to MCPServerNode
-   * Validates prop combinations at compile time based on transport type
-   */
-  private transformMCPServer(node: JsxElement | JsxSelfClosingElement): MCPServerNode {
-    const openingElement = Node.isJsxElement(node)
-      ? node.getOpeningElement()
-      : node;
-
-    const tagName = getElementName(node);
-
-    // Get name (required for all)
-    const name = getAttributeValue(openingElement, 'name');
-    if (!name) {
-      throw this.createError(`${tagName} requires name prop`, openingElement);
-    }
-
-    // Determine type based on tag name or explicit prop
-    let type: 'stdio' | 'http' | 'sse';
-    if (tagName === 'MCPStdioServer') {
-      type = 'stdio';
-    } else if (tagName === 'MCPHTTPServer') {
-      type = 'http';
-    } else {
-      const typeProp = getAttributeValue(openingElement, 'type') as 'stdio' | 'http' | 'sse' | undefined;
-      if (!typeProp) {
-        throw this.createError('MCPServer requires type prop', openingElement);
-      }
-      if (!['stdio', 'http', 'sse'].includes(typeProp)) {
-        throw this.createError(
-          `MCPServer type must be 'stdio', 'http', or 'sse'. Got: '${typeProp}'`,
-          openingElement
-        );
-      }
-      type = typeProp;
-    }
-
-    // Type-specific validation and extraction
-    if (type === 'stdio') {
-      const command = getAttributeValue(openingElement, 'command');
-      if (!command) {
-        throw this.createError(
-          `${tagName} type="stdio" requires command prop`,
-          openingElement
-        );
-      }
-      if (getAttributeValue(openingElement, 'url')) {
-        throw this.createError(
-          `${tagName} type="stdio" cannot have url prop`,
-          openingElement
-        );
-      }
-      if (this.hasAttribute(openingElement, 'headers')) {
-        throw this.createError(
-          `${tagName} type="stdio" cannot have headers prop`,
-          openingElement
-        );
-      }
-
-      // Extract stdio-specific props
-      const args = this.extractArrayAttribute(openingElement, 'args');
-      const env = this.extractObjectAttribute(openingElement, 'env');
-
-      const result: MCPServerNode = {
-        kind: 'mcpServer',
-        name,
-        type,
-        command,
-      };
-      if (args) result.args = args;
-      if (env) result.env = env;
-      return result;
-    } else {
-      // http or sse
-      const url = getAttributeValue(openingElement, 'url');
-      if (!url) {
-        throw this.createError(
-          `${tagName} type="${type}" requires url prop`,
-          openingElement
-        );
-      }
-      if (getAttributeValue(openingElement, 'command')) {
-        throw this.createError(
-          `${tagName} type="${type}" cannot have command prop`,
-          openingElement
-        );
-      }
-      if (this.hasAttribute(openingElement, 'args')) {
-        throw this.createError(
-          `${tagName} type="${type}" cannot have args prop`,
-          openingElement
-        );
-      }
-
-      // Extract http/sse-specific props
-      const headers = this.extractObjectAttribute(openingElement, 'headers');
-
-      const result: MCPServerNode = {
-        kind: 'mcpServer',
-        name,
-        type,
-        url,
-      };
-      if (headers) result.headers = headers;
-      return result;
-    }
-  }
-
-  /**
-   * Check if an attribute exists on an element (regardless of value)
-   */
-  private hasAttribute(
-    element: JsxOpeningElement | JsxSelfClosingElement,
-    name: string
-  ): boolean {
-    const attr = element.getAttribute(name);
-    return attr !== undefined;
-  }
-
-  /**
-   * Extract array attribute value (e.g., args={["a", "b"]})
-   */
-  private extractArrayAttribute(
-    openingElement: JsxOpeningElement | JsxSelfClosingElement,
-    name: string
-  ): string[] | undefined {
-    const attr = openingElement.getAttribute(name);
-    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
-
-    const initializer = attr.getInitializer();
-    if (!initializer || !Node.isJsxExpression(initializer)) return undefined;
-
-    const expr = initializer.getExpression();
-    if (!expr || !Node.isArrayLiteralExpression(expr)) return undefined;
-
-    return expr.getElements().map(el => {
-      if (Node.isStringLiteral(el)) {
-        return el.getLiteralText();
-      }
-      // Handle template literals or other expressions - preserve as-is
-      return el.getText();
-    });
-  }
-
-  /**
-   * Extract object attribute value (e.g., env={{ KEY: "value" }})
-   * Resolves process.env.X references at build time
-   */
-  private extractObjectAttribute(
-    openingElement: JsxOpeningElement | JsxSelfClosingElement,
-    name: string
-  ): Record<string, string> | undefined {
-    const attr = openingElement.getAttribute(name);
-    if (!attr || !Node.isJsxAttribute(attr)) return undefined;
-
-    const initializer = attr.getInitializer();
-    if (!initializer || !Node.isJsxExpression(initializer)) return undefined;
-
-    const expr = initializer.getExpression();
-    if (!expr || !Node.isObjectLiteralExpression(expr)) return undefined;
-
-    const result: Record<string, string> = {};
-
-    for (const prop of expr.getProperties()) {
-      if (!Node.isPropertyAssignment(prop)) continue;
-
-      const key = prop.getName();
-      const valueExpr = prop.getInitializer();
-      if (!valueExpr) continue;
-
-      // Handle process.env.X
-      if (Node.isPropertyAccessExpression(valueExpr)) {
-        const text = valueExpr.getText();
-        if (text.startsWith('process.env.')) {
-          const envVar = text.replace('process.env.', '');
-          const envValue = process.env[envVar];
-          if (envValue === undefined) {
-            throw this.createError(
-              `Environment variable '${envVar}' is not defined`,
-              openingElement
-            );
-          }
-          result[key] = envValue;
-          continue;
-        }
-      }
-
-      if (Node.isStringLiteral(valueExpr)) {
-        result[key] = valueExpr.getLiteralText();
-      } else {
-        // Preserve expressions as-is (e.g., template literals)
-        // Strip surrounding quotes if present
-        result[key] = valueExpr.getText().replace(/^["']|["']$/g, '');
-      }
-    }
-
-    return Object.keys(result).length > 0 ? result : undefined;
+    return documentTransformMCPConfig(node, this.buildContext());
   }
 
   /**
@@ -3591,129 +3133,10 @@ export class Transformer {
 
   /**
    * Transform a State component into StateDocumentNode
+   * Delegates to document.ts transformState()
    */
   private transformState(node: JsxElement | JsxSelfClosingElement): StateDocumentNode {
-    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
-
-    // Extract required props
-    const name = getAttributeValue(opening, 'name');
-    if (!name) {
-      throw this.createError('State component requires name prop', node);
-    }
-
-    const provider = getAttributeValue(opening, 'provider');
-    if (provider !== 'sqlite') {
-      throw this.createError('State component only supports provider="sqlite"', node);
-    }
-
-    // Extract config prop (object literal)
-    const configAttr = opening.getAttribute('config');
-    let database = '.state/state.db';  // default
-    if (configAttr && Node.isJsxAttribute(configAttr)) {
-      const init = configAttr.getInitializer();
-      if (init && Node.isJsxExpression(init)) {
-        const expr = init.getExpression();
-        if (expr && Node.isObjectLiteralExpression(expr)) {
-          for (const prop of expr.getProperties()) {
-            if (Node.isPropertyAssignment(prop)) {
-              const propName = prop.getName();
-              if (propName === 'database') {
-                const propInit = prop.getInitializer();
-                if (propInit && Node.isStringLiteral(propInit)) {
-                  database = propInit.getLiteralValue();
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Extract schema from generic type parameter
-    // Note: extractTypeArguments is already imported from parser.js
-    let schema: StateSchema = { interfaceName: 'unknown', fields: [] };
-    if (this.sourceFile) {
-      const typeArgs = extractTypeArguments(node);
-      if (typeArgs && typeArgs.length > 0) {
-        const schemaTypeName = typeArgs[0];
-        const extracted = extractStateSchema(this.sourceFile, schemaTypeName);
-        if (extracted) {
-          schema = extracted;
-        } else {
-          console.warn(`Warning: Could not find interface ${schemaTypeName} in source file`);
-        }
-      }
-    }
-
-    // Extract Operation children
-    const operations: OperationNode[] = [];
-    if (Node.isJsxElement(node)) {
-      for (const child of node.getJsxChildren()) {
-        if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
-          const childName = getElementName(child);
-          if (childName === 'Operation') {
-            operations.push(this.transformOperation(child));
-          }
-        }
-      }
-    }
-
-    const stateNode: StateNode = {
-      kind: 'state',
-      name,
-      provider: 'sqlite',
-      config: { database },
-      schema,
-      operations
-    };
-
-    return {
-      kind: 'stateDocument',
-      state: stateNode
-    };
-  }
-
-  /**
-   * Transform an Operation component into OperationNode
-   */
-  private transformOperation(node: JsxElement | JsxSelfClosingElement): OperationNode {
-    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
-
-    // Extract required name prop
-    const name = getAttributeValue(opening, 'name');
-    if (!name) {
-      throw this.createError('Operation component requires name prop', node);
-    }
-
-    // Extract SQL template from children (text content)
-    let sqlTemplate = '';
-    if (Node.isJsxElement(node)) {
-      const parts: string[] = [];
-      for (const child of node.getJsxChildren()) {
-        if (Node.isJsxText(child)) {
-          parts.push(child.getText());
-        } else if (Node.isJsxExpression(child)) {
-          // Handle template literals in expressions
-          const expr = child.getExpression();
-          if (expr && Node.isStringLiteral(expr)) {
-            parts.push(expr.getLiteralValue());
-          } else if (expr && Node.isNoSubstitutionTemplateLiteral(expr)) {
-            parts.push(expr.getLiteralValue());
-          }
-        }
-      }
-      sqlTemplate = parts.join('').trim();
-    }
-
-    // Infer arguments from $variable patterns in SQL
-    const args = extractSqlArguments(sqlTemplate);
-
-    return {
-      kind: 'operation',
-      name,
-      sqlTemplate,
-      args
-    };
+    return documentTransformState(node, this.buildContext());
   }
 
   /**
