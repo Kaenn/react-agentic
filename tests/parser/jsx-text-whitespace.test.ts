@@ -48,26 +48,8 @@ You are spawned by:
       const jsxTextNode = children.find((c: any) => Node.isJsxText(c));
       expect(jsxTextNode).toBeDefined();
 
-      // Log what we get from different methods
-      console.log('=== JsxText Analysis ===');
-      console.log('getStart():', jsxTextNode!.getStart());
-      console.log('getEnd():', jsxTextNode!.getEnd());
-      console.log('getFullStart():', jsxTextNode!.getFullStart());
-
       const srcText = sourceFile.getFullText();
-      console.log('\n--- getText() ---');
-      console.log(JSON.stringify(jsxTextNode!.getText()));
-
-      console.log('\n--- getFullText() ---');
-      console.log(JSON.stringify(jsxTextNode!.getFullText()));
-
-      console.log('\n--- Source slice (getStart to getEnd) ---');
       const sliced = srcText.slice(jsxTextNode!.getStart(), jsxTextNode!.getEnd());
-      console.log(JSON.stringify(sliced));
-
-      console.log('\n--- Source slice (getFullStart to getEnd) ---');
-      const fullSliced = srcText.slice(jsxTextNode!.getFullStart(), jsxTextNode!.getEnd());
-      console.log(JSON.stringify(fullSliced));
 
       // The key assertion: raw source slice should preserve newlines
       expect(sliced).toContain('\n');
@@ -92,12 +74,8 @@ Line 3
       const srcText = sourceFile.getFullText();
       const rawText = srcText.slice(jsxTextNode!.getStart(), jsxTextNode!.getEnd());
 
-      console.log('Raw text:', JSON.stringify(rawText));
-
       // Count newlines - should have multiple
       const newlineCount = (rawText.match(/\n/g) || []).length;
-      console.log('Newline count:', newlineCount);
-
       expect(newlineCount).toBeGreaterThanOrEqual(5); // At least 5 newlines
     });
   });
@@ -123,8 +101,6 @@ You are spawned by:
       const jsxTextNode = children.find((c: any) => Node.isJsxText(c));
 
       const result = extractMarkdownText(jsxTextNode!);
-
-      console.log('extractMarkdownText result:', JSON.stringify(result));
 
       // The result should preserve newlines
       expect(result).toContain('\n');
