@@ -171,9 +171,13 @@ function isAgentElement(element: Node): boolean {
 
 /**
  * Check if the root element is a supported document type
+ * Supported tags: Command, RuntimeCommand, Agent
  */
 function isSupportedRootElement(element: Node): boolean {
-  return isRuntimeCommand(element) || isAgentElement(element);
+  const tagName = getRootElementTagName(element);
+  // Note: Using inline check rather than SUPPORTED_ROOT_TAGS import to avoid
+  // circular dependency issues with constants.ts
+  return tagName === 'Command' || tagName === 'RuntimeCommand' || tagName === 'Agent';
 }
 
 // ============================================================================

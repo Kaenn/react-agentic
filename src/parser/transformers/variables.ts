@@ -8,6 +8,7 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExpression } from 'ts-morph';
 import type { AssignNode, AssignGroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
+import { extractTemplateContent } from './shared.js';
 
 /**
  * Transform an Assign element to AssignNode
@@ -207,29 +208,9 @@ function extractAssignPropValue(
 
     // Template expression with substitution: prop={`ls ${VAR}`}
     if (Node.isTemplateExpression(expr)) {
-      return extractBashTemplate(expr);
+      return extractTemplateContent(expr);
     }
   }
 
   return undefined;
-}
-
-/**
- * Extract template literal content preserving ${VAR} syntax for bash
- */
-function extractBashTemplate(expr: TemplateExpression): string {
-  const parts: string[] = [];
-
-  // Head: text before first ${...}
-  parts.push(expr.getHead().getLiteralText());
-
-  // Spans: each has expression + literal text after
-  for (const span of expr.getTemplateSpans()) {
-    const spanExpr = span.getExpression();
-    // Preserve ${...} syntax for bash
-    parts.push(`\${${spanExpr.getText()}}`);
-    parts.push(span.getLiteral().getLiteralText());
-  }
-
-  return parts.join('');
 }

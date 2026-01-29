@@ -39,6 +39,7 @@ import {
   getArrayAttributeValue,
 } from '../utils/index.js';
 import type { TransformContext } from './types.js';
+import { transformBlockChildren } from './dispatch.js';
 
 // ============================================================================
 // Helper Functions
@@ -215,12 +216,10 @@ export function transformExecutionContext(
   const paths = getArrayAttributeValue(opening, 'paths') ?? [];
   const prefix = getAttributeValue(opening, 'prefix') ?? '@';
 
-  // Transform children if present - requires dispatch (Plan 26-04)
-  const children: BlockNode[] = [];
-  if (Node.isJsxElement(node)) {
-    // NOTE: Requires transformToBlock dispatch - stub for now
-    throw new Error('transformExecutionContext: children transformation requires dispatch (Plan 26-04)');
-  }
+  // Transform children if present
+  const children: BlockNode[] = Node.isJsxElement(node)
+    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    : [];
 
   return {
     kind: 'executionContext',
@@ -381,11 +380,10 @@ export function transformXmlSection(
 
   const name = getAttributeValue(opening, 'name') ?? 'section';
 
-  // Transform children - requires dispatch (Plan 26-04)
-  const children: BlockNode[] = [];
-  if (Node.isJsxElement(node)) {
-    throw new Error('transformXmlSection: children transformation requires dispatch (Plan 26-04)');
-  }
+  // Transform children
+  const children: BlockNode[] = Node.isJsxElement(node)
+    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    : [];
 
   return {
     kind: 'xmlBlock',
@@ -406,11 +404,10 @@ export function transformXmlWrapper(
   // Convert component name to snake_case for XML tag
   const tagName = toSnakeCase(componentName);
 
-  // Transform children - requires dispatch (Plan 26-04)
-  const children: BlockNode[] = [];
-  if (Node.isJsxElement(node)) {
-    throw new Error('transformXmlWrapper: children transformation requires dispatch (Plan 26-04)');
-  }
+  // Transform children
+  const children: BlockNode[] = Node.isJsxElement(node)
+    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    : [];
 
   return {
     kind: 'xmlBlock',

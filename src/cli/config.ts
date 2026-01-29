@@ -9,6 +9,7 @@
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { DEFAULT_OUTPUT_DIR, DEFAULT_RUNTIME_DIR } from '../constants.js';
 
 /**
  * Configuration options for react-agentic builds
@@ -28,8 +29,8 @@ export interface ReactAgenticConfig {
  * Built-in default configuration
  */
 export const DEFAULT_CONFIG: ReactAgenticConfig = {
-  outputDir: '.claude/commands',
-  runtimeDir: '.claude/runtime',
+  outputDir: DEFAULT_OUTPUT_DIR,
+  runtimeDir: DEFAULT_RUNTIME_DIR,
   minify: false,
   codeSplit: false,
 };
@@ -85,8 +86,52 @@ export interface CLIConfigOverrides {
 }
 
 /**
+ * Configuration validation errors
+ */
+export class ConfigValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigValidationError';
+  }
+}
+
+/**
+ * Validate configuration for common issues
+ *
+ * Checks:
+ * - Output directories are not the same (would cause conflicts)
+ * - Paths don't contain problematic characters
+ */
+function validateConfig(config: ReactAgenticConfig): void {
+  // Normalize paths for comparison
+  const normalizedOutput = path.normalize(config.outputDir);
+  const normalizedRuntime = path.normalize(config.runtimeDir);
+
+  // Check for output directory conflicts
+  if (normalizedOutput === normalizedRuntime) {
+    throw new ConfigValidationError(
+      `outputDir and runtimeDir cannot be the same: ${config.outputDir}`
+    );
+  }
+
+  // Check if one is a parent of the other (would cause nested writes)
+  if (normalizedRuntime.startsWith(normalizedOutput + path.sep)) {
+    throw new ConfigValidationError(
+      `runtimeDir (${config.runtimeDir}) cannot be inside outputDir (${config.outputDir})`
+    );
+  }
+  if (normalizedOutput.startsWith(normalizedRuntime + path.sep)) {
+    throw new ConfigValidationError(
+      `outputDir (${config.outputDir}) cannot be inside runtimeDir (${config.runtimeDir})`
+    );
+  }
+}
+
+/**
  * Resolve final configuration by merging:
  * defaults → config file → CLI flags
+ *
+ * @throws {ConfigValidationError} if configuration is invalid
  */
 export async function resolveConfig(
   cliOptions: CLIConfigOverrides,
@@ -96,10 +141,15 @@ export async function resolveConfig(
   const fileConfig = await loadConfigFile(cwd);
 
   // Merge: defaults → file → CLI
-  return {
+  const config: ReactAgenticConfig = {
     outputDir: cliOptions.out ?? fileConfig.outputDir ?? DEFAULT_CONFIG.outputDir,
     runtimeDir: cliOptions.runtimeOut ?? fileConfig.runtimeDir ?? DEFAULT_CONFIG.runtimeDir,
     minify: cliOptions.minify ?? fileConfig.minify ?? DEFAULT_CONFIG.minify,
     codeSplit: cliOptions.codeSplit ?? fileConfig.codeSplit ?? DEFAULT_CONFIG.codeSplit,
   };
+
+  // Validate the merged config
+  validateConfig(config);
+
+  return config;
 }

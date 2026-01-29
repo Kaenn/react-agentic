@@ -3,6 +3,11 @@
  */
 import chokidar from 'chokidar';
 import type { FSWatcher } from 'chokidar';
+import {
+  DEFAULT_DEBOUNCE_MS,
+  WRITE_STABILITY_THRESHOLD_MS,
+  WRITE_STABILITY_POLL_MS,
+} from '../constants.js';
 
 export interface Watcher {
   close(): Promise<void>;
@@ -25,7 +30,7 @@ export function createWatcher(
   onRebuild: (changedFiles: string[]) => Promise<void>,
   options: WatcherOptions = {}
 ): Watcher {
-  const debounceMs = options.debounceMs ?? 200;
+  const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
 
   let timeout: NodeJS.Timeout | null = null;
   let pending: Set<string> = new Set();
@@ -34,8 +39,8 @@ export function createWatcher(
   const watcher: FSWatcher = chokidar.watch(files, {
     ignoreInitial: true, // Don't fire on startup - do full build first
     awaitWriteFinish: {
-      stabilityThreshold: 100, // Wait for writes to complete
-      pollInterval: 50,
+      stabilityThreshold: WRITE_STABILITY_THRESHOLD_MS,
+      pollInterval: WRITE_STABILITY_POLL_MS,
     },
   });
 

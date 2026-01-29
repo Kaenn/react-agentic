@@ -980,9 +980,26 @@ export class MarkdownEmitter {
           .join(' ')
       : '';
 
-    const innerContent = node.children.map((child) => this.emitBlock(child)).join('\n\n');
+    // Join children with empty string - raw blocks already have trailing newlines
+    // For non-raw blocks, add blank line separation
+    const parts: string[] = [];
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      const emitted = this.emitBlock(child);
 
-    return `<${node.name}${attrs}>\n${innerContent}\n</${node.name}>`;
+      // Raw blocks already include newlines; other blocks need separation
+      if (i > 0 && child.kind !== 'raw' && node.children[i - 1].kind !== 'raw') {
+        parts.push('\n\n' + emitted);
+      } else {
+        parts.push(emitted);
+      }
+    }
+    const innerContent = parts.join('');
+
+    // Strip trailing newline before closing tag (but preserve content structure)
+    const normalizedContent = innerContent.replace(/\n+$/, '');
+
+    return `<${node.name}${attrs}>\n${normalizedContent}\n</${node.name}>`;
   }
 
   /**

@@ -5,7 +5,7 @@
  * Functions that recurse into other transforms are in dispatch.ts.
  */
 
-import { Node } from 'ts-morph';
+import { Node, TemplateExpression } from 'ts-morph';
 import type { BlockNode, InlineNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getElementName, extractText } from '../parser.js';
@@ -20,6 +20,36 @@ import { getElementName, extractText } from '../parser.js';
  */
 export function toSnakeCase(name: string): string {
   return name.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+}
+
+// ============================================================================
+// Template Extraction
+// ============================================================================
+
+/**
+ * Extract content from a template expression, preserving ${var} syntax
+ *
+ * Used for bash/code content where variable interpolation should be preserved.
+ * Converts TypeScript template expressions like `cmd ${var}` to "cmd ${var}".
+ *
+ * @param expr - The TemplateExpression node from ts-morph
+ * @returns The extracted string with ${...} syntax preserved
+ */
+export function extractTemplateContent(expr: TemplateExpression): string {
+  const parts: string[] = [];
+
+  // Head: text before first ${...}
+  parts.push(expr.getHead().getLiteralText());
+
+  // Spans: each has expression + literal text after
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    // Preserve ${...} syntax for bash/code
+    parts.push(`\${${spanExpr.getText()}}`);
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
 }
 
 // ============================================================================

@@ -10,6 +10,7 @@ import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileEntry
 import type { TransformContext } from './types.js';
 import { getAttributeValue } from '../utils/index.js';
 import { transformBlockChildren } from './dispatch.js';
+import { extractTemplateContent } from './shared.js';
 
 /**
  * Transform Step component to StepNode IR
@@ -248,26 +249,6 @@ function extractCodeContent(node: JsxElement): string {
   content = content.replace(/^\n+/, '').replace(/\n+$/, '');
 
   return content;
-}
-
-/**
- * Extract content from template expression, preserving ${var} syntax
- */
-function extractTemplateContent(expr: TemplateExpression): string {
-  const parts: string[] = [];
-
-  // Head: text before first ${...}
-  parts.push(expr.getHead().getLiteralText());
-
-  // Spans: each has expression + literal text after
-  for (const span of expr.getTemplateSpans()) {
-    const spanExpr = span.getExpression();
-    // Preserve ${...} syntax for bash/code
-    parts.push(`\${${spanExpr.getText()}}`);
-    parts.push(span.getLiteral().getLiteralText());
-  }
-
-  return parts.join('');
 }
 
 /**

@@ -10,27 +10,7 @@ import { Node, JsxElement, JsxSelfClosingElement, TemplateExpression } from 'ts-
 import type { BlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getElementName, extractText } from '../utils/index.js';
-import { isCustomComponent } from './shared.js';
-
-/**
- * Extract content from template expression, preserving ${var} syntax
- */
-function extractTemplateContent(expr: TemplateExpression): string {
-  const parts: string[] = [];
-
-  // Head: text before first ${...}
-  parts.push(expr.getHead().getLiteralText());
-
-  // Spans: each has expression + literal text after
-  for (const span of expr.getTemplateSpans()) {
-    const spanExpr = span.getExpression();
-    // Preserve ${...} syntax for bash/code
-    parts.push(`\${${spanExpr.getText()}}`);
-    parts.push(span.getLiteral().getLiteralText());
-  }
-
-  return parts.join('');
-}
+import { isCustomComponent, extractTemplateContent } from './shared.js';
 
 // Import all transform functions from modules
 import { transformList, transformBlockquote, transformCodeBlock, transformDiv } from './html.js';
@@ -44,15 +24,76 @@ import { transformMarkdown, transformXmlBlock, transformCustomComponent } from '
 import { transformInlineChildren } from './inline.js';
 
 /**
+ * Extract raw markdown text from JSX text node, preserving newlines
+ * Uses source file positions to bypass JSX whitespace normalization
+ */
+function extractRawMarkdownText(node: Node): string | null {
+  if (!Node.isJsxText(node)) return null;
+
+  // Use raw source text extraction to bypass JSX whitespace normalization
+  const sourceFile = node.getSourceFile();
+  const text = sourceFile.getFullText().slice(node.getStart(), node.getEnd());
+
+  // For single-line content, use standard normalization (inline text)
+  if (!text.includes('\n')) {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    return normalized || null;
+  }
+
+  // Multi-line content: preserve newlines, dedent, and clean up
+  const lines = text.split('\n');
+
+  // Find minimum indentation (ignoring empty lines and first line)
+  let minIndent = Infinity;
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim().length > 0) {
+      const leadingSpaces = line.match(/^[ \t]*/)?.[0].length ?? 0;
+      minIndent = Math.min(minIndent, leadingSpaces);
+    }
+  }
+  if (minIndent === Infinity) minIndent = 0;
+
+  // Dedent all lines (except first line which has no indent from opening tag)
+  const dedented = lines.map((line, i) => {
+    if (line.trim().length === 0) return '';
+    if (i === 0) return line;
+    return line.slice(minIndent);
+  });
+
+  // Join and clean up
+  let result = dedented.join('\n').replace(/\n{3,}/g, '\n\n');
+
+  // Remove ONLY the first newline after opening tag (not intentional blank lines)
+  // Use [ \t]* instead of \s* to avoid matching multiple newlines
+  result = result.replace(/^[ \t]*\n/, '');
+
+  // Preserve trailing newline as content separator
+  // (emitter will handle stripping final newline before closing tag)
+  result = result.trimEnd();
+  // Add back ONE trailing newline if there was content
+  if (result) {
+    result += '\n';
+  }
+
+  return result || null;
+}
+
+/**
  * Transform a JSX node to BlockNode
  * Called by various transformer modules for recursive transformation
  */
 export function transformToBlock(node: Node, ctx: TransformContext): BlockNode | null {
   if (Node.isJsxText(node)) {
-    // Whitespace-only text between block elements - skip
-    const text = extractText(node);
+    // Use raw source extraction to preserve newlines in markdown content
+    const text = extractRawMarkdownText(node);
     if (!text) return null;
-    // Standalone text becomes paragraph
+
+    // Multi-line content becomes raw block (preserves newlines)
+    // Single-line content becomes paragraph (inline text)
+    if (text.includes('\n')) {
+      return { kind: 'raw', content: text };
+    }
     return { kind: 'paragraph', children: [{ kind: 'text', value: text }] };
   }
 
@@ -70,13 +111,21 @@ export function transformToBlock(node: Node, ctx: TransformContext): BlockNode |
       if (Node.isStringLiteral(expr)) {
         content = expr.getLiteralValue();
       } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
-        content = expr.getLiteralValue();
+        // Use getText() and strip backticks to preserve raw content including backslashes
+        // getLiteralValue() interprets escape sequences which loses backslashes
+        const text = expr.getText();
+        content = text.slice(1, -1); // Remove surrounding backticks
       } else if (Node.isTemplateExpression(expr)) {
         content = extractTemplateContent(expr);
       }
 
       if (content !== null) {
-        // Return raw content block - preserves content as-is
+        // Add trailing newline if content doesn't end with one
+        // This ensures proper separation from following content
+        if (!content.endsWith('\n')) {
+          content += '\n';
+        }
+        // Return raw content block
         return { kind: 'raw', content };
       }
     }

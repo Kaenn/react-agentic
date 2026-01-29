@@ -20,6 +20,7 @@ import {
 import { TranspileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
 import { resolveConfig, type CLIConfigOverrides } from '../config.js';
+import { DEFAULT_WATCH_PATTERN, EXIT_CODES } from '../../constants.js';
 
 // Build imports
 import { buildRuntimeFile, hasRuntimeImports } from '../runtime-build.js';
@@ -36,6 +37,167 @@ interface BuildOptions {
 }
 
 /**
+ * Result of processing a single file
+ */
+interface ProcessFileResult {
+  result: BuildResult;
+  runtimeFileInfo: RuntimeFileInfo | null;
+  runtimePath: string;
+}
+
+/**
+ * Process a single TSX file and return build results
+ */
+async function processFile(
+  inputFile: string,
+  project: Project,
+  options: BuildOptions
+): Promise<ProcessFileResult> {
+  // Parse file
+  const sourceFile = project.addSourceFileAtPath(inputFile);
+
+  // Build runtime file
+  const buildResult = await buildRuntimeFile(sourceFile, project, {
+    commandsOut: options.out,
+    runtimeOut: options.runtimeOut,
+    dryRun: options.dryRun,
+  });
+
+  // Log warnings
+  for (const warning of buildResult.warnings) {
+    logWarning(warning);
+  }
+
+  return {
+    result: {
+      inputFile,
+      outputPath: buildResult.markdownPath,
+      content: buildResult.markdown,
+      size: Buffer.byteLength(buildResult.markdown, 'utf8'),
+    },
+    runtimeFileInfo: buildResult.runtimeFileInfo,
+    runtimePath: buildResult.runtimePath,
+  };
+}
+
+/**
+ * Process all TSX files and collect results
+ */
+async function processFiles(
+  tsxFiles: string[],
+  project: Project,
+  options: BuildOptions
+): Promise<{ results: BuildResult[]; runtimeFiles: RuntimeFileInfo[]; runtimePath: string; errorCount: number }> {
+  const results: BuildResult[] = [];
+  const runtimeFiles: RuntimeFileInfo[] = [];
+  let runtimePath = '';
+  let errorCount = 0;
+
+  for (const inputFile of tsxFiles) {
+    try {
+      const processed = await processFile(inputFile, project, options);
+      results.push(processed.result);
+
+      if (processed.runtimeFileInfo) {
+        runtimeFiles.push(processed.runtimeFileInfo);
+        runtimePath = processed.runtimePath;
+      }
+    } catch (error) {
+      errorCount++;
+      if (error instanceof TranspileError) {
+        logTranspileError(error);
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        logError(inputFile, message);
+      }
+    }
+  }
+
+  return { results, runtimeFiles, runtimePath, errorCount };
+}
+
+/**
+ * Bundle runtime files and add results to the results array
+ */
+async function bundleRuntimes(
+  runtimeFiles: RuntimeFileInfo[],
+  runtimePath: string,
+  options: BuildOptions,
+  results: BuildResult[]
+): Promise<void> {
+  if (runtimeFiles.length === 0) {
+    return;
+  }
+
+  const runtimeOutDir = options.runtimeOut;
+
+  if (options.codeSplit) {
+    // Code-split mode: generate dispatcher + per-namespace modules
+    const bundleResult = await bundleCodeSplit({
+      runtimeFiles,
+      outputDir: runtimeOutDir,
+      minify: options.minify,
+    });
+
+    // Add dispatcher
+    results.push({
+      inputFile: `${runtimeFiles.length} file(s) (dispatcher)`,
+      outputPath: path.join(runtimeOutDir, 'runtime.js'),
+      content: bundleResult.dispatcherContent,
+      size: Buffer.byteLength(bundleResult.dispatcherContent, 'utf8'),
+    });
+
+    // Add each namespace module
+    for (const [namespace, content] of bundleResult.moduleContents) {
+      results.push({
+        inputFile: `${namespace} module`,
+        outputPath: path.join(runtimeOutDir, `${namespace}.js`),
+        content,
+        size: Buffer.byteLength(content, 'utf8'),
+      });
+    }
+
+    // Log any bundle warnings
+    for (const warning of bundleResult.warnings) {
+      logWarning(warning);
+    }
+  } else {
+    // Single-entry mode (default): one bundled runtime.js
+    const bundleResult = await bundleSingleEntryRuntime({
+      runtimeFiles,
+      outputPath: runtimePath,
+      minify: options.minify,
+    });
+
+    results.push({
+      inputFile: `${runtimeFiles.length} file(s)`,
+      outputPath: runtimePath,
+      content: bundleResult.content,
+      size: Buffer.byteLength(bundleResult.content, 'utf8'),
+    });
+
+    // Log any bundle warnings
+    for (const warning of bundleResult.warnings) {
+      logWarning(warning);
+    }
+  }
+}
+
+/**
+ * Write build results to disk
+ */
+async function writeResults(results: BuildResult[]): Promise<void> {
+  for (const result of results) {
+    if (result.skipWrite) continue;
+
+    const outputDir = path.dirname(result.outputPath);
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(result.outputPath, result.content, 'utf-8');
+    logSuccess(result.inputFile, result.outputPath);
+  }
+}
+
+/**
  * Run a build cycle for the given files
  * Returns counts for summary reporting
  */
@@ -49,119 +211,19 @@ async function runBuild(
     console.clear();
   }
 
-  const results: BuildResult[] = [];
-  const runtimeFiles: RuntimeFileInfo[] = [];
-  let runtimePath = '';
-  let errorCount = 0;
-
   // Process all files
-  for (const inputFile of tsxFiles) {
-    try {
-      // Parse file
-      const sourceFile = project.addSourceFileAtPath(inputFile);
+  const { results, runtimeFiles, runtimePath, errorCount } = await processFiles(
+    tsxFiles,
+    project,
+    options
+  );
 
-      // Build runtime file
-      const buildResult = await buildRuntimeFile(sourceFile, project, {
-        commandsOut: options.out,
-        runtimeOut: options.runtimeOut,
-        dryRun: options.dryRun,
-      });
-
-      // Add markdown result
-      results.push({
-        inputFile,
-        outputPath: buildResult.markdownPath,
-        content: buildResult.markdown,
-        size: Buffer.byteLength(buildResult.markdown, 'utf8'),
-      });
-
-      // Collect runtime file info for bundling
-      if (buildResult.runtimeFileInfo) {
-        runtimeFiles.push(buildResult.runtimeFileInfo);
-        runtimePath = buildResult.runtimePath;
-      }
-
-      // Log warnings
-      for (const warning of buildResult.warnings) {
-        logWarning(warning);
-      }
-    } catch (error) {
-      errorCount++;
-      if (error instanceof TranspileError) {
-        logTranspileError(error);
-      } else {
-        const message = error instanceof Error ? error.message : String(error);
-        logError(inputFile, message);
-      }
-    }
-  }
-
-  // Bundle all runtimes
-  if (runtimeFiles.length > 0) {
-    const runtimeOutDir = options.runtimeOut;
-
-    if (options.codeSplit) {
-      // Code-split mode: generate dispatcher + per-namespace modules
-      const bundleResult = await bundleCodeSplit({
-        runtimeFiles,
-        outputDir: runtimeOutDir,
-        minify: options.minify,
-      });
-
-      // Add dispatcher
-      results.push({
-        inputFile: `${runtimeFiles.length} file(s) (dispatcher)`,
-        outputPath: path.join(runtimeOutDir, 'runtime.js'),
-        content: bundleResult.dispatcherContent,
-        size: Buffer.byteLength(bundleResult.dispatcherContent, 'utf8'),
-      });
-
-      // Add each namespace module
-      for (const [namespace, content] of bundleResult.moduleContents) {
-        results.push({
-          inputFile: `${namespace} module`,
-          outputPath: path.join(runtimeOutDir, `${namespace}.js`),
-          content,
-          size: Buffer.byteLength(content, 'utf8'),
-        });
-      }
-
-      // Log any bundle warnings
-      for (const warning of bundleResult.warnings) {
-        logWarning(warning);
-      }
-    } else {
-      // Single-entry mode (default): one bundled runtime.js
-      const bundleResult = await bundleSingleEntryRuntime({
-        runtimeFiles,
-        outputPath: runtimePath,
-        minify: options.minify,
-      });
-
-      results.push({
-        inputFile: `${runtimeFiles.length} file(s)`,
-        outputPath: runtimePath,
-        content: bundleResult.content,
-        size: Buffer.byteLength(bundleResult.content, 'utf8'),
-      });
-
-      // Log any bundle warnings
-      for (const warning of bundleResult.warnings) {
-        logWarning(warning);
-      }
-    }
-  }
+  // Bundle runtimes
+  await bundleRuntimes(runtimeFiles, runtimePath, options, results);
 
   // Write files (unless dry-run)
   if (!options.dryRun) {
-    for (const result of results) {
-      if (result.skipWrite) continue;
-
-      const outputDir = path.dirname(result.outputPath);
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(result.outputPath, result.content, 'utf-8');
-      logSuccess(result.inputFile, result.outputPath);
-    }
+    await writeResults(results);
   }
 
   // Show build tree
@@ -198,19 +260,19 @@ export const buildCommand = new Command('build')
       watch: cliOptions.watch,
     };
 
-    // Disallow --dry-run with --watch
+    // Disallow --dry-run with --watch (validate early before expensive operations)
     if (options.watch && options.dryRun) {
       console.error('Cannot use --dry-run with --watch');
-      process.exit(1);
+      process.exit(EXIT_CODES.VALIDATION_ERROR);
     }
 
     // Default to src/app/**/*.tsx in watch mode if no patterns provided
     if (patterns.length === 0) {
       if (options.watch) {
-        patterns = ['src/app/**/*.tsx'];
+        patterns = [DEFAULT_WATCH_PATTERN];
       } else {
-        console.error('No patterns provided. Specify glob patterns or use --watch for default src/app/**/*.tsx');
-        process.exit(1);
+        console.error(`No patterns provided. Specify glob patterns or use --watch for default ${DEFAULT_WATCH_PATTERN}`);
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
     }
 
@@ -225,7 +287,7 @@ export const buildCommand = new Command('build')
 
     if (tsxFiles.length === 0) {
       logWarning('No .tsx files found matching patterns');
-      process.exit(0);
+      process.exit(EXIT_CODES.SUCCESS);
     }
 
     // Create ts-morph project once
@@ -257,7 +319,7 @@ export const buildCommand = new Command('build')
       const shutdown = async () => {
         console.log('\nStopping watch...');
         await watcher.close();
-        process.exit(0);
+        process.exit(EXIT_CODES.SUCCESS);
       };
 
       process.on('SIGINT', shutdown);
@@ -273,6 +335,6 @@ export const buildCommand = new Command('build')
 
     // Exit with error code if any failures
     if (errorCount > 0) {
-      process.exit(1);
+      process.exit(EXIT_CODES.BUILD_ERROR);
     }
   });

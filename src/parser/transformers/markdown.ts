@@ -9,30 +9,7 @@ import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpressio
 import type { BlockNode, XmlBlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, resolveComponentImport } from '../utils/index.js';
-
-/**
- * Validate XML name (simplified)
- * Must start with letter/underscore, contain only letters, digits, underscores, hyphens, periods
- * Cannot start with 'xml' (case insensitive)
- */
-function isValidXmlName(name: string): boolean {
-  // Check for valid start character (letter or underscore)
-  if (!/^[a-zA-Z_]/.test(name)) {
-    return false;
-  }
-
-  // Check for valid characters (letters, digits, underscores, hyphens, periods)
-  if (!/^[a-zA-Z_][a-zA-Z0-9_.-]*$/.test(name)) {
-    return false;
-  }
-
-  // Check for 'xml' prefix (case insensitive)
-  if (/^xml/i.test(name)) {
-    return false;
-  }
-
-  return true;
-}
+import { isValidXmlName } from './shared.js';
 
 /**
  * Transform XmlBlock component to XmlBlockNode IR

@@ -205,6 +205,7 @@ export function extractText(node: Node): string {
  * Extract markdown text from a JSX text node, preserving line breaks
  *
  * For markdown content where line breaks are meaningful:
+ * - Uses raw source text extraction to bypass JSX whitespace normalization
  * - Dedents by removing common leading whitespace (preserves relative indentation)
  * - Collapses 3+ consecutive blank lines to 2 (one blank line)
  * - Preserves leading/trailing newlines for block separation
@@ -212,8 +213,11 @@ export function extractText(node: Node): string {
 export function extractMarkdownText(node: Node): string {
   if (!Node.isJsxText(node)) return '';
 
-  // Use getFullText to include leading trivia (preserves leading whitespace/newlines)
-  const text = node.getFullText();
+  // CRITICAL: Use raw source text extraction to bypass JSX whitespace normalization
+  // JSX normalizes whitespace (collapses newlines to spaces) but we need to preserve them
+  // for markdown content. Extract directly from source file using positions.
+  const sourceFile = node.getSourceFile();
+  const text = sourceFile.getFullText().slice(node.getStart(), node.getEnd());
 
   // For single-line content, preserve as-is (inline text)
   // This ensures word-spacing is preserved (both leading " plan(s)" and trailing "word ")
@@ -224,27 +228,42 @@ export function extractMarkdownText(node: Node): string {
   // Split into lines for multi-line content
   const lines = text.split('\n');
 
-  // Find minimum indentation (ignoring empty lines)
+  // Find minimum indentation (ignoring empty lines and the first line which may have no indent)
   let minIndent = Infinity;
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (line.trim().length > 0) {
+      // Skip first line for indent calculation - it follows the opening tag
+      if (i === 0) continue;
       const leadingSpaces = line.match(/^[ \t]*/)?.[0].length ?? 0;
       minIndent = Math.min(minIndent, leadingSpaces);
     }
   }
   if (minIndent === Infinity) minIndent = 0;
 
-  // Dedent all lines by the minimum indentation
-  const dedented = lines.map(line => {
+  // Dedent all lines by the minimum indentation (except first line)
+  const dedented = lines.map((line, i) => {
     if (line.trim().length === 0) return ''; // Preserve empty lines as empty
+    if (i === 0) return line; // First line has no indent to strip
     return line.slice(minIndent);
   });
 
   // Join and collapse excessive blank lines (3+ newlines → 2 newlines)
-  const result = dedented.join('\n').replace(/\n{3,}/g, '\n\n');
+  let result = dedented.join('\n').replace(/\n{3,}/g, '\n\n');
+
+  // Remove ONLY the first newline after opening tag (not intentional blank lines)
+  // Use [ \t]* instead of \s* to avoid matching multiple newlines
+  result = result.replace(/^[ \t]*\n/, '');
+
+  // Preserve trailing newline as content separator
+  // (emitter will handle stripping final newline before closing tag)
+  result = result.trimEnd();
+  // Add back ONE trailing newline if there was content
+  if (result) {
+    result += '\n';
+  }
 
   // If content is only whitespace, return empty string
-  // Note: Newline handling between JSX expressions is done in transformRuntimeMixedChildren
   if (!result.trim()) return '';
 
   return result;

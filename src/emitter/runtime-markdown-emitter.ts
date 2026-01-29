@@ -28,6 +28,7 @@ import type {
   InputValue,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
+import { assertNever } from './utils.js';
 
 // ============================================================================
 // jq Expression Generation
@@ -300,9 +301,7 @@ export class RuntimeMarkdownEmitter {
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
 
       default:
-        // Exhaustiveness check
-        const _exhaustive: never = node;
-        throw new Error(`Unknown node kind: ${(_exhaustive as { kind: string }).kind}`);
+        return assertNever(node);
     }
   }
 
