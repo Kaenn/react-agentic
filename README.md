@@ -275,6 +275,8 @@ your-project/
 
 ## CLI Reference
 
+### Commands
+
 ```bash
 # Build specific file
 npx react-agentic build "src/app/deploy.tsx"
@@ -283,14 +285,47 @@ npx react-agentic build "src/app/deploy.tsx"
 npx react-agentic build "src/app/**/*.tsx"
 
 # Watch mode (rebuild on changes)
-npx react-agentic build "src/app/**/*.tsx" --watch
+npx react-agentic build --watch
 
-# With code splitting (separate runtime files)
-npx react-agentic build "src/app/**/*.tsx" --code-split
-
-# Minified output
-npx react-agentic build "src/app/**/*.tsx" --minify
+# Combine options
+npx react-agentic build "src/app/**/*.tsx" --code-split --minify
 ```
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--out <dir>` | `-o` | Output directory for markdown files |
+| `--runtime-out <dir>` | | Output directory for runtime bundles |
+| `--code-split` | | Split runtime into per-namespace modules |
+| `--minify` | | Minify runtime bundles |
+| `--watch` | `-w` | Watch for changes and rebuild automatically |
+| `--dry-run` | `-d` | Preview output without writing files |
+
+### Configuration File
+
+Create `react-agentic.config.json` in your project root for persistent settings:
+
+```json
+{
+  "outputDir": ".claude/commands",
+  "runtimeDir": ".claude/runtime",
+  "minify": false,
+  "codeSplit": false
+}
+```
+
+**Priority** (highest to lowest):
+1. CLI flags
+2. `react-agentic.config.json`
+3. Built-in defaults
+
+| Config Key | CLI Flag | Default |
+|------------|----------|---------|
+| `outputDir` | `--out` | `.claude/commands` |
+| `runtimeDir` | `--runtime-out` | `.claude/runtime` |
+| `minify` | `--minify` | `false` |
+| `codeSplit` | `--code-split` | `false` |
 
 ---
 

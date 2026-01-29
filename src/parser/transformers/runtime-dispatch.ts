@@ -226,112 +226,91 @@ const RUNTIME_INLINE_ELEMENTS = new Set([
 
 /**
  * Transform mixed children (inline + block elements) using V3 transformers
- * Consecutive inline elements and text are wrapped in a single paragraph
- * Block elements are transformed using V3 dispatch
+ * All content is accumulated and output as a single raw block to preserve exact structure
+ * Block elements are transformed separately using V3 dispatch
  */
 function transformRuntimeMixedChildren(
   jsxChildren: Node[],
   ctx: RuntimeTransformContext
 ): BlockNode[] {
   const blocks: BlockNode[] = [];
-  let inlineAccumulator: Node[] = [];
+  let contentAccumulator: string[] = [];
 
-  const flushInline = () => {
-    if (inlineAccumulator.length === 0) return;
-
-    // Create a temporary JsxElement-like wrapper to reuse V3 inline transformer
-    // For now, process inline nodes directly
-    const inlineNodes: Array<{ kind: 'text'; value: string } | { kind: string; [key: string]: unknown }> = [];
-
-    for (const inlineChild of inlineAccumulator) {
-      if (Node.isJsxText(inlineChild)) {
-        const text = extractText(inlineChild);
-        if (text) {
-          inlineNodes.push({ kind: 'text', value: text });
-        }
-      } else if (Node.isJsxExpression(inlineChild)) {
-        const expr = inlineChild.getExpression();
-        if (expr && Node.isStringLiteral(expr)) {
-          const value = expr.getLiteralValue();
-          if (value) {
-            inlineNodes.push({ kind: 'text', value });
-          }
-        }
-      } else if (Node.isJsxElement(inlineChild) || Node.isJsxSelfClosingElement(inlineChild)) {
-        // For inline elements, extract text content
-        const text = extractText(inlineChild);
-        if (text) {
-          const name = getElementName(inlineChild);
-          if (name === 'b' || name === 'strong') {
-            inlineNodes.push({ kind: 'bold', children: [{ kind: 'text', value: text }] });
-          } else if (name === 'i' || name === 'em') {
-            inlineNodes.push({ kind: 'italic', children: [{ kind: 'text', value: text }] });
-          } else if (name === 'code') {
-            inlineNodes.push({ kind: 'inlineCode', value: text });
-          } else {
-            inlineNodes.push({ kind: 'text', value: text });
-          }
-        }
-      }
+  // Flush accumulated content as raw block
+  const flushContent = () => {
+    if (contentAccumulator.length === 0) return;
+    const combined = contentAccumulator.join('');
+    if (combined.trim()) {
+      blocks.push({ kind: 'raw', content: combined });
     }
-
-    if (inlineNodes.length > 0) {
-      // Trim boundary whitespace
-      const first = inlineNodes[0];
-      if (first.kind === 'text') {
-        const textNode = first as { kind: 'text'; value: string };
-        textNode.value = textNode.value.trimStart();
-        if (!textNode.value) inlineNodes.shift();
-      }
-
-      if (inlineNodes.length > 0) {
-        const last = inlineNodes[inlineNodes.length - 1];
-        if (last.kind === 'text') {
-          const textNode = last as { kind: 'text'; value: string };
-          textNode.value = textNode.value.trimEnd();
-          if (!textNode.value) inlineNodes.pop();
-        }
-      }
-
-      if (inlineNodes.length > 0) {
-        blocks.push({ kind: 'paragraph', children: inlineNodes as any });
-      }
-    }
-
-    inlineAccumulator = [];
+    contentAccumulator = [];
   };
 
   for (const child of jsxChildren) {
-    // Check if this is an inline element or text
+    // Handle JSX text - preserve exact structure
     if (Node.isJsxText(child)) {
-      const text = extractText(child);
+      const text = extractMarkdownText(child);
       if (text) {
-        inlineAccumulator.push(child);
+        contentAccumulator.push(text);
+      } else {
+        // If text is whitespace-only but contains newlines, and we have accumulated content,
+        // preserve newlines to separate lines (e.g., between two JSX expressions)
+        // Cap at 2 newlines (one blank line) to avoid excessive whitespace
+        const rawText = child.getFullText();
+        if (rawText.includes('\n') && contentAccumulator.length > 0) {
+          const newlineCount = (rawText.match(/\n/g) || []).length;
+          contentAccumulator.push('\n'.repeat(Math.min(newlineCount, 2)));
+        }
       }
       continue;
     }
 
+    // Handle JSX elements
     if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
       const name = getElementName(child);
 
       if (RUNTIME_INLINE_ELEMENTS.has(name)) {
-        // Accumulate inline elements
-        inlineAccumulator.push(child);
+        // Inline elements - extract text and accumulate with markdown formatting
+        const text = extractText(child);
+        if (text) {
+          if (name === 'b' || name === 'strong') {
+            contentAccumulator.push(`**${text}**`);
+          } else if (name === 'i' || name === 'em') {
+            contentAccumulator.push(`*${text}*`);
+          } else if (name === 'code') {
+            contentAccumulator.push(`\`${text}\``);
+          } else {
+            contentAccumulator.push(text);
+          }
+        }
       } else {
-        // Flush any accumulated inline content before block element
-        flushInline();
+        // Block element - flush accumulated content first
+        flushContent();
         // Transform block element via V3 dispatch
         const block = transformRuntimeElement(child, ctx);
         if (block) blocks.push(block);
       }
-    } else if (Node.isJsxExpression(child)) {
-      // JSX expressions treated as inline
-      inlineAccumulator.push(child);
+      continue;
+    }
+
+    // Handle JSX expressions
+    if (Node.isJsxExpression(child)) {
+      const expr = child.getExpression();
+      if (expr && Node.isStringLiteral(expr)) {
+        // String literal - add value directly (handles escapes like {'>'})
+        const value = expr.getLiteralValue();
+        if (value) {
+          contentAccumulator.push(value);
+        }
+      } else if (expr) {
+        // Other expressions - add placeholder syntax
+        contentAccumulator.push(`{${expr.getText()}}`);
+      }
     }
   }
 
-  // Flush remaining inline content
-  flushInline();
+  // Flush any remaining content
+  flushContent();
 
   return blocks;
 }
@@ -381,9 +360,9 @@ function transformRuntimeXmlBlock(
     );
   }
 
-  // Transform children using V3 transformers
+  // Transform children using mixed content handler (handles inline text + expressions properly)
   const children = Node.isJsxElement(node)
-    ? transformRuntimeBlockChildren(node, ctx)
+    ? transformRuntimeMixedChildren(node.getJsxChildren(), ctx)
     : [];
 
   return {
@@ -519,7 +498,17 @@ export function transformToRuntimeBlock(
         }
       }
 
-      // Not a render function - treat as text with the expression
+      // Check if it's a string literal - extract the value directly
+      if (Node.isStringLiteral(expr)) {
+        const value = expr.getLiteralValue();
+        if (value) {
+          // Return as raw node - outputs content directly without newlines
+          return { kind: 'raw', content: value };
+        }
+        return null;
+      }
+
+      // Not a render function or string literal - treat as text with the expression
       // TODO: Handle RuntimeVar interpolation properly
       return { kind: 'paragraph', children: [{ kind: 'text', value: `{${expr.getText()}}` }] };
     }

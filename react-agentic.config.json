@@ -1,0 +1,6 @@
+{
+  "outputDir": ".claude/commands",
+  "runtimeDir": ".claude/runtime",
+  "minify": false,
+  "codeSplit": true
+}

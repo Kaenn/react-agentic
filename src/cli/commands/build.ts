@@ -19,6 +19,7 @@ import {
 } from '../output.js';
 import { TranspileError } from '../errors.js';
 import { createWatcher } from '../watcher.js';
+import { resolveConfig, type CLIConfigOverrides } from '../config.js';
 
 // Build imports
 import { buildRuntimeFile, hasRuntimeImports } from '../runtime-build.js';
@@ -27,11 +28,11 @@ import type { RuntimeFileInfo } from '../../emitter/index.js';
 
 interface BuildOptions {
   out: string;
+  runtimeOut: string;
+  codeSplit: boolean;
+  minify: boolean;
   dryRun?: boolean;
   watch?: boolean;
-  runtimeOut?: string;
-  codeSplit?: boolean;
-  minify?: boolean;
 }
 
 /**
@@ -62,7 +63,7 @@ async function runBuild(
       // Build runtime file
       const buildResult = await buildRuntimeFile(sourceFile, project, {
         commandsOut: options.out,
-        runtimeOut: options.runtimeOut || '.claude/runtime',
+        runtimeOut: options.runtimeOut,
         dryRun: options.dryRun,
       });
 
@@ -97,7 +98,7 @@ async function runBuild(
 
   // Bundle all runtimes
   if (runtimeFiles.length > 0) {
-    const runtimeOutDir = options.runtimeOut || '.claude/runtime';
+    const runtimeOutDir = options.runtimeOut;
 
     if (options.codeSplit) {
       // Code-split mode: generate dispatcher + per-namespace modules
@@ -178,13 +179,25 @@ async function runBuild(
 export const buildCommand = new Command('build')
   .description('Transpile TSX command files to Markdown')
   .argument('[patterns...]', 'Glob patterns for TSX files (e.g., src/**/*.tsx)')
-  .option('-o, --out <dir>', 'Output directory', '.claude/commands')
+  .option('-o, --out <dir>', 'Output directory (default: .claude/commands)')
   .option('-d, --dry-run', 'Preview output without writing files')
   .option('-w, --watch', 'Watch for changes and rebuild automatically')
-  .option('--runtime-out <dir>', 'Runtime output directory', '.claude/runtime')
+  .option('--runtime-out <dir>', 'Runtime output directory (default: .claude/runtime)')
   .option('--code-split', 'Split runtime into per-namespace modules')
   .option('--minify', 'Minify runtime bundles')
-  .action(async (patterns: string[], options: BuildOptions) => {
+  .action(async (patterns: string[], cliOptions: CLIConfigOverrides & { dryRun?: boolean; watch?: boolean }) => {
+    // Resolve config: defaults → config file → CLI flags
+    const config = await resolveConfig(cliOptions);
+
+    const options: BuildOptions = {
+      out: config.outputDir,
+      runtimeOut: config.runtimeDir,
+      codeSplit: config.codeSplit,
+      minify: config.minify,
+      dryRun: cliOptions.dryRun,
+      watch: cliOptions.watch,
+    };
+
     // Disallow --dry-run with --watch
     if (options.watch && options.dryRun) {
       console.error('Cannot use --dry-run with --watch');

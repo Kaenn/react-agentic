@@ -205,20 +205,49 @@ export function extractText(node: Node): string {
  * Extract markdown text from a JSX text node, preserving line breaks
  *
  * For markdown content where line breaks are meaningful:
- * - Removes leading indentation from each line
- * - Collapses multiple blank lines to single blank line
- * - Trims overall content
+ * - Dedents by removing common leading whitespace (preserves relative indentation)
+ * - Collapses 3+ consecutive blank lines to 2 (one blank line)
+ * - Preserves leading/trailing newlines for block separation
  */
 export function extractMarkdownText(node: Node): string {
   if (!Node.isJsxText(node)) return '';
 
-  const text = node.getText();
+  // Use getFullText to include leading trivia (preserves leading whitespace/newlines)
+  const text = node.getFullText();
 
-  // Split into lines, trim each line's indentation, rejoin
-  const lines = text.split('\n').map(line => line.trim());
-  // Collapse multiple blank lines to single blank line
-  const collapsed = lines.join('\n').replace(/\n{3,}/g, '\n\n');
-  return collapsed.trim();
+  // For single-line content, preserve as-is (inline text)
+  // This ensures word-spacing is preserved (both leading " plan(s)" and trailing "word ")
+  if (!text.includes('\n')) {
+    return text;
+  }
+
+  // Split into lines for multi-line content
+  const lines = text.split('\n');
+
+  // Find minimum indentation (ignoring empty lines)
+  let minIndent = Infinity;
+  for (const line of lines) {
+    if (line.trim().length > 0) {
+      const leadingSpaces = line.match(/^[ \t]*/)?.[0].length ?? 0;
+      minIndent = Math.min(minIndent, leadingSpaces);
+    }
+  }
+  if (minIndent === Infinity) minIndent = 0;
+
+  // Dedent all lines by the minimum indentation
+  const dedented = lines.map(line => {
+    if (line.trim().length === 0) return ''; // Preserve empty lines as empty
+    return line.slice(minIndent);
+  });
+
+  // Join and collapse excessive blank lines (3+ newlines → 2 newlines)
+  const result = dedented.join('\n').replace(/\n{3,}/g, '\n\n');
+
+  // If content is only whitespace, return empty string
+  // Note: Newline handling between JSX expressions is done in transformRuntimeMixedChildren
+  if (!result.trim()) return '';
+
+  return result;
 }
 
 // ============================================================================

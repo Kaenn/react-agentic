@@ -533,8 +533,24 @@ Task(
     const attrs = node.attributes
       ? ' ' + Object.entries(node.attributes).map(([k, v]) => `${k}="${v}"`).join(' ')
       : '';
-    const content = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
-    return `<${node.name}${attrs}>\n${content}\n</${node.name}>`;
+    // Emit children with smart joining
+    const parts: string[] = [];
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i] as BlockNode;
+      const emitted = this.emitBlock(child);
+
+      // Add blank line between consecutive xmlBlocks
+      if (i > 0 && child.kind === 'xmlBlock' && node.children[i - 1].kind === 'xmlBlock') {
+        parts.push('\n\n' + emitted);
+      } else {
+        parts.push(emitted);
+      }
+    }
+    const content = parts.join('');
+    // Preserve up to 2 trailing newlines (one blank line) before closing tag
+    // This maintains intentional blank lines in source while preventing excessive whitespace
+    const normalizedContent = content.replace(/\n{3,}$/, '\n\n');
+    return `<${node.name}${attrs}>${normalizedContent}</${node.name}>`;
   }
 
   private emitExecutionContext(node: import('../ir/nodes.js').ExecutionContextNode): string {
