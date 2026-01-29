@@ -5,7 +5,7 @@ Commands are slash-invocable actions in Claude Code. They define what Claude sho
 ## Basic Structure
 
 ```tsx
-import { Command, Markdown, XmlBlock } from '../jsx.js';
+import { Command, Markdown, XmlBlock } from 'react-agentic';
 
 export default function MyCommand() {
   return (
@@ -35,7 +35,7 @@ export default function MyCommand() {
 A practical command that helps manage database migrations:
 
 ```tsx
-import { Command, XmlBlock, Markdown } from '../jsx.js';
+import { Command, XmlBlock, Markdown } from 'react-agentic';
 
 export default function MigrateCommand() {
   return (
@@ -181,7 +181,7 @@ Free-form markdown content here.`}</Markdown>
 Commands support a render props pattern for accessing command context within the component body:
 
 ```tsx
-import { Command } from '../jsx.js';
+import { Command } from 'react-agentic';
 
 export default function MyCommand() {
   return (

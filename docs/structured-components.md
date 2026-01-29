@@ -18,7 +18,7 @@ Create markdown tables from arrays.
 ### Basic Usage
 
 ```tsx
-import { Table } from '../jsx.js';
+import { Table } from 'react-agentic';
 
 <Table
   headers={["Name", "Type", "Required"]}
@@ -145,7 +145,7 @@ Create bullet or ordered lists from arrays.
 ### Basic Usage (Bullet List)
 
 ```tsx
-import { List } from '../jsx.js';
+import { List } from 'react-agentic';
 
 <List items={[
   "Read input file",
@@ -255,7 +255,7 @@ Emits:
 ### Example: Dynamic Table from Data
 
 ```tsx
-import { Command, Table } from '../jsx.js';
+import { Command, Table } from 'react-agentic';
 
 interface Dependency {
   name: string;

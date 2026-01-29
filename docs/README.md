@@ -6,31 +6,23 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 
 | Guide | Description |
 |-------|-------------|
+| [Philosophy](./philosophy.md) | Build-time vs runtime, core design principles |
 | [Getting Started](./getting-started.md) | Installation, first command, project structure |
 | [Command](./command.md) | How to build slash commands with practical examples |
 | [Agent](./agent.md) | How to build spawnable agents with input contracts |
-| [Communication](./communication.md) | SpawnAgent pattern for Command ↔ Agent communication |
-| [Variables](./variables.md) | Shell variables with `useVariable` and `<Assign>` |
-| [Conditionals](./conditionals.md) | Decision logic with `<If>` and `<Else>` components |
+| [Communication](./communication.md) | SpawnAgent pattern for Command <-> Agent communication |
+| [Runtime System](./runtime.md) | useRuntimeVar and runtimeFn for TypeScript at runtime |
+| [Control Flow](./control-flow.md) | If/Else, Loop/Break, Return, AskUser |
+| [Conditionals](./conditionals.md) | Legacy conditionals (see Control Flow) |
 | [Structured Components](./structured-components.md) | Table and List with array props |
-| [Semantic Components](./semantic-components.md) | ExecutionContext, SuccessCriteria, OfferNext, XmlSection |
-| [MCP Configuration](./mcp-configuration.md) | Configure MCP servers via TSX |
-
-## Technical Reference
-
-| Doc | Description |
-|-----|-------------|
-| [Build Pipeline](./build-pipeline.md) | How TSX is transformed to markdown step-by-step |
-| [Analysis](./analyze.md) | Why TypeScript Compiler API for TSX parsing |
+| [Semantic Components](./semantic-components.md) | ExecutionContext for file references |
 
 ## Examples
 
 | Example | Location | Description |
 |---------|----------|-------------|
 | Command Example | [examples/command.md](./examples/command.md) | Example command structure |
-| Code Reviewer | [src/app/code-reviewer.tsx](../src/app/code-reviewer.tsx) | Agent with input interface |
-| Commit Helper | [src/app/commit-helper.tsx](../src/app/commit-helper.tsx) | Command using SpawnAgent |
-| Plan Phase | [src/app/gsd/plan-phase.tsx](../src/app/gsd/plan-phase.tsx) | Complex orchestrator with multiple spawns |
+| Runtime Test | [src/app/test-runtime.tsx](../src/app/test-runtime.tsx) | Runtime features demo |
 
 ## Quick Reference
 
@@ -38,46 +30,66 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Command   │────►│ SpawnAgent  │────►│    Agent    │
+│   Command   │────>│ SpawnAgent  │────>│    Agent    │
 │             │     │             │     │             │
 │ /my-command │     │  Task(...)  │     │ Specialized │
 │             │     │             │     │   worker    │
 └─────────────┘     └─────────────┘     └─────────────┘
       │                   │                   │
-      ▼                   ▼                   ▼
+      v                   v                   v
   .claude/           Emitted in          .claude/
   commands/          markdown            agents/
 ```
 
-### v2.0 Components
+### Core Components
 
 | Component | Purpose | Example |
 |-----------|---------|---------|
-| `<Table>` | Markdown tables from arrays | `<Table headers={["A"]} rows={[["1"]]} />` |
-| `<List>` | Bullet/ordered lists from arrays | `<List items={["a", "b"]} ordered />` |
-| `<ExecutionContext>` | @ file references section | `<ExecutionContext paths={["file.md"]} />` |
-| `<SuccessCriteria>` | Checkbox success list | `<SuccessCriteria items={["Pass"]} />` |
-| `<OfferNext>` | Navigation route list | `<OfferNext routes={[{name: "Go", path: "/x"}]} />` |
-| `<XmlSection>` | Custom XML wrapper | `<XmlSection name="custom">...</XmlSection>` |
-| `<Step>` | Numbered workflow step | `<Step name="Setup" number={1}>...</Step>` |
-| `<Loop>` | Iteration over items | `<Loop items={arr} as="x">...</Loop>` |
+| `<Command>` | Slash command | `/deploy`, `/migrate` |
+| `<Agent>` | Spawnable worker | `test-runner`, `code-reviewer` |
+| `<SpawnAgent>` | Spawn agent from command | Emits `Task()` syntax |
+| `<Markdown>` | Inline content | Free-form markdown |
+| `<XmlBlock>` | Structured section | `<objective>`, `<process>` |
+| `<Table>` | Markdown tables | `<Table headers={["A"]} rows={[["1"]]} />` |
+| `<List>` | Bullet/ordered lists | `<List items={["a", "b"]} ordered />` |
 
-### File → Output Mapping
+### Runtime Components
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `useRuntimeVar<T>()` | Typed runtime variable | `const ctx = useRuntimeVar<Result>('CTX')` |
+| `runtimeFn()` | Wrap function for runtime | `const Fn = runtimeFn(myFunction)` |
+
+### Control Flow Components
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `<If>` / `<Else>` | Conditional blocks | `<If condition={ctx.error}>...</If>` |
+| `<Loop>` / `<Break>` | Bounded iteration | `<Loop max={5}>...</Loop>` |
+| `<Return>` | Early exit | `<Return status="SUCCESS" />` |
+| `<AskUser>` | Interactive prompt | `<AskUser question="..." options={[...]} />` |
+
+### Semantic Components
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `<ExecutionContext>` | @ file references | `<ExecutionContext paths={["file.md"]} />` |
+
+### File -> Output Mapping
 
 | Source | Output |
 |--------|--------|
 | `src/app/my-command.tsx` | `.claude/commands/my-command.md` |
 | `src/app/my-agent.tsx` | `.claude/agents/my-agent.md` |
-| `src/app/folder/thing.tsx` | `.claude/commands/thing.md` or `.claude/agents/folder/thing.md` |
 
 ### Build Commands
 
 ```bash
 # Build specific file
-node dist/cli/index.js build "src/app/my-command.tsx"
+npx react-agentic build "src/app/my-command.tsx"
 
 # Build all in app folder
-node dist/cli/index.js build "src/app/**/*.tsx"
+npx react-agentic build "src/app/**/*.tsx"
 
 # Watch mode
 npm run watch

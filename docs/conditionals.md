@@ -1,278 +1,124 @@
 # Conditionals
 
-Conditionals let you express decision logic in your commands and agents using `<If>` and `<Else>` components. They emit prose-based markdown patterns that guide Claude's execution flow.
+Conditionals are now part of the unified control flow system using RuntimeVar. This file is kept for backward compatibility - see [Control Flow](./control-flow.md) for the current documentation.
 
-## Basic Structure
+## Migration Notice
+
+The old conditional system using `test` strings and shell expressions has been replaced by RuntimeVar-based conditions.
+
+### Old Pattern (Deprecated)
 
 ```tsx
-import { Command, If, Else, Assign, useVariable } from '../jsx.js';
+// DON'T use this pattern
+import { If, Else, useVariable, Assign } from '../jsx.js';
 
-const fileExists = useVariable("FILE_EXISTS", {
-  bash: `[ -f config.json ] && echo "true" || echo "false"`
-});
+const result = useVariable("RESULT");
+<Assign var={result} bash={`command`} />
+<If test="[ $RESULT = 'ok' ]">...</If>
+```
 
-export default function MyCommand() {
-  return (
-    <Command name="my-command" description="Uses conditionals">
-      <Assign var={fileExists} />
+### New Pattern (Current)
 
-      <If test="[ $FILE_EXISTS = 'true' ]">
-        <p>Configuration found. Loading settings.</p>
-      </If>
-      <Else>
-        <p>No configuration. Using defaults.</p>
-      </Else>
-    </Command>
-  );
+```tsx
+// USE this pattern
+import { Command, If, Else, useRuntimeVar, runtimeFn } from 'react-agentic';
+
+interface CheckResult {
+  success: boolean;
+  error?: string;
 }
+
+async function checkStatus(args: {}): Promise<CheckResult> {
+  // Implementation
+}
+
+const Check = runtimeFn(checkStatus);
+
+export default (
+  <Command name="my-command" description="Uses conditionals">
+    {() => {
+      const result = useRuntimeVar<CheckResult>('RESULT');
+
+      return (
+        <>
+          <Check.Call args={{}} output={result} />
+
+          <If condition={result.success}>
+            <p>Operation succeeded</p>
+          </If>
+          <Else>
+            <p>Error: {result.error}</p>
+          </Else>
+        </>
+      );
+    }}
+  </Command>
+);
 ```
-
-## Output Format
-
-Conditionals emit as prose-based markdown:
-
-```markdown
-**If [ $FILE_EXISTS = 'true' ]:**
-
-Configuration found. Loading settings.
-
-**Otherwise:**
-
-No configuration. Using defaults.
-```
-
-This format is readable by both humans and Claude, guiding execution flow without requiring actual shell conditionals.
 
 ## If Component
 
-Defines a conditional block with a test expression.
-
-```tsx
-<If test="[ -d .git ]">
-  <p>Git repository detected.</p>
-</If>
-```
+Conditionally render content based on RuntimeVar truthiness.
 
 ### Props
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `test` | string | Yes | Shell test expression or condition |
-| `children` | ReactNode | Yes | Content to emit when condition is true |
+| `condition` | `Condition` | Yes | RuntimeVar to evaluate |
+| `children` | `ReactNode` | Yes | Content when true |
 
-### Test Expressions
+### Condition Evaluation
 
-The `test` prop accepts any shell-compatible test expression:
-
-```tsx
-// File tests
-<If test="[ -f config.json ]">...</If>      // File exists
-<If test="[ -d .git ]">...</If>             // Directory exists
-<If test="[ -z $VAR ]">...</If>             // Variable is empty
-<If test="[ -n $VAR ]">...</If>             // Variable is not empty
-
-// String comparisons
-<If test="[ $STATUS = 'ready' ]">...</If>   // Equal
-<If test="[ $STATUS != 'error' ]">...</If>  // Not equal
-
-// Variable interpolation
-<If test="[ -f $CONFIG_PATH ]">...</If>     // Using variable
-```
-
-### Test Helper Functions
-
-For type-safe test expressions, use the helper functions instead of raw strings:
+- **Truthy**: Non-empty string, non-zero number, `true`, non-null object
+- **Falsy**: Empty string, `0`, `false`, `null`, `undefined`
 
 ```tsx
-import {
-  If, Assign, useVariable,
-  fileExists, dirExists, isEmpty, notEmpty, equals, and, or
-} from '../jsx.js';
+const ctx = useRuntimeVar<{ error?: string; count: number }>('CTX');
 
-const config = useVariable("CONFIG");
-const result = useVariable("RESULT");
-
-// In your component:
-<Assign var={config} bash={`echo config.json`} />
-<Assign var={result} bash={`cat output.txt`} />
-
-// File/directory tests
-<If test={fileExists(config)}>    // [ -f $CONFIG ]
-<If test={dirExists(config)}>     // [ -d $CONFIG ]
-
-// String tests
-<If test={isEmpty(result)}>       // [ -z $RESULT ]
-<If test={notEmpty(result)}>      // [ -n $RESULT ]
-<If test={equals(result, "ok")}>  // [ $RESULT = ok ]
-
-// Composable
-<If test={and(fileExists(config), notEmpty(result))}>
-<If test={or(fileExists(config), dirExists(config))}>
+<If condition={ctx.error}>        {/* Truthy check on optional string */}
+  <p>Error: {ctx.error}</p>
+</If>
 ```
-
-**Benefits:**
-- Type safety: TypeScript ensures valid VariableRef, catches typos
-- Refactoring: Rename variables → tests auto-update
-- Readability: `fileExists(x)` clearer than `"[ -f $X ]"`
 
 ## Else Component
 
-Provides alternative content when the preceding `<If>` condition is false.
-
-```tsx
-<If test="[ -f package.json ]">
-  <p>Node.js project detected.</p>
-</If>
-<Else>
-  <p>Not a Node.js project.</p>
-</Else>
-```
+Provides alternative content when the preceding `<If>` is false.
 
 ### Rules
 
 1. `<Else>` must immediately follow `</If>` (whitespace allowed)
-2. `<Else>` without a preceding `<If>` causes a compile error
-3. `<If>` can exist without `<Else>` (single conditional)
+2. `<Else>` without preceding `<If>` causes compile error
+3. `<If>` can exist without `<Else>`
 
 ### Props
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `children` | ReactNode | Yes | Content to emit when condition is false |
+| `children` | `ReactNode` | Yes | Content when false |
 
 ## Nested Conditionals
 
-`<If>` blocks can be nested within `<Else>` for complex decision trees:
-
 ```tsx
-<If test="[ $ENV = 'production' ]">
-  <p>Production deployment. Running full validation.</p>
-</If>
-<Else>
-  <p>Non-production environment.</p>
-
-  <If test="[ $ENV = 'staging' ]">
-    <p>Staging deployment. Running smoke tests.</p>
+<If condition={ctx.type}>
+  <If condition={ctx.type === 'production'}>
+    <p>Production mode enabled</p>
   </If>
-</Else>
+  <Else>
+    <p>Development mode: {ctx.type}</p>
+  </Else>
+</If>
 ```
-
-Output:
-
-```markdown
-**If [ $ENV = 'production' ]:**
-
-Production deployment. Running full validation.
-
-**Otherwise:**
-
-Non-production environment.
-
-**If [ $ENV = 'staging' ]:**
-
-Staging deployment. Running smoke tests.
-```
-
-## Variable Integration
-
-Combine conditionals with `useVariable` and `<Assign>` for dynamic decision logic:
-
-```tsx
-import { Command, XmlBlock, If, Else, Assign, useVariable } from '../jsx.js';
-
-const researchExists = useVariable("RESEARCH_EXISTS", {
-  bash: `[ -f $PHASE_DIR/*-RESEARCH.md ] && echo "true" || echo "false"`
-});
-
-export default function PlanPhase() {
-  return (
-    <Command name="plan-phase" description="Plan with conditional research">
-      <XmlBlock name="process">
-        <h2>Step 1: Check for Research</h2>
-        <Assign var={researchExists} />
-
-        <If test="[ $RESEARCH_EXISTS = 'true' ]">
-          <p>Using existing research:</p>
-          <pre><code className="language-bash">cat $PHASE_DIR/*-RESEARCH.md</code></pre>
-        </If>
-        <Else>
-          <p>No research found. Spawning researcher agent...</p>
-          {/* SpawnAgent call here */}
-        </Else>
-      </XmlBlock>
-    </Command>
-  );
-}
-```
-
-## Complete Example
-
-A command that handles multiple conditional scenarios:
-
-```tsx
-import { Command, XmlBlock, If, Else, Assign, useVariable } from '../jsx.js';
-
-const gitRepo = useVariable("GIT_REPO", {
-  bash: `[ -d .git ] && echo "true" || echo "false"`
-});
-
-const hasUncommitted = useVariable("HAS_UNCOMMITTED", {
-  bash: `[ -n "$(git status --porcelain 2>/dev/null)" ] && echo "true" || echo "false"`
-});
-
-export default function SafeDeployCommand() {
-  return (
-    <Command name="safe-deploy" description="Deploy with safety checks">
-      <XmlBlock name="process">
-        <h2>Pre-flight Checks</h2>
-
-        <Assign var={gitRepo} />
-
-        <If test="[ $GIT_REPO = 'false' ]">
-          <p>Not a git repository. Cannot proceed safely.</p>
-          <p><b>Action:</b> Initialize git or run from correct directory.</p>
-        </If>
-        <Else>
-          <p>Git repository detected. Checking for uncommitted changes...</p>
-
-          <Assign var={hasUncommitted} />
-
-          <If test="[ $HAS_UNCOMMITTED = 'true' ]">
-            <p>Uncommitted changes found. Please commit or stash before deploying.</p>
-            <pre><code className="language-bash">git status</code></pre>
-          </If>
-          <Else>
-            <p>Working tree clean. Safe to deploy.</p>
-            <pre><code className="language-bash">npm run deploy</code></pre>
-          </Else>
-        </Else>
-      </XmlBlock>
-    </Command>
-  );
-}
-```
-
-## Tips
-
-1. **Prefer test helper functions** — `fileExists(config)` is type-safe, refactor-friendly, and clearer than `"[ -f $CONFIG ]"`
-
-2. **Use raw strings for literals** — Helpers require VariableRef; use raw strings for literal paths like `"[ -d .git ]"`
-
-3. **Keep nesting shallow** — More than 2-3 levels becomes hard to follow
-
-4. **Combine with variables** — `useVariable` + `<Assign>` + `<If>` is a powerful pattern
-
-5. **Single conditionals are valid** — `<If>` without `<Else>` works when you only need conditional content
-
-6. **Prose format is intentional** — The `**If condition:**` / `**Otherwise:**` format is designed for Claude to interpret, not for shell execution
 
 ## Related: OnStatus
 
 For status-based conditional rendering after agent execution, see `OnStatus` in [Communication](./communication.md#handling-agent-output).
 
-`OnStatus` follows a similar pattern to `If/Else` but operates on agent output status rather than shell conditions:
-
 | Component | Condition Source | Use Case |
 |-----------|------------------|----------|
-| `<If>/<Else>` | Shell test expressions | File checks, variable values |
+| `<If>/<Else>` | RuntimeVar truthiness | Check computed values |
 | `<OnStatus>` | Agent return status | Handle SUCCESS/BLOCKED/ERROR |
+
+## See Also
+
+- [Control Flow](./control-flow.md) - Complete control flow documentation
+- [Runtime System](./runtime.md) - useRuntimeVar and runtimeFn

@@ -5,6 +5,12 @@ react-agentic is a TSX-to-Markdown compiler for authoring Claude Code commands a
 ## Installation
 
 ```bash
+npm install react-agentic
+```
+
+Or clone and build locally:
+
+```bash
 npm install
 npm run build
 ```
@@ -16,7 +22,7 @@ npm run build
 Create a file `src/app/hello.tsx`:
 
 ```tsx
-import { Command, Markdown } from '../jsx.js';
+import { Command, Markdown } from 'react-agentic';
 
 export default function HelloCommand() {
   return (
@@ -42,7 +48,7 @@ Greet the user and show today's date.
 ### 2. Build It
 
 ```bash
-node dist/cli/index.js build "src/app/hello.tsx"
+npx react-agentic build "src/app/hello.tsx"
 ```
 
 Output: `.claude/commands/hello.md`
@@ -61,7 +67,6 @@ src/
 ├── app/           # Your commands and agents go here
 │   ├── my-command.tsx
 │   └── my-agent.tsx
-├── jsx.js         # Component exports (Command, Agent, SpawnAgent, etc.)
 └── ...
 
 .claude/
@@ -78,20 +83,75 @@ src/
 | `<SpawnAgent>` | Spawn an agent from a command | `Task()` syntax |
 | `<Markdown>` | Inline markdown content | Raw markdown |
 | `<XmlBlock>` | XML-wrapped section | `<name>...</name>` |
+| `<Table>` | Structured tables | Markdown table |
+| `<List>` | Bullet or numbered lists | Markdown list |
 
-### Conditional Components
+### Runtime Components
 
-| Component | Purpose | Example |
-|-----------|---------|---------|
-| `<If>` | Conditional block | `<If test="[ -f file ]">content</If>` |
-| `<Else>` | Optional else block | Must follow `</If>` |
+| Component | Purpose |
+|-----------|---------|
+| `useRuntimeVar<T>()` | Declare typed runtime variable |
+| `runtimeFn()` | Wrap TypeScript function for runtime |
 
-Conditionals emit as prose-based `**If condition:**` / `**Otherwise:**` patterns.
+### Control Flow Components
 
-See [Conditionals](./conditionals.md) for detailed usage including nested conditionals and variable integration.
+| Component | Purpose |
+|-----------|---------|
+| `<If>` / `<Else>` | Conditional rendering |
+| `<Loop>` / `<Break>` | Bounded iteration |
+| `<Return>` | Early exit with status |
+| `<AskUser>` | Interactive user prompts |
+
+## Example with Runtime Features
+
+```tsx
+import { Command, useRuntimeVar, runtimeFn, If, Else } from 'react-agentic';
+
+interface CheckResult {
+  exists: boolean;
+  path: string;
+}
+
+async function checkProject(args: { path: string }): Promise<CheckResult> {
+  const fs = await import('fs/promises');
+  try {
+    await fs.stat(args.path);
+    return { exists: true, path: args.path };
+  } catch {
+    return { exists: false, path: args.path };
+  }
+}
+
+const Check = runtimeFn(checkProject);
+
+export default (
+  <Command name="init" description="Initialize project">
+    {() => {
+      const result = useRuntimeVar<CheckResult>('RESULT');
+
+      return (
+        <>
+          <h2>Project Initialization</h2>
+
+          <Check.Call args={{ path: "." }} output={result} />
+
+          <If condition={result.exists}>
+            <p>Project already initialized at {result.path}</p>
+          </If>
+          <Else>
+            <p>Creating new project...</p>
+          </Else>
+        </>
+      );
+    }}
+  </Command>
+);
+```
 
 ## Next Steps
 
 - [Command Documentation](./command.md) - Learn to build commands
 - [Agent Documentation](./agent.md) - Learn to build agents
+- [Runtime System](./runtime.md) - useRuntimeVar and runtimeFn
+- [Control Flow](./control-flow.md) - If/Else, Loop, Return, AskUser
 - [Communication](./communication.md) - Connect commands and agents with SpawnAgent

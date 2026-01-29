@@ -5,7 +5,7 @@ Agents are specialized workers that can be spawned by commands using `Task()`. T
 ## Basic Structure
 
 ```tsx
-import { Agent, Markdown, XmlBlock, BaseOutput } from '../jsx.js';
+import { Agent, Markdown, XmlBlock, BaseOutput } from 'react-agentic';
 
 export interface MyAgentInput {
   // Define expected input shape
@@ -46,7 +46,7 @@ export default function MyAgent() {
 An agent that runs tests and reports results:
 
 ```tsx
-import { Agent, XmlBlock, Markdown, BaseOutput } from '../jsx.js';
+import { Agent, XmlBlock, Markdown, BaseOutput } from 'react-agentic';
 
 /**
  * Input contract for test-runner agent
@@ -255,7 +255,7 @@ The second generic type parameter (`TOutput`) defines the agent's return structu
 ### BaseOutput and AgentStatus
 
 ```tsx
-import { BaseOutput, AgentStatus } from '../jsx.js';
+import { BaseOutput, AgentStatus } from 'react-agentic';
 
 // AgentStatus is a union of standard status codes:
 type AgentStatus =
@@ -377,7 +377,7 @@ This allows the orchestrating command to handle different outcomes.
 Agents support a render props pattern for accessing agent context within the component body:
 
 ```tsx
-import { Agent, BaseOutput } from '../jsx.js';
+import { Agent, BaseOutput } from 'react-agentic';
 
 interface MyInput {
   task: string;

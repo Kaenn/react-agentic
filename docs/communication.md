@@ -19,17 +19,13 @@ Command ──── SpawnAgent ────► Agent
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `agent` | string | ✓ | Agent name to spawn |
-| `model` | string | ✓ | Model to use (supports `{variable}`) |
-| `description` | string | ✓ | Task description |
-| `input` | object/VariableRef | ✓* | Typed input data (recommended) |
-| `prompt` | string | ✓* | Manual prompt (deprecated) |
-| `TInput` | generic | | Type interface for validation |
+| `agent` | string | Yes | Agent name to spawn |
+| `model` | string | Yes | Model to use |
+| `description` | string | Yes | Task description |
+| `input` | object | Yes* | Typed input data (recommended) |
+| `prompt` | string | Yes* | Manual prompt (deprecated) |
 
 *One of `input` or `prompt` is required. Use `input` for type-safe communication.
-
-> **Note:** The `prompt` prop is deprecated. Use `input` for type-safe communication.
-> The `prompt` prop remains functional for backward compatibility.
 
 ## Example: Deploy Pipeline
 
@@ -39,7 +35,7 @@ A command that orchestrates deployment by spawning specialized agents.
 
 **`src/app/build-agent.tsx`**
 ```tsx
-import { Agent, XmlBlock, Markdown } from '../jsx.js';
+import { Agent, XmlBlock, Markdown } from 'react-agentic';
 
 export interface BuildAgentInput {
   environment: 'staging' | 'production';
@@ -52,13 +48,9 @@ export default function BuildAgent() {
       name="build-agent"
       description="Builds the application for deployment"
       tools="Bash, Read"
-      color="blue"
     >
       <XmlBlock name="role">
-        <Markdown>{`You are a build agent. You compile and bundle the application.
-
-**Input:** environment, skipTests flag
-**Output:** Build artifacts in ./dist/`}</Markdown>
+        <Markdown>{`You are a build agent. You compile and bundle the application.`}</Markdown>
       </XmlBlock>
 
       <XmlBlock name="process">
@@ -78,76 +70,7 @@ npm test
 
 \`\`\`bash
 NODE_ENV={environment} npm run build
-\`\`\`
-
-## 4. Verify Build
-
-\`\`\`bash
-ls -la ./dist/
 \`\`\``}</Markdown>
-      </XmlBlock>
-
-      <XmlBlock name="returns">
-        <Markdown>{`Return \`## BUILD COMPLETE\` with artifact summary, or \`## BUILD FAILED\` with error details.`}</Markdown>
-      </XmlBlock>
-    </Agent>
-  );
-}
-```
-
-**`src/app/deploy-agent.tsx`**
-```tsx
-import { Agent, XmlBlock, Markdown } from '../jsx.js';
-
-export interface DeployAgentInput {
-  environment: 'staging' | 'production';
-  version: string;
-}
-
-export default function DeployAgent() {
-  return (
-    <Agent<DeployAgentInput>
-      name="deploy-agent"
-      description="Deploys built artifacts to target environment"
-      tools="Bash, Read"
-      color="green"
-    >
-      <XmlBlock name="role">
-        <Markdown>{`You are a deploy agent. You push built artifacts to the target environment.
-
-**Input:** environment, version
-**Output:** Deployment confirmation with URL`}</Markdown>
-      </XmlBlock>
-
-      <XmlBlock name="process">
-        <Markdown>{`## 1. Verify Artifacts Exist
-
-\`\`\`bash
-ls ./dist/
-\`\`\`
-
-## 2. Deploy to Environment
-
-**Staging:**
-\`\`\`bash
-aws s3 sync ./dist/ s3://my-app-staging/
-\`\`\`
-
-**Production:**
-\`\`\`bash
-aws s3 sync ./dist/ s3://my-app-prod/
-aws cloudfront create-invalidation --distribution-id XXX --paths "/*"
-\`\`\`
-
-## 3. Verify Deployment
-
-\`\`\`bash
-curl -I https://{environment}.my-app.com/health
-\`\`\``}</Markdown>
-      </XmlBlock>
-
-      <XmlBlock name="returns">
-        <Markdown>{`Return \`## DEPLOY COMPLETE\` with URL, or \`## DEPLOY FAILED\` with error.`}</Markdown>
       </XmlBlock>
     </Agent>
   );
@@ -158,9 +81,8 @@ curl -I https://{environment}.my-app.com/health
 
 **`src/app/deploy-command.tsx`**
 ```tsx
-import { Command, XmlBlock, Markdown, SpawnAgent } from '../jsx.js';
+import { Command, XmlBlock, Markdown, SpawnAgent } from 'react-agentic';
 import type { BuildAgentInput } from './build-agent.js';
-import type { DeployAgentInput } from './deploy-agent.js';
 
 export default function DeployCommand() {
   return (
@@ -170,13 +92,6 @@ export default function DeployCommand() {
       argumentHint="[staging|production]"
       allowedTools={['Bash', 'Read', 'Task']}
     >
-      <XmlBlock name="objective">
-        <Markdown>{`Orchestrate a full deployment pipeline:
-1. Build the application
-2. Deploy to target environment
-3. Verify deployment health`}</Markdown>
-      </XmlBlock>
-
       <XmlBlock name="process">
         <Markdown>{`## 1. Parse Arguments
 
@@ -189,63 +104,24 @@ Extract environment from $ARGUMENTS (default: staging).
           agent="build-agent"
           model="haiku"
           description="Build application for {environment}"
-          prompt={`Build the application for deployment.
-
-**Environment:** {environment}
-**Skip Tests:** false
-
-Run the full build pipeline and report results.`}
+          input={{
+            environment: "{environment}",
+            skipTests: false
+          }}
         />
 
         <Markdown>{`
 ### Handle Build Result
 
-- **BUILD COMPLETE** → Continue to step 3
-- **BUILD FAILED** → Show error, abort deployment
-
-## 3. Spawn Deploy Agent
-`}</Markdown>
-
-        <SpawnAgent<DeployAgentInput>
-          agent="deploy-agent"
-          model="haiku"
-          description="Deploy to {environment}"
-          prompt={`Deploy the built artifacts.
-
-**Environment:** {environment}
-**Version:** {version from build}
-
-Push to target environment and verify health.`}
-        />
-
-        <Markdown>{`
-### Handle Deploy Result
-
-- **DEPLOY COMPLETE** → Show success with URL
-- **DEPLOY FAILED** → Show error, suggest rollback
-
-## 4. Final Report
-
-Display deployment summary:
-- Environment
-- Version deployed
-- Live URL
-- Health status`}</Markdown>
-      </XmlBlock>
-
-      <XmlBlock name="success_criteria">
-        <Markdown>{`- [ ] Environment parsed
-- [ ] Build agent spawned and completed
-- [ ] Deploy agent spawned and completed
-- [ ] Health check passed
-- [ ] User sees deployment URL`}</Markdown>
+- **BUILD COMPLETE** → Continue to deployment
+- **BUILD FAILED** → Show error, abort`}</Markdown>
       </XmlBlock>
     </Command>
   );
 }
 ```
 
-### Step 3: Compiled Output
+### Compiled Output
 
 The command compiles to markdown with `Task()` calls:
 
@@ -260,13 +136,6 @@ allowed-tools:
   - Task
 ---
 
-<objective>
-Orchestrate a full deployment pipeline:
-1. Build the application
-2. Deploy to target environment
-3. Verify deployment health
-</objective>
-
 <process>
 ## 1. Parse Arguments
 
@@ -275,12 +144,7 @@ Extract environment from $ARGUMENTS (default: staging).
 ## 2. Spawn Build Agent
 
 Task(
-  prompt="Build the application for deployment.
-
-**Environment:** {environment}
-**Skip Tests:** false
-
-Run the full build pipeline and report results.",
+  prompt="...",
   subagent_type="build-agent",
   model="haiku",
   description="Build application for {environment}"
@@ -288,284 +152,52 @@ Run the full build pipeline and report results.",
 
 ### Handle Build Result
 
-- **BUILD COMPLETE** → Continue to step 3
-- **BUILD FAILED** → Show error, abort deployment
-
-## 3. Spawn Deploy Agent
-
-Task(
-  prompt="Deploy the built artifacts.
-
-**Environment:** {environment}
-**Version:** {version from build}
-
-Push to target environment and verify health.",
-  subagent_type="deploy-agent",
-  model="haiku",
-  description="Deploy to {environment}"
-)
-
-### Handle Deploy Result
-...
+- **BUILD COMPLETE** → Continue to deployment
+- **BUILD FAILED** → Show error, abort
 </process>
 ```
 
-## Type Safety
+## Type Safety with AgentRef
 
-The generic type parameter validates that your SpawnAgent matches the Agent's expected input:
+Use `defineAgent` for fully type-safe agent references:
 
 ```tsx
-// In agent file
-export interface BuildAgentInput {
-  environment: 'staging' | 'production';
-  skipTests?: boolean;
-}
-
-// In command file
+import { defineAgent, SpawnAgent } from 'react-agentic';
+import BuildAgentComponent from './build-agent.js';
 import type { BuildAgentInput } from './build-agent.js';
 
-<SpawnAgent<BuildAgentInput>
-  agent="build-agent"
-  ...
-/>
-```
+// Create type-safe agent reference
+const buildAgent = defineAgent<BuildAgentInput>({
+  name: 'build-agent',
+  component: BuildAgentComponent,
+});
 
-This creates a compile-time contract between Command and Agent.
-
-## Variable Placeholders
-
-Use `{variable}` syntax for runtime substitution:
-
-```tsx
+// Use in command
 <SpawnAgent
-  model="{model_from_config}"
-  description="Process {item_count} items"
-  prompt={`Handle these files: {file_list}`}
+  agent={buildAgent}
+  model="haiku"
+  description="Build application"
+  input={{
+    environment: "staging",  // TypeScript validates this
+    skipTests: false
+  }}
 />
 ```
-
-Claude fills these in at runtime based on context.
-
-## Typed Input (Recommended)
-
-Instead of writing prompts manually, use the `input` prop for type-safe communication.
-
-### Object Literal Input
-
-Pass structured data that matches the Agent's interface. Property values can be:
-- **String literals**: `"value"` or `"{placeholder}"`
-- **VariableRefs**: Variables from `useVariable()`
-
-```tsx
-// Agent defines its input contract
-export interface ResearcherInput {
-  phase: string;
-  goal: string;
-  requirements?: string;
-}
-
-export function Researcher() {
-  return (
-    <Agent<ResearcherInput> name="researcher" description="Research topics">
-      ...
-    </Agent>
-  );
-}
-
-// Command uses typed input with VariableRefs
-const phaseVar = useVariable<string>("PHASE");
-
-export default function PlanPhase() {
-  return (
-    <Command name="plan" description="Plan a phase">
-      <Assign var={phaseVar} bash={`echo "$1"`} />
-      <SpawnAgent<ResearcherInput>
-        input={{
-          phase: phaseVar,           // VariableRef - emits {phase}
-          goal: "Complete research"  // String literal
-        }}
-        agent="researcher"
-        model="{model}"
-        description="Research phase"
-      />
-    </Command>
-  );
-}
-```
-
-Generated prompt:
-```
-<phase>
-{phase}
-</phase>
-
-<goal>
-Complete research
-</goal>
-```
-
-Using VariableRefs is preferred over string placeholders like `"{phase}"` because:
-1. **Type-safe** — TypeScript validates the variable exists
-2. **No typos** — Reference the actual variable, not a string
-3. **Refactor-friendly** — Renaming variables updates all references
-
-### VariableRef Input
-
-For dynamic data computed at runtime, use `useVariable`:
-
-```tsx
-const context = useVariable("CONTEXT", {
-  bash: `cat \${PHASE_DIR}/context.json`
-});
-
-<SpawnAgent<ResearcherInput>
-  input={context}
-  agent="researcher"
-  model="{model}"
-  description="Research with context"
-/>
-```
-
-Generated prompt:
-```
-<input>
-{context}
-</input>
-```
-
-### Extra Instructions
-
-Children become additional instructions appended to the auto-generated prompt:
-
-```tsx
-<SpawnAgent<ResearcherInput>
-  input={{ phase: "{phase}", goal: "Research" }}
-  agent="researcher"
-  model="{model}"
-  description="Research phase"
->
-  Focus on technical requirements.
-  Ignore marketing considerations.
-</SpawnAgent>
-```
-
-### Compile-Time Validation
-
-When using the `input` prop with an object literal, the compiler validates that:
-- All required interface properties are provided
-- Property names match the interface definition
-
-Missing required properties cause a **compile-time error**, not a runtime failure:
-
-```tsx
-// Agent interface requires 'goal' and 'context'
-export interface TaskInput {
-  goal: string;
-  context: string;
-  priority?: number;  // optional
-}
-
-// This FAILS at compile time:
-<SpawnAgent<TaskInput>
-  input={{ goal: "Do something" }}  // ERROR: missing required property 'context'
-  ...
-/>
-
-// This succeeds:
-<SpawnAgent<TaskInput>
-  input={{ goal: "Do something", context: "Project X" }}  // OK
-  ...
-/>
-```
-
-This ensures type mismatches are caught before your command runs, not during execution.
-
-## Data Flow Summary
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Command (deploy-command.tsx)                               │
-│                                                             │
-│  1. Parse args, gather context                              │
-│  2. <SpawnAgent agent="build-agent" prompt={...} />         │
-│       │                                                     │
-│       └──► Task() emitted in markdown                       │
-│             │                                               │
-│             ▼                                               │
-│       ┌─────────────────────────────────────┐               │
-│       │  Agent (build-agent)                │               │
-│       │  - Receives prompt                  │               │
-│       │  - Executes build steps             │               │
-│       │  - Returns: ## BUILD COMPLETE       │               │
-│       └─────────────────────────────────────┘               │
-│             │                                               │
-│             ▼                                               │
-│  3. Parse agent result                                      │
-│  4. <SpawnAgent agent="deploy-agent" prompt={...} />        │
-│       │                                                     │
-│       └──► (same pattern)                                   │
-│                                                             │
-│  5. Show final results to user                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Combining with Conditionals
-
-SpawnAgent pairs well with `<If>/<Else>` for conditional agent spawning:
-
-```tsx
-import { Command, XmlBlock, SpawnAgent, If, Else, Assign, useVariable } from '../jsx.js';
-import type { BuildAgentInput } from './build-agent.js';
-
-const testsPass = useVariable("TESTS_PASS", {
-  bash: `npm test --silent && echo "true" || echo "false"`
-});
-
-export default function ConditionalDeployCommand() {
-  return (
-    <Command name="conditional-deploy" description="Deploy only if tests pass">
-      <XmlBlock name="process">
-        <h2>1. Run Tests</h2>
-        <Assign var={testsPass} />
-
-        <If test="[ $TESTS_PASS = 'true' ]">
-          <p>Tests passed. Proceeding with deployment.</p>
-
-          <SpawnAgent<BuildAgentInput>
-            agent="build-agent"
-            model="haiku"
-            description="Build for deployment"
-            input={{ environment: "production" }}
-          />
-        </If>
-        <Else>
-          <p>Tests failed. Deployment aborted.</p>
-          <pre><code className="language-bash">npm test</code></pre>
-        </Else>
-      </XmlBlock>
-    </Command>
-  );
-}
-```
-
-This pattern emits conditional blocks that guide Claude's execution flow, spawning agents only when conditions are met.
 
 ## Handling Agent Output
 
-After spawning an agent, you often need to handle its return status. The `useOutput` hook and `OnStatus` component provide type-safe output handling.
+After spawning an agent, handle its return status with `useOutput` and `OnStatus`.
 
 ### useOutput Hook
 
 Declare an output reference to track an agent's return:
 
 ```tsx
-import { useOutput, OnStatus } from '../jsx.js';
-import type { MyAgentOutput } from './my-agent.js';
+import { useOutput, OnStatus } from 'react-agentic';
+import type { BuildAgentOutput } from './build-agent.js';
 
-const output = useOutput<MyAgentOutput>("my-agent");
+const output = useOutput<BuildAgentOutput>("build-agent");
 ```
-
-The generic type parameter links to the agent's output interface, enabling type-safe field access.
 
 ### OnStatus Component
 
@@ -573,15 +205,15 @@ Conditionally render content based on agent return status:
 
 ```tsx
 <OnStatus output={output} status="SUCCESS">
-  <p>Agent completed with {output.field('confidence')} confidence.</p>
+  <p>Build completed. Artifacts at {output.field('artifactPath')}.</p>
 </OnStatus>
 
 <OnStatus output={output} status="BLOCKED">
-  <p>Agent blocked by: {output.field('blockedBy')}</p>
+  <p>Build blocked: {output.field('blockedBy')}</p>
 </OnStatus>
 
 <OnStatus output={output} status="ERROR">
-  <p>Agent encountered an error.</p>
+  <p>Build failed.</p>
 </OnStatus>
 ```
 
@@ -591,50 +223,46 @@ Conditionally render content based on agent return status:
 |------|------|----------|-------------|
 | `output` | OutputRef | Yes | Output reference from `useOutput` |
 | `status` | string | Yes | Status to match (SUCCESS, BLOCKED, ERROR) |
-| `children` | ReactNode | Yes | Content to render when status matches |
+| `children` | ReactNode | Yes | Content when status matches |
 
 ### output.field() Method
 
-Access typed output fields with compile-time interpolation:
+Access typed output fields:
 
 ```tsx
 output.field('confidence')  // Emits: {output.confidence}
-output.field('blockedBy')   // Emits: {output.blockedBy}
-output.field('message')     // Emits: {output.message}
+output.field('artifactPath')   // Emits: {output.artifactPath}
 ```
-
-The field name is validated against the output interface at compile time.
 
 ### Output Format
 
-`OnStatus` emits as prose-based markdown, following the same pattern as `<If>/<Else>`:
+`OnStatus` emits as prose-based markdown:
 
 ```markdown
 **On SUCCESS:**
 
-Agent completed with {output.confidence} confidence.
+Build completed. Artifacts at {output.artifactPath}.
 
 **On BLOCKED:**
 
-Agent blocked by: {output.blockedBy}
+Build blocked: {output.blockedBy}
 
 **On ERROR:**
 
-Agent encountered an error.
+Build failed.
 ```
 
-### Complete Example
+## Complete Example
 
 A command that spawns an agent and handles all return statuses:
 
 ```tsx
-import { Command, XmlBlock, SpawnAgent, useOutput, OnStatus } from '../jsx.js';
-import type { BuildAgentInput } from './build-agent.js';
-import type { BuildAgentOutput } from './build-agent.js';
-
-const buildOutput = useOutput<BuildAgentOutput>("build-agent");
+import { Command, XmlBlock, SpawnAgent, useOutput, OnStatus } from 'react-agentic';
+import type { BuildAgentInput, BuildAgentOutput } from './build-agent.js';
 
 export default function BuildCommand() {
+  const buildOutput = useOutput<BuildAgentOutput>("build-agent");
+
   return (
     <Command name="build" description="Build with status handling">
       <XmlBlock name="process">
@@ -650,18 +278,15 @@ export default function BuildCommand() {
         <h2>2. Handle Result</h2>
 
         <OnStatus output={buildOutput} status="SUCCESS">
-          <p>Build succeeded. Artifacts ready at {buildOutput.field('artifactPath')}.</p>
-          <p>Proceeding to deployment...</p>
+          <p>Build succeeded. Artifacts at {buildOutput.field('artifactPath')}.</p>
         </OnStatus>
 
         <OnStatus output={buildOutput} status="BLOCKED">
           <p>Build blocked: {buildOutput.field('blockedBy')}</p>
-          <p>Please resolve the blocker and retry.</p>
         </OnStatus>
 
         <OnStatus output={buildOutput} status="ERROR">
-          <p>Build failed: {buildOutput.field('message')}</p>
-          <p>Check logs and fix errors before retrying.</p>
+          <p>Build failed. Check logs and retry.</p>
         </OnStatus>
       </XmlBlock>
     </Command>
@@ -669,13 +294,43 @@ export default function BuildCommand() {
 }
 ```
 
+## Data Flow Summary
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Command (deploy-command.tsx)                               │
+│                                                             │
+│  1. Parse args, gather context                              │
+│  2. <SpawnAgent agent="build-agent" input={...} />          │
+│       │                                                     │
+│       └──► Task() emitted in markdown                       │
+│             │                                               │
+│             ▼                                               │
+│       ┌─────────────────────────────────────┐               │
+│       │  Agent (build-agent)                │               │
+│       │  - Receives input                   │               │
+│       │  - Executes build steps             │               │
+│       │  - Returns: SUCCESS/BLOCKED/ERROR   │               │
+│       └─────────────────────────────────────┘               │
+│             │                                               │
+│             ▼                                               │
+│  3. <OnStatus> handles result                               │
+│  4. Continue with next steps or error handling              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ## Tips
 
-1. **Export interfaces from agents** — Enables type-safe spawning
-2. **Use structured returns** — Makes parsing agent results predictable
-3. **Keep prompts focused** — One clear objective per spawn
-4. **Handle both success/failure** — Agents can fail, plan for it
-5. **Use appropriate models** — `haiku` for simple tasks, `sonnet`/`opus` for complex
-6. **Combine with conditionals** — Use `<If>/<Else>` for conditional agent spawning
-7. **Use OnStatus for agent results** — Handle SUCCESS/BLOCKED/ERROR states explicitly
-8. **Import output types** — Always import the agent's output interface for type safety
+1. **Export interfaces from agents** - Enables type-safe spawning
+2. **Use structured returns** - Makes parsing agent results predictable
+3. **Keep prompts focused** - One clear objective per spawn
+4. **Handle both success/failure** - Agents can fail, plan for it
+5. **Use appropriate models** - `haiku` for simple tasks, `sonnet`/`opus` for complex
+6. **Use OnStatus for agent results** - Handle SUCCESS/BLOCKED/ERROR explicitly
+
+## See Also
+
+- [Agent](./agent.md) - Building spawnable agents
+- [Command](./command.md) - Building slash commands
+- [Control Flow](./control-flow.md) - If/Else, Loop, Return
