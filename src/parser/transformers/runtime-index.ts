@@ -10,8 +10,15 @@ export {
   type RuntimeTransformResult,
   type RuntimeVarInfo,
   type RuntimeFunctionInfo,
+  type LocalComponentInfo,
   createRuntimeContext,
 } from './runtime-types.js';
+
+// Local component transformer
+export {
+  extractLocalComponentDeclarations,
+  transformLocalComponent,
+} from './runtime-component.js';
 
 // Runtime variable transformer
 export {

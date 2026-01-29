@@ -7,8 +7,8 @@
  * - Import paths for extraction
  */
 
-import type { SourceFile, Node } from 'ts-morph';
-import type { RuntimeVarDeclNode } from '../../ir/index.js';
+import type { SourceFile, Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
+import type { RuntimeVarDeclNode, BlockNode } from '../../ir/index.js';
 
 // ============================================================================
 // Runtime Variable Info
@@ -53,6 +53,27 @@ export interface RuntimeFunctionInfo {
 }
 
 // ============================================================================
+// Local Component Info
+// ============================================================================
+
+/**
+ * Information about a local component definition
+ *
+ * Tracks PascalCase function components defined in the same file
+ * for build-time inlining.
+ */
+export interface LocalComponentInfo {
+  /** Component name (PascalCase) */
+  name: string;
+  /** The AST node of the declaration (VariableDeclaration or FunctionDeclaration) */
+  declaration: Node;
+  /** Names of props (from destructured params or single param name) */
+  propNames: string[];
+  /** Cached JSX returned by the component (filled on first expansion) */
+  jsx?: JsxElement | JsxSelfClosingElement | JsxFragment;
+}
+
+// ============================================================================
 // Runtime Transform Context
 // ============================================================================
 
@@ -87,6 +108,18 @@ export interface RuntimeTransformContext {
 
   /** Track runtime function usage during transformation */
   usedRuntimeFunctions: Set<string>;
+
+  /** Local component definitions: name -> info */
+  localComponents: Map<string, LocalComponentInfo>;
+
+  /** Component expansion stack for circular reference detection */
+  componentExpansionStack: Set<string>;
+
+  /** Current component props during expansion (for prop substitution) */
+  componentProps: Map<string, unknown> | null;
+
+  /** Current component children during expansion (for children substitution) */
+  componentChildren: BlockNode[] | null;
 }
 
 // ============================================================================
@@ -128,6 +161,10 @@ export function createRuntimeContext(
     runtimeFunctions: new Map(),
     runtimeImports: new Set(),
     usedRuntimeFunctions: new Set(),
+    localComponents: new Map(),
+    componentExpansionStack: new Set(),
+    componentProps: null,
+    componentChildren: null,
     createError: (message: string, node: Node) => {
       const startLine = node.getStartLineNumber();
       const file = node.getSourceFile().getFilePath();

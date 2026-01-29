@@ -8,7 +8,7 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute } from './runtime-utils.js';
+import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute, isCustomComponent } from './runtime-utils.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
 // Runtime transformers
@@ -16,6 +16,7 @@ import { transformRuntimeIf, transformRuntimeElse, transformRuntimeLoop, transfo
 import { transformRuntimeCall, isRuntimeFnCall } from './runtime-call.js';
 import { transformAskUser } from './runtime-ask-user.js';
 import { transformRuntimeSpawnAgent } from './runtime-spawner.js';
+import { transformLocalComponent } from './runtime-component.js';
 
 // Runtime inline transformer for RuntimeVar interpolation
 import { transformRuntimeInlineChildren } from './runtime-inline.js';
@@ -303,8 +304,24 @@ function transformRuntimeMixedChildren(
           contentAccumulator.push(value);
         }
       } else if (expr) {
-        // Other expressions - add placeholder syntax
-        contentAccumulator.push(`{${expr.getText()}}`);
+        const exprText = expr.getText();
+
+        // Check for children prop substitution: {children} or {props.children}
+        if ((exprText === 'children' || exprText === 'props.children') && ctx.componentChildren) {
+          // Flush accumulated content first
+          flushContent();
+          // Insert the component children
+          blocks.push(...ctx.componentChildren);
+        } else if (ctx.componentProps && Node.isIdentifier(expr) && ctx.componentProps.has(exprText)) {
+          // Component prop substitution
+          const propValue = ctx.componentProps.get(exprText);
+          if (propValue !== undefined && propValue !== null) {
+            contentAccumulator.push(String(propValue));
+          }
+        } else {
+          // Other expressions - add placeholder syntax
+          contentAccumulator.push(`{${exprText}}`);
+        }
       }
     }
   }
@@ -669,6 +686,19 @@ function transformRuntimeElement(
   // Indent component - indents children by specified spaces
   if (name === 'Indent') {
     return transformRuntimeIndent(node, ctx);
+  }
+
+  // Check for local component (same-file function components)
+  if (isCustomComponent(name) && ctx.localComponents.has(name)) {
+    const result = transformLocalComponent(node, ctx, transformRuntimeBlockChildren);
+    if (result) {
+      // If array, return first element (or wrap in group)
+      if (Array.isArray(result)) {
+        if (result.length === 1) return result[0];
+        return { kind: 'group', children: result } as BlockNode;
+      }
+      return result;
+    }
   }
 
   throw ctx.createError(`Unsupported V3 element: <${name}>`, node);

@@ -161,16 +161,25 @@ function transformRuntimeToInline(
       if (result) return result;
     }
 
-    // Direct identifier reference: {iteration}, {userChoice}
+    // Direct identifier reference: {iteration}, {userChoice}, or component props like {name}
     if (Node.isIdentifier(expr)) {
       const varName = expr.getText();
+
+      // Check for component prop first
+      if (ctx.componentProps && ctx.componentProps.has(varName)) {
+        const propValue = ctx.componentProps.get(varName);
+        if (propValue !== undefined && propValue !== null) {
+          return { kind: 'text', value: String(propValue) };
+        }
+      }
+
       const runtimeVar = ctx.runtimeVars.get(varName);
       if (runtimeVar) {
         // This is a RuntimeVar reference - emit jq expression
         const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
         return { kind: 'text', value };
       }
-      // Not a RuntimeVar - return raw text
+      // Not a RuntimeVar or component prop - return raw text
       return { kind: 'text', value: varName };
     }
 

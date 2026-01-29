@@ -14,6 +14,7 @@ import {
   createRuntimeContext,
   extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
+  extractLocalComponentDeclarations,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
   transformRuntimeCommand,
@@ -98,9 +99,8 @@ function unwrapParens(node: Node): Node {
 function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
   let result: Node | null = null;
 
-  // Use forEachDescendant to find JSX anywhere in file
+  // Pass 1: Look for export default (highest priority)
   sourceFile.forEachDescendant((node, traversal) => {
-    // Check export assignments: export default ...
     if (Node.isExportAssignment(node)) {
       const expr = node.getExpression();
       if (expr) {
@@ -112,8 +112,14 @@ function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
         }
       }
     }
+  });
 
-    // Check return statements
+  // If found via export default, return it
+  if (result) return result;
+
+  // Pass 2: Fall back to looking for return statements at module level
+  // This is for files without export default
+  sourceFile.forEachDescendant((node, traversal) => {
     if (Node.isReturnStatement(node)) {
       const expr = node.getExpression();
       if (expr) {
@@ -189,6 +195,7 @@ export async function buildRuntimeFile(
   // Phase 1: Extract declarations
   extractRuntimeVarDeclarations(sourceFile, ctx);
   extractRuntimeFnDeclarations(sourceFile, ctx);
+  extractLocalComponentDeclarations(sourceFile, ctx);
 
   // Phase 2: Find root element
   const rootElement = findRuntimeRootElement(sourceFile);
