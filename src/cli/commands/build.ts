@@ -59,16 +59,6 @@ async function runBuild(
       // Parse file
       const sourceFile = project.addSourceFileAtPath(inputFile);
 
-      // Check if file uses runtime features (useRuntimeVar, runtimeFn)
-      const fileContent = sourceFile.getFullText();
-      const isRuntime = hasRuntimeImports(fileContent);
-
-      if (!isRuntime) {
-        // Skip non-runtime files with warning
-        logWarning(`Skipping ${inputFile}: V1 files are no longer supported. Please migrate to runtime features.`);
-        continue;
-      }
-
       // Build runtime file
       const buildResult = await buildRuntimeFile(sourceFile, project, {
         commandsOut: options.out,

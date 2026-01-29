@@ -157,7 +157,36 @@ export {
 // ============================================================================
 
 export { createProject } from './parser/utils/project.js';
-export { findRootJsxElement, transform, getAttributeValue, resolveTypeImport, extractInterfaceProperties, extractPromptPlaceholders } from './parser/index.js';
+export {
+  findRootJsxElement,
+  transform,
+  getAttributeValue,
+  resolveTypeImport,
+  extractInterfaceProperties,
+  extractPromptPlaceholders,
+  // Additional parser utilities
+  parseSource,
+  parseFile,
+  getElementName,
+  getJsxChildren,
+  isWhitespaceOnlyText,
+  normalizeWhitespace,
+  extractText,
+  extractTypeArguments,
+  getArrayAttributeValue,
+  extractVariableDeclarations,
+  extractInputObjectLiteral,
+  // V1 Transformer class
+  Transformer,
+  type JsxChild,
+  type ExtractedVariable,
+} from './parser/index.js';
+
+// ============================================================================
+// Schema Primitives
+// ============================================================================
+
+export { defineVars, defineFiles, defineContext } from './primitives/schema.js';
 
 // ============================================================================
 // Additional Emitters
