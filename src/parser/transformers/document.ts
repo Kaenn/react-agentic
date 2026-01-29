@@ -326,6 +326,12 @@ export function transformCommand(
     data['allowed-tools'] = allowedTools;
   }
 
+  // Optional arguments array (command arguments)
+  const args = props.arguments as Array<{ name: string; description: string; required?: boolean }> | undefined;
+  if (args && args.length > 0) {
+    data['arguments'] = args;
+  }
+
   const frontmatter: FrontmatterNode = { kind: 'frontmatter', data };
 
   // Transform children - check for render props pattern
@@ -440,21 +446,23 @@ export function transformAgent(
   if (Node.isJsxElement(node)) {
     const renderPropsInfo = analyzeRenderPropsChildren(node);
 
-    if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction && renderPropsInfo.paramName) {
-      // Build context values for interpolation
-      const sourcePath = ctx.sourceFile?.getFilePath() ?? '';
-      // Output path follows convention: .claude/agents/{name}.md
-      const outputPath = `.claude/agents/${name}.md`;
+    if (renderPropsInfo.isRenderProps && renderPropsInfo.arrowFunction) {
+      // Build context values for interpolation (only if paramName is defined)
+      if (renderPropsInfo.paramName) {
+        const sourcePath = ctx.sourceFile?.getFilePath() ?? '';
+        // Output path follows convention: .claude/agents/{name}.md
+        const outputPath = `.claude/agents/${name}.md`;
 
-      ctx.renderPropsContext = {
-        paramName: renderPropsInfo.paramName,
-        values: {
-          name,
-          description,
-          outputPath,
-          sourcePath,
-        },
-      };
+        ctx.renderPropsContext = {
+          paramName: renderPropsInfo.paramName,
+          values: {
+            name,
+            description,
+            outputPath,
+            sourcePath,
+          },
+        };
+      }
 
       // Render props pattern: transform arrow function body
       children = transformArrowFunctionBody(renderPropsInfo.arrowFunction, ctx);

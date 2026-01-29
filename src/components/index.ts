@@ -38,6 +38,7 @@ export {
   Command,
   type CommandProps,
   type CommandContext,
+  type CommandArgument,
 } from './Command.js';
 
 // ============================================================================

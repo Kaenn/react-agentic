@@ -60,6 +60,7 @@ export {
   // Types
   type CommandProps,
   type CommandContext,
+  type CommandArgument,
   type AgentProps,
   type AgentContext,
   type AgentStatus,

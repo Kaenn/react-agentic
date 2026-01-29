@@ -12,6 +12,19 @@ import type { ReactNode } from 'react';
 // ============================================================================
 
 /**
+ * Command argument definition
+ * Used for commands that accept arguments via the skill system
+ */
+export interface CommandArgument {
+  /** Argument name */
+  name: string;
+  /** Description of the argument */
+  description: string;
+  /** Whether the argument is required (default: false) */
+  required?: boolean;
+}
+
+/**
  * Context available in Command render props pattern
  * All values resolved at compile time, static in output
  */
@@ -46,6 +59,8 @@ export interface CommandProps {
   allowedTools?: string[];
   /** Subfolder for output path (e.g., "gsd" → .claude/commands/gsd/my-cmd.md) */
   folder?: string;
+  /** Arguments array (maps to arguments in frontmatter) */
+  arguments?: CommandArgument[];
   /**
    * Command body content - either regular JSX or render props function
    * Render props: (ctx: CommandContext) => ReactNode

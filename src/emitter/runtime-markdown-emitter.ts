@@ -191,10 +191,39 @@ export class RuntimeMarkdownEmitter {
   emit(doc: DocumentNode): string {
     const parts: string[] = [];
 
-    // Emit frontmatter
+    // Emit frontmatter using simple YAML to avoid unnecessary quoting
     if (doc.frontmatter) {
-      const fm = matter.stringify('', doc.frontmatter.data).trimEnd();
-      parts.push(fm);
+      const lines: string[] = ['---'];
+      for (const [key, value] of Object.entries(doc.frontmatter.data)) {
+        if (value === undefined || value === null) continue;
+        if (Array.isArray(value)) {
+          // Handle arrays (like arguments)
+          lines.push(`${key}:`);
+          for (const item of value) {
+            if (typeof item === 'object' && item !== null) {
+              // Object in array - emit as indented YAML
+              const entries = Object.entries(item);
+              for (let i = 0; i < entries.length; i++) {
+                const [k, v] = entries[i];
+                if (i === 0) {
+                  // First key gets the dash
+                  lines.push(`  - ${k}: ${this.formatYamlValue(v)}`);
+                } else {
+                  // Subsequent keys are indented
+                  lines.push(`    ${k}: ${this.formatYamlValue(v)}`);
+                }
+              }
+            } else {
+              // Simple value in array
+              lines.push(`  - ${item}`);
+            }
+          }
+        } else {
+          lines.push(`${key}: ${value}`);
+        }
+      }
+      lines.push('---');
+      parts.push(lines.join('\n'));
     }
 
     // Emit body content
@@ -549,8 +578,30 @@ Task(
     const content = parts.join('');
     // Preserve up to 2 trailing newlines (one blank line) before closing tag
     // This maintains intentional blank lines in source while preventing excessive whitespace
-    const normalizedContent = content.replace(/\n{3,}$/, '\n\n');
-    return `<${node.name}${attrs}>${normalizedContent}</${node.name}>`;
+    // Strip leading newline (added by emitter), preserve up to 2 trailing newlines
+    const normalizedContent = content.replace(/^\n/, '').replace(/\n{3,}$/, '\n\n');
+    return `<${node.name}${attrs}>\n${normalizedContent}</${node.name}>`;
+  }
+
+  /**
+   * Format a value for YAML output
+   * Quotes strings that contain special YAML characters
+   */
+  private formatYamlValue(value: unknown): string {
+    if (typeof value === 'string') {
+      // Quote if contains colon followed by space, or starts/ends with special chars
+      if (value.includes(': ') || /^['"@&*!|>%]/.test(value) || /["'\n]/.test(value)) {
+        return `"${value.replace(/"/g, '\\"')}"`;
+      }
+      return value;
+    }
+    if (typeof value === 'boolean') {
+      return value.toString();
+    }
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    return String(value);
   }
 
   private emitExecutionContext(node: import('../ir/nodes.js').ExecutionContextNode): string {

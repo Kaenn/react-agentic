@@ -6,6 +6,7 @@
  */
 
 import matter from 'gray-matter';
+import yaml from 'js-yaml';
 import type { SourceFile } from 'ts-morph';
 import type {
   AgentDocumentNode,
@@ -94,17 +95,20 @@ export class MarkdownEmitter {
    * Emit Agent frontmatter (GSD format: tools as string)
    */
   private emitAgentFrontmatter(node: AgentFrontmatterNode): string {
-    const data: Record<string, unknown> = {
-      name: node.name,
-      description: node.description,
-    };
+    // Build YAML manually to match GSD format exactly (no unnecessary quoting)
+    const lines: string[] = [
+      '---',
+      `name: ${node.name}`,
+      `description: ${node.description}`,
+    ];
     if (node.tools) {
-      data.tools = node.tools;
+      lines.push(`tools: ${node.tools}`);
     }
     if (node.color) {
-      data.color = node.color;
+      lines.push(`color: ${node.color}`);
     }
-    return matter.stringify('', data).trimEnd();
+    lines.push('---');
+    return lines.join('\n');
   }
 
   /**

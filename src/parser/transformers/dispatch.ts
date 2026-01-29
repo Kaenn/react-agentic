@@ -6,11 +6,31 @@
  * import transformBlockChildren and transformToBlock instead of each other.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, TemplateExpression } from 'ts-morph';
 import type { BlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getElementName, extractText } from '../utils/index.js';
 import { isCustomComponent } from './shared.js';
+
+/**
+ * Extract content from template expression, preserving ${var} syntax
+ */
+function extractTemplateContent(expr: TemplateExpression): string {
+  const parts: string[] = [];
+
+  // Head: text before first ${...}
+  parts.push(expr.getHead().getLiteralText());
+
+  // Spans: each has expression + literal text after
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    // Preserve ${...} syntax for bash/code
+    parts.push(`\${${spanExpr.getText()}}`);
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
+}
 
 // Import all transform functions from modules
 import { transformList, transformBlockquote, transformCodeBlock, transformDiv } from './html.js';
@@ -41,7 +61,28 @@ export function transformToBlock(node: Node, ctx: TransformContext): BlockNode |
     return transformElement(name, node, ctx);
   }
 
-  return null; // JsxExpression etc - handle later
+  // Handle JSX expressions: {`template`}, {"string"}, etc.
+  if (Node.isJsxExpression(node)) {
+    const expr = node.getExpression();
+    if (expr) {
+      let content: string | null = null;
+
+      if (Node.isStringLiteral(expr)) {
+        content = expr.getLiteralValue();
+      } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+        content = expr.getLiteralValue();
+      } else if (Node.isTemplateExpression(expr)) {
+        content = extractTemplateContent(expr);
+      }
+
+      if (content !== null) {
+        // Return raw content block - preserves content as-is
+        return { kind: 'raw', content };
+      }
+    }
+  }
+
+  return null; // Other expressions not yet handled
 }
 
 /**

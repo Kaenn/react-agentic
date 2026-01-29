@@ -261,10 +261,22 @@ function transformRuntimeMixedChildren(
         // If text is whitespace-only but contains newlines, and we have accumulated content,
         // preserve newlines to separate lines (e.g., between two JSX expressions)
         // Cap at 2 newlines (one blank line) to avoid excessive whitespace
+        // BUT: don't add trailing whitespace if remaining children are only whitespace
+        // (this avoids adding formatting newlines between last content and closing tag)
         const rawText = child.getFullText();
         if (rawText.includes('\n') && contentAccumulator.length > 0) {
-          const newlineCount = (rawText.match(/\n/g) || []).length;
-          contentAccumulator.push('\n'.repeat(Math.min(newlineCount, 2)));
+          // Check if there's more non-whitespace content coming
+          const hasMoreContent = jsxChildren.slice(i + 1).some(c => {
+            if (Node.isJsxText(c)) {
+              return !!extractMarkdownText(c);
+            }
+            // Any non-text child (expressions, elements) counts as content
+            return true;
+          });
+          if (hasMoreContent) {
+            const newlineCount = (rawText.match(/\n/g) || []).length;
+            contentAccumulator.push('\n'.repeat(Math.min(newlineCount, 2)));
+          }
         }
       }
       i++;
@@ -337,6 +349,24 @@ function transformRuntimeMixedChildren(
       if (expr && Node.isStringLiteral(expr)) {
         // String literal - add value directly (handles escapes like {'>'})
         const value = expr.getLiteralValue();
+        if (value) {
+          contentAccumulator.push(value);
+        }
+      } else if (expr && Node.isNoSubstitutionTemplateLiteral(expr)) {
+        // Template literal without interpolation - add value directly
+        const value = expr.getLiteralValue();
+        if (value) {
+          contentAccumulator.push(value);
+        }
+      } else if (expr && Node.isTemplateExpression(expr)) {
+        // Template literal with interpolation - extract content preserving ${...}
+        const parts: string[] = [];
+        parts.push(expr.getHead().getLiteralText());
+        for (const span of expr.getTemplateSpans()) {
+          parts.push(`\${${span.getExpression().getText()}}`);
+          parts.push(span.getLiteral().getLiteralText());
+        }
+        const value = parts.join('');
         if (value) {
           contentAccumulator.push(value);
         }
@@ -873,12 +903,29 @@ export function transformRuntimeCommand(
       if (expr && Node.isStringLiteral(expr)) {
         frontmatterData[yamlKey] = expr.getLiteralValue();
       }
-      // Handle array literals for props like allowedTools
+      // Handle array literals for props like allowedTools or arguments
       else if (expr && Node.isArrayLiteralExpression(expr)) {
-        const values: string[] = [];
+        const values: (string | Record<string, unknown>)[] = [];
         for (const el of expr.getElements()) {
           if (Node.isStringLiteral(el)) {
             values.push(el.getLiteralValue());
+          } else if (Node.isObjectLiteralExpression(el)) {
+            // Handle object literals in arrays (e.g., arguments array)
+            const obj: Record<string, unknown> = {};
+            for (const prop of el.getProperties()) {
+              if (Node.isPropertyAssignment(prop)) {
+                const propName = prop.getName();
+                const propInit = prop.getInitializer();
+                if (propInit && Node.isStringLiteral(propInit)) {
+                  obj[propName] = propInit.getLiteralValue();
+                } else if (propInit && (Node.isTrueLiteral(propInit) || Node.isFalseLiteral(propInit))) {
+                  obj[propName] = Node.isTrueLiteral(propInit);
+                }
+              }
+            }
+            if (Object.keys(obj).length > 0) {
+              values.push(obj);
+            }
           }
         }
         if (values.length > 0) {

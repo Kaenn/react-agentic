@@ -23,14 +23,19 @@ import {
 // Runtime emitter
 import {
   emitDocument,
+  emitAgent,
   isRuntimeFile,
   // Esbuild bundler
   extractExportedFunctionNames,
   type RuntimeFileInfo,
 } from '../emitter/index.js';
 
+// V1 transformer for Agent support
+import { transformAgent } from '../parser/transformers/document.js';
+import type { TransformContext } from '../parser/transformers/types.js';
+
 // IR
-import type { DocumentNode } from '../ir/index.js';
+import type { DocumentNode, AgentDocumentNode } from '../ir/index.js';
 
 // ============================================================================
 // Types
@@ -137,18 +142,38 @@ function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
 }
 
 /**
- * Check if the root element is a V3 Command
+ * Get the root element tag name
+ */
+function getRootElementTagName(element: Node): string | null {
+  if (Node.isJsxElement(element)) {
+    return element.getOpeningElement().getTagNameNode().getText();
+  } else if (Node.isJsxSelfClosingElement(element)) {
+    return element.getTagNameNode().getText();
+  }
+  return null;
+}
+
+/**
+ * Check if the root element is a Command
  */
 function isRuntimeCommand(element: Node): boolean {
-  let tagName: string | null = null;
-
-  if (Node.isJsxElement(element)) {
-    tagName = element.getOpeningElement().getTagNameNode().getText();
-  } else if (Node.isJsxSelfClosingElement(element)) {
-    tagName = element.getTagNameNode().getText();
-  }
-
+  const tagName = getRootElementTagName(element);
   return tagName === 'Command' || tagName === 'RuntimeCommand';
+}
+
+/**
+ * Check if the root element is an Agent
+ */
+function isAgentElement(element: Node): boolean {
+  const tagName = getRootElementTagName(element);
+  return tagName === 'Agent';
+}
+
+/**
+ * Check if the root element is a supported document type
+ */
+function isSupportedRootElement(element: Node): boolean {
+  return isRuntimeCommand(element) || isAgentElement(element);
 }
 
 // ============================================================================
@@ -203,8 +228,8 @@ export async function buildRuntimeFile(
     throw new Error(`No JSX element found in ${filePath}`);
   }
 
-  if (!isRuntimeCommand(rootElement)) {
-    throw new Error(`Runtime file must have <Command> as root element`);
+  if (!isSupportedRootElement(rootElement)) {
+    throw new Error(`File must have <Command> or <Agent> as root element`);
   }
 
   // Phase 3: Transform to IR
@@ -212,10 +237,30 @@ export async function buildRuntimeFile(
     throw new Error('Root element must be JSX');
   }
 
-  const document = transformRuntimeCommand(rootElement, ctx);
+  // Check if this is an Agent or Command
+  const isAgent = isAgentElement(rootElement);
+  let markdown: string;
+  let document: DocumentNode | null = null;
+  let agentDocument: AgentDocumentNode | null = null;
 
-  // Phase 4: Emit markdown
-  const markdown = emitDocument(document);
+  if (isAgent) {
+    // Transform Agent element using V1 transformer
+    const agentCtx: TransformContext = {
+      sourceFile,
+      visitedPaths: new Set(),
+      variables: new Map(),
+      outputs: new Map(),
+      stateRefs: new Map(),
+      renderPropsContext: undefined,
+      createError: (message: string, node: Node) => new Error(`${message} at ${node.getStartLineNumber()}`),
+    };
+    agentDocument = transformAgent(rootElement, agentCtx);
+    markdown = emitAgent(agentDocument);
+  } else {
+    // Transform Command element
+    document = transformRuntimeCommand(rootElement, ctx);
+    markdown = emitDocument(document);
+  }
 
   // Phase 5: Extract runtime info (bundling happens at the end for all files)
   const runtimeFunctionNames = getRuntimeFunctionNames(ctx);
@@ -242,8 +287,8 @@ export async function buildRuntimeFile(
     }
   }
 
-  // Extract folder from metadata (if present)
-  const folder = document.metadata?.folder;
+  // Extract folder from metadata (if present) - only for Command documents
+  const folder = document?.metadata?.folder;
 
   // Determine output paths (with optional folder subdirectory)
   const markdownPath = folder

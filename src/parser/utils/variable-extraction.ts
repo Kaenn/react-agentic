@@ -367,15 +367,15 @@ export function analyzeRenderPropsChildren(
     return { isRenderProps: false };
   }
 
-  // Extract parameter (should be exactly one)
+  // Extract parameter (zero or one parameter supported)
   const params = expr.getParameters();
-  if (params.length !== 1) {
+  if (params.length > 1) {
     return { isRenderProps: false };
   }
 
   return {
     isRenderProps: true,
-    paramName: params[0].getName(),
+    paramName: params.length > 0 ? params[0].getName() : undefined,
     arrowFunction: expr,
   };
 }
