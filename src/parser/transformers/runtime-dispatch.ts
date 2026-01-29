@@ -247,7 +247,11 @@ function transformRuntimeMixedChildren(
     contentAccumulator = [];
   };
 
-  for (const child of jsxChildren) {
+  // Use index-based iteration to support If/Else sibling lookahead
+  let i = 0;
+  while (i < jsxChildren.length) {
+    const child = jsxChildren[i];
+
     // Handle JSX text - preserve exact structure
     if (Node.isJsxText(child)) {
       const text = extractMarkdownText(child);
@@ -263,6 +267,7 @@ function transformRuntimeMixedChildren(
           contentAccumulator.push('\n'.repeat(Math.min(newlineCount, 2)));
         }
       }
+      i++;
       continue;
     }
 
@@ -284,6 +289,37 @@ function transformRuntimeMixedChildren(
             contentAccumulator.push(text);
           }
         }
+      } else if (name === 'If' || name === 'V3If') {
+        // Handle If with Else sibling lookahead
+        flushContent();
+        const ifNode = transformRuntimeIf(child, ctx, transformRuntimeBlockChildren);
+        blocks.push(ifNode);
+
+        // Check for Else sibling
+        let nextIndex = i + 1;
+        while (nextIndex < jsxChildren.length) {
+          const sibling = jsxChildren[nextIndex];
+
+          // Skip whitespace
+          if (Node.isJsxText(sibling)) {
+            const text = extractText(sibling);
+            if (!text) {
+              nextIndex++;
+              continue;
+            }
+          }
+
+          // Check if next non-whitespace is Else
+          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))) {
+            const siblingName = getElementName(sibling);
+            if (siblingName === 'Else' || siblingName === 'V3Else') {
+              const elseNode = transformRuntimeElse(sibling, ctx, transformRuntimeBlockChildren);
+              blocks.push(elseNode);
+              i = nextIndex;
+            }
+          }
+          break;
+        }
       } else {
         // Block element - flush accumulated content first
         flushContent();
@@ -291,6 +327,7 @@ function transformRuntimeMixedChildren(
         const block = transformRuntimeElement(child, ctx);
         if (block) blocks.push(block);
       }
+      i++;
       continue;
     }
 
@@ -324,6 +361,8 @@ function transformRuntimeMixedChildren(
         }
       }
     }
+
+    i++;
   }
 
   // Flush any remaining content
