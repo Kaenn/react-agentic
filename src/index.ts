@@ -1,18 +1,210 @@
 /**
  * react-agentic - Compile-time safety for Claude Code commands
  *
- * Main entry point - exports IR types and emitter functionality.
+ * Main entry point - exports components, IR types, and build functions.
  */
 
-// IR types
+// ============================================================================
+// Components - Compile-time JSX components
+// ============================================================================
+
+export {
+  // Core components
+  Command,
+  Agent,
+  SpawnAgent,
+  OnStatus,
+  Markdown,
+  XmlBlock,
+  Indent,
+  Table,
+  List,
+
+  // Control flow
+  If,
+  Else,
+  Loop,
+  Break,
+  Return,
+  AskUser,
+
+  // Runtime primitives
+  useRuntimeVar,
+  runtimeFn,
+
+  // Agent utilities
+  useOutput,
+  defineAgent,
+  isAgentRef,
+  getAgentName,
+  getAgentPath,
+
+  // RuntimeVar utilities
+  isRuntimeVar,
+  getRuntimeVarInfo,
+  toJqExpression,
+  toJqPath,
+  // RuntimeFn utilities
+  isRuntimeFn,
+  getRuntimeFnRegistry,
+  clearRuntimeFnRegistry,
+  getRuntimeFn,
+
+  // Markers
+  IF_MARKER,
+  ELSE_MARKER,
+  LOOP_MARKER,
+  BREAK_MARKER,
+  RETURN_MARKER,
+  ASK_USER_MARKER,
+
+  // Types
+  type CommandProps,
+  type CommandContext,
+  type CommandArgument,
+  type AgentProps,
+  type AgentContext,
+  type AgentStatus,
+  type BaseOutput,
+  type SpawnAgentProps,
+  type V3SpawnAgentProps,
+  type OnStatusProps,
+  type OutputRef,
+  type AgentRef,
+  type DefineAgentConfig,
+  type MarkdownProps,
+  type XmlBlockProps,
+  type IndentProps,
+  type TableProps,
+  type TableAlignment,
+  type ListProps,
+  type IfProps,
+  type ElseProps,
+  type LoopProps,
+  type BreakProps,
+  type ReturnProps,
+  type ReturnStatus,
+  type Condition,
+  type AskUserProps,
+  type AskUserOption,
+  type RuntimeVar,
+  type RuntimeVarProxy,
+  type OrRuntimeVar,
+  type AllowRuntimeVars,
+  type RuntimeFunction,
+  type RuntimeCallProps,
+  type RuntimeCallComponent,
+  type RuntimeFnComponent,
+} from './components/index.js';
+
+// ============================================================================
+// IR Types
+// ============================================================================
+
 export * from './ir/index.js';
 
-// Markdown emitter
-export * from './emitter/index.js';
+// ============================================================================
+// Emitters (Runtime)
+// ============================================================================
 
-// Parser
-export * from './parser/index.js';
+export {
+  RuntimeMarkdownEmitter,
+  emitDocument,
+  emitRuntime,
+  extractFunctions,
+  generateRuntime,
+  isRuntimeFile,
+  bundleSingleEntryRuntime,
+  bundleCodeSplit,
+  extractExportedFunctionNames,
+  type ExtractedFunction,
+  type RuntimeEmitResult,
+  type RuntimeFileInfo,
+  type SingleEntryBundleResult,
+  type CodeSplitBundleResult,
+} from './emitter/index.js';
 
-// JSX components and types
-export { Command, Markdown, XmlBlock } from './jsx.js';
-export type { CommandProps, MarkdownProps, XmlBlockProps } from './jsx.js';
+// ============================================================================
+// Transformers
+// ============================================================================
+
+export {
+  type RuntimeTransformContext,
+  type RuntimeTransformResult,
+  type RuntimeVarInfo,
+  type RuntimeFunctionInfo,
+  type LocalComponentInfo,
+  createRuntimeContext,
+  extractRuntimeVarDeclarations,
+  extractRuntimeFnDeclarations,
+  extractLocalComponentDeclarations,
+  extractExternalComponentDeclarations,
+  transformRuntimeCommand,
+  transformToRuntimeBlock,
+  transformRuntimeBlockChildren,
+  getRuntimeFunctionNames,
+  getRuntimeImportPaths,
+} from './parser/transformers/index.js';
+
+// ============================================================================
+// Build Functions
+// ============================================================================
+
+export {
+  buildRuntimeFile,
+  detectRuntime,
+  hasRuntimeImports,
+  type RuntimeBuildResult,
+  type RuntimeBuildOptions,
+} from './cli/runtime-build.js';
+
+// ============================================================================
+// Parser Utilities (for CLI compatibility)
+// ============================================================================
+
+export { createProject } from './parser/utils/project.js';
+export {
+  findRootJsxElement,
+  transform,
+  getAttributeValue,
+  resolveTypeImport,
+  extractInterfaceProperties,
+  extractPromptPlaceholders,
+  // Additional parser utilities
+  parseSource,
+  parseFile,
+  getElementName,
+  getJsxChildren,
+  isWhitespaceOnlyText,
+  normalizeWhitespace,
+  extractText,
+  extractTypeArguments,
+  getArrayAttributeValue,
+  extractVariableDeclarations,
+  extractInputObjectLiteral,
+  // V1 Transformer class
+  Transformer,
+  type JsxChild,
+  type ExtractedVariable,
+} from './parser/index.js';
+
+// ============================================================================
+// Schema Primitives
+// ============================================================================
+
+export { defineVars, defineFiles, defineContext } from './primitives/schema.js';
+
+// ============================================================================
+// Additional Emitters
+// ============================================================================
+
+export { emit, emitAgent, emitSkill, emitSkillFile, emitSettings, mergeSettings } from './emitter/index.js';
+
+// ============================================================================
+// Semantic Components
+// ============================================================================
+
+export {
+  ExecutionContext,
+  type ExecutionContextProps,
+} from './workflow/sections/index.js';

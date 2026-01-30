@@ -115,3 +115,54 @@ export function formatTranspileError(error: TranspileError): string {
 
   return parts.join('\n');
 }
+
+/**
+ * Error class for cross-file validation errors
+ * Includes source locations for both the usage site (Command) and definition site (Agent)
+ */
+export class CrossFileError extends TranspileError {
+  readonly agentLocation: SourceLocation | undefined;
+
+  constructor(
+    message: string,
+    commandLocation: SourceLocation,
+    agentLocation?: SourceLocation,
+    sourceCode?: string
+  ) {
+    super(message, commandLocation, sourceCode);
+    this.name = 'CrossFileError';
+    this.agentLocation = agentLocation;
+  }
+}
+
+/**
+ * Format a CrossFileError for display
+ * Shows both the command (primary) and agent (secondary) locations
+ *
+ * Example output:
+ * ```
+ * commands/plan.tsx:15:5 - error: SpawnAgent prompt missing required property: 'phase'
+ *
+ *   15 | <SpawnAgent<ResearcherInput>
+ *      |  ^
+ *
+ * Agent interface defined at: agents/researcher.tsx:3:1
+ * ```
+ */
+export function formatCrossFileError(error: CrossFileError): string {
+  const parts: string[] = [];
+
+  // Primary location (command/usage site)
+  parts.push(formatTranspileError(error));
+
+  // Secondary location (agent/definition site)
+  if (error.agentLocation) {
+    const { file, line, column } = error.agentLocation;
+    parts.push('');
+    parts.push(
+      `${pc.dim('Agent interface defined at:')} ${pc.cyan(file)}:${pc.dim(String(line))}:${pc.dim(String(column))}`
+    );
+  }
+
+  return parts.join('\n');
+}

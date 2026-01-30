@@ -1,0 +1,14 @@
+{
+  "name": "my-claude-commands",
+  "type": "module",
+  "scripts": {
+    "build": "npx react-agentic build 'src/**/*.tsx' -o .claude/commands --runtime-out .claude/runtime",
+    "watch": "npx react-agentic build 'src/**/*.tsx' -w -o .claude/commands --runtime-out .claude/runtime"
+  },
+  "dependencies": {
+    "react-agentic": "file:.."
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0"
+  }
+}

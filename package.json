@@ -1,6 +1,6 @@
 {
   "name": "react-agentic",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Compile-time safety for Claude Code commands - malformed commands fail at build time, not runtime",
   "type": "module",
   "main": "dist/index.js",
@@ -8,13 +8,32 @@
   "bin": {
     "react-agentic": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kaenn/react-agentic.git"
+  },
+  "homepage": "https://github.com/Kaenn/react-agentic#readme",
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "watch": "node dist/cli/index.js build -w"
+    "prewatch": "npm run build",
+    "watch": "node dist/cli/index.js build -w",
+    "build:agentic": "node dist/cli/index.js build 'src/app/**/*.tsx' --minify",
+    "prepublishOnly": "npm run build && npm run typecheck"
   },
   "keywords": [
     "claude",
@@ -22,14 +41,25 @@
     "markdown",
     "tsx",
     "typescript",
-    "cli"
+    "cli",
+    "agentic",
+    "ai"
   ],
-  "author": "",
+  "author": "Kaenn",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
+  "peerDependencies": {
+    "@types/react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
+  },
   "dependencies": {
+    "cat-names": "^4.0.0",
     "chokidar": "^5.0.0",
     "commander": "^14.0.2",
     "globby": "^16.1.0",
@@ -38,8 +68,10 @@
     "ts-morph": "^27.0.2"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.0.9",
     "@types/react": "^19.1.6",
+    "esbuild": "^0.27.2",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

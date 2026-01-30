@@ -64,6 +64,10 @@ export interface BuildResult {
   outputPath: string;
   content: string;
   size: number;
+  /** Static files to copy (skills only) */
+  statics?: Array<{ src: string; dest: string }>;
+  /** Skip writing this file (already written by merge logic, e.g., settings.json) */
+  skipWrite?: boolean;
 }
 
 /**

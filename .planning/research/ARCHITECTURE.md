@@ -1,556 +1,698 @@
-# Architecture Research
+# Architecture Research: Agent Framework Integration
 
-**Domain:** TSX-to-Markdown Transpiler
-**Researched:** 2026-01-20
-**Overall Confidence:** HIGH (based on established compiler/transpiler patterns)
+**Domain:** TSX-to-Markdown Transpiler - Agent Extension
+**Researched:** 2026-01-21
+**Overall Confidence:** HIGH (builds on established v1.0 architecture patterns)
 
 ## Executive Summary
 
-TSX-to-Markdown transpilers follow the classic three-phase compiler architecture: **Parse → Transform → Generate**. The key insight is that working through an intermediate representation (AST) enables testable, maintainable code rather than direct string manipulation. Using ts-morph as the TypeScript AST library is the right choice - it wraps the TypeScript Compiler API and provides clean traversal methods.
+The Agent framework extends the existing transpiler architecture with two new component types: `<Agent>` for defining agents and `<SpawnAgent>` for invoking them from Commands. The key architectural insight is that these components require **type extraction during the parse phase** to enforce contracts at compile time, while emitting to **different output directories** (agents to `.claude/agents/`, commands to `.claude/commands/`).
+
+The existing discriminated union IR system extends naturally with new node types. The main complexity lies in **interface extraction** from TypeScript types and **cross-file type validation** when a Command imports an Agent's interface.
 
 ---
 
-## Components
+## Integration with Existing Architecture
 
-### 1. Parser Layer (ts-morph)
+### Current Pipeline (v1.0)
 
-**Responsibility:** Convert TSX source files into traversable AST nodes.
-
-**Key Classes/Functions:**
-- `Project` - ts-morph entry point, manages source files
-- `SourceFile` - represents a single .tsx file
-- `JsxElement`, `JsxSelfClosingElement` - JSX node types
-- `JsxAttribute`, `JsxSpreadAttribute` - attribute handling
-
-**What It Produces:**
 ```
-TSX Source → SourceFile → JsxElement tree with attributes and children
+TSX Source
+    |
+    v
+[Parser: ts-morph] --> JsxElement AST
+    |
+    v
+[Transformer] --> IR Nodes (DocumentNode with BlockNode children)
+    |
+    v
+[Emitter] --> Markdown string
+    |
+    v
+[CLI: build.ts] --> .claude/commands/*.md
 ```
 
-**Build Complexity:** LOW - ts-morph handles all parsing. Just configure and call.
+### Extended Pipeline (v1.1)
+
+```
+TSX Source (Command OR Agent)
+    |
+    v
+[Parser: ts-morph] --> JsxElement AST + TypeScript type information
+    |
+    +-- [Type Extractor] --> Interface definitions (for Agents)
+    |
+    v
+[Transformer] --> IR Nodes (DocumentNode | AgentDocumentNode)
+    |              |
+    |              +-- AgentNode (with interface, structured_returns)
+    |              +-- SpawnAgentNode (with type reference)
+    |
+    v
+[Emitter] --> Markdown string (Command format OR Agent format)
+    |
+    v
+[CLI: build.ts] --> Route by type:
+                    - Command --> .claude/commands/*.md
+                    - Agent   --> .claude/agents/*.md
+```
 
 ---
 
-### 2. AST Transformer Layer
+## New IR Nodes Required
 
-**Responsibility:** Walk the JSX AST and convert nodes to an intermediate markdown-oriented representation.
+### 1. AgentDocumentNode
 
-**Key Patterns:**
-- **Visitor Pattern** via `forEachDescendant()` with traversal control
-- **Node Type Switch** - different handlers for different JSX node kinds
-- **Context Object** - tracks state during traversal (indentation, parent info)
+Parallel to `DocumentNode` but for agents. Agents have different frontmatter structure.
 
-**Node Type Mapping:**
-
-| JSX Node Type | Handler | Output IR |
-|---------------|---------|-----------|
-| `Command` component | `visitCommand()` | FrontmatterNode + children |
-| `h1`-`h6` elements | `visitHeading()` | HeadingNode |
-| `p`, text content | `visitParagraph()` | ParagraphNode |
-| `ul`, `ol`, `li` | `visitList()` | ListNode |
-| `b`, `strong` | `visitBold()` | BoldNode |
-| `i`, `em` | `visitItalic()` | ItalicNode |
-| `code` | `visitCode()` | CodeNode |
-| `a` | `visitLink()` | LinkNode |
-| `div[name]` | `visitNamedBlock()` | XmlBlockNode |
-| `Markdown` | `visitMarkdown()` | RawMarkdownNode |
-| `br` | `visitBreak()` | LineBreakNode |
-
-**Intermediate Representation (IR):**
 ```typescript
-// Base node type
-interface IRNode {
-  kind: string;
-  children?: IRNode[];
+/**
+ * Agent document root node
+ * Distinct from DocumentNode to enforce agent-specific structure
+ */
+export interface AgentDocumentNode {
+  kind: 'agentDocument';
+  frontmatter: AgentFrontmatterNode;
+  children: BlockNode[];  // Agent system prompt content
 }
 
-// Specific node types
-interface FrontmatterNode extends IRNode {
-  kind: 'frontmatter';
-  fields: Record<string, unknown>;  // name, description, allowedTools, etc.
+export interface AgentFrontmatterNode {
+  kind: 'agentFrontmatter';
+  data: {
+    name: string;
+    description: string;
+    model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
+    tools?: string[];
+    disallowedTools?: string[];
+    permissionMode?: 'default' | 'acceptEdits' | 'dontAsk' | 'bypassPermissions' | 'plan';
+  };
+}
+```
+
+**Rationale:** Separating from `DocumentNode` enforces that Commands and Agents have different required fields. The emitter can then produce the correct format for each.
+
+### 2. SpawnAgentNode
+
+For `<SpawnAgent>` usage inside Commands.
+
+```typescript
+/**
+ * SpawnAgent invocation within a Command
+ * Emits as Task() tool call documentation
+ */
+export interface SpawnAgentNode {
+  kind: 'spawnAgent';
+  agentName: string;          // Reference to agent file
+  inputType?: TypeReference;  // TypeScript type for input validation
+  children: BlockNode[];      // Spawn instructions/context
 }
 
-interface HeadingNode extends IRNode {
-  kind: 'heading';
-  level: 1 | 2 | 3 | 4 | 5 | 6;
-  content: IRNode[];
+export interface TypeReference {
+  name: string;               // Interface name (e.g., 'ResearchInput')
+  importPath: string;         // Where it's imported from
+  properties: PropertyDef[];  // Extracted interface shape
 }
 
-interface XmlBlockNode extends IRNode {
-  kind: 'xml-block';
+export interface PropertyDef {
   name: string;
-  children: IRNode[];
-}
-
-interface RawMarkdownNode extends IRNode {
-  kind: 'raw';
-  content: string;
+  type: string;               // TypeScript type as string
+  optional: boolean;
+  description?: string;       // From JSDoc comment
 }
 ```
 
-**Build Complexity:** MEDIUM - core transpiler logic lives here.
+**Rationale:** `SpawnAgentNode` captures the relationship between a Command and Agent. The `TypeReference` enables type extraction for documentation and compile-time validation.
+
+### 3. StructuredReturnNode
+
+For Agent's expected return format.
+
+```typescript
+/**
+ * Structured return format definition
+ * Used in Agent's <output> section
+ */
+export interface StructuredReturnNode {
+  kind: 'structuredReturn';
+  format: 'markdown' | 'xml';
+  template: string;           // Expected structure as template
+  properties?: PropertyDef[]; // Type-extracted fields
+}
+```
 
 ---
 
-### 3. Code Generator / Emitter Layer
+## Component Boundaries
 
-**Responsibility:** Walk the IR tree and emit markdown strings.
+### Parser Layer Changes
 
-**Key Patterns:**
-- **Tree-Walking Emitter** - recursive traversal emitting strings
-- **Builder Pattern** - accumulate output with proper formatting
-- **Context for Indentation** - track nesting level for lists, blocks
+**New Files:**
+- `src/parser/type-extractor.ts` - Extract TypeScript interface definitions
 
-**Emitter Structure:**
+**Modified Files:**
+- `src/parser/parser.ts` - Add `extractTypeInterface()` function
+
 ```typescript
-class MarkdownEmitter {
-  private output: string[] = [];
-  private indent: number = 0;
+// type-extractor.ts
+import { SourceFile, InterfaceDeclaration, TypeAliasDeclaration } from 'ts-morph';
 
-  emit(node: IRNode): string {
-    switch (node.kind) {
-      case 'frontmatter': return this.emitFrontmatter(node);
-      case 'heading': return this.emitHeading(node);
-      case 'xml-block': return this.emitXmlBlock(node);
-      case 'raw': return this.emitRaw(node);
-      // ... other handlers
+export interface ExtractedInterface {
+  name: string;
+  properties: PropertyDef[];
+  sourceFile: string;
+}
+
+/**
+ * Extract interface definition from source file
+ * Handles both `interface Foo {}` and `type Foo = {}`
+ */
+export function extractInterface(
+  sourceFile: SourceFile,
+  interfaceName: string
+): ExtractedInterface | null {
+  // Look for interface declaration
+  const interfaceDecl = sourceFile.getInterface(interfaceName);
+  if (interfaceDecl) {
+    return extractFromInterface(interfaceDecl);
+  }
+
+  // Look for type alias
+  const typeAlias = sourceFile.getTypeAlias(interfaceName);
+  if (typeAlias) {
+    return extractFromTypeAlias(typeAlias);
+  }
+
+  return null;
+}
+
+function extractFromInterface(decl: InterfaceDeclaration): ExtractedInterface {
+  return {
+    name: decl.getName(),
+    properties: decl.getProperties().map(prop => ({
+      name: prop.getName(),
+      type: prop.getType().getText(),
+      optional: prop.hasQuestionToken(),
+      description: getJsDocDescription(prop),
+    })),
+    sourceFile: decl.getSourceFile().getFilePath(),
+  };
+}
+```
+
+### Transformer Layer Changes
+
+**New in transformer.ts:**
+
+```typescript
+// Add to SPECIAL_COMPONENTS set
+const SPECIAL_COMPONENTS = new Set([
+  'Command', 'Markdown', 'XmlBlock',
+  'Agent', 'SpawnAgent'  // NEW
+]);
+
+// New transformation methods
+private transformAgent(node: JsxElement | JsxSelfClosingElement): AgentDocumentNode {
+  const openingElement = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+  const props = this.mergeProps(openingElement);
+
+  // Required props
+  const name = props.name as string;
+  const description = props.description as string;
+
+  if (!name) throw this.createError('Agent requires name prop', openingElement);
+  if (!description) throw this.createError('Agent requires description prop', openingElement);
+
+  // Optional props with Claude Code agent defaults
+  const model = props.model as string | undefined;
+  const tools = props.tools as string[] | undefined;
+
+  // Build frontmatter
+  const frontmatter: AgentFrontmatterNode = {
+    kind: 'agentFrontmatter',
+    data: { name, description, model, tools },
+  };
+
+  // Transform children as agent system prompt
+  const children = this.transformAgentChildren(node);
+
+  return { kind: 'agentDocument', frontmatter, children };
+}
+
+private transformSpawnAgent(node: JsxElement | JsxSelfClosingElement): SpawnAgentNode {
+  const openingElement = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+  const agentName = getAttributeValue(openingElement, 'agent');
+  if (!agentName) {
+    throw this.createError('SpawnAgent requires agent prop', openingElement);
+  }
+
+  // Extract input type if specified
+  const inputType = this.extractInputType(openingElement);
+
+  // Children become spawn context/instructions
+  const children: BlockNode[] = [];
+  if (Node.isJsxElement(node)) {
+    for (const child of node.getJsxChildren()) {
+      const block = this.transformToBlock(child);
+      if (block) children.push(block);
     }
   }
+
+  return { kind: 'spawnAgent', agentName, inputType, children };
 }
 ```
 
-**Build Complexity:** MEDIUM - straightforward but many cases to handle.
+### Emitter Layer Changes
 
----
-
-### 4. Frontmatter Generator
-
-**Responsibility:** Convert Command component props to YAML frontmatter.
-
-**Input:** Props from Command JSX element
-**Output:** YAML string with `---` delimiters
-
-**Mapping:**
-```
-Command props → YAML fields
-  name → name
-  description → description
-  allowedTools → allowed-tools (array)
-  [custom props] → [custom fields]
-```
-
-**Build Complexity:** LOW - simple prop-to-YAML conversion.
-
----
-
-### 5. CLI Interface
-
-**Responsibility:** User-facing command interface with watch mode.
-
-**Key Features:**
-- Single file transpilation: `tsx2md input.tsx output.md`
-- Directory transpilation: `tsx2md src/ dist/`
-- Watch mode: `tsx2md --watch src/`
-- Configuration file support (optional)
-
-**Key Dependencies:**
-- `commander` or `yargs` - CLI argument parsing
-- `chokidar` - file watching (battle-tested, used by webpack/gulp)
-- `glob` - file pattern matching
-
-**Build Complexity:** LOW - standard CLI patterns.
-
----
-
-### 6. File Orchestrator
-
-**Responsibility:** Coordinate file discovery, transpilation, and output.
-
-**Responsibilities:**
-- Discover input files (glob patterns)
-- Route files to transpiler
-- Write output files
-- Handle watch mode events
-
-**Build Complexity:** LOW - coordination logic only.
-
----
-
-## Data Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          CLI INTERFACE                               │
-│  tsx2md [options] <input> [output]                                  │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       FILE ORCHESTRATOR                              │
-│  • Glob patterns → file list                                        │
-│  • Watch mode (chokidar)                                            │
-│  • Output path resolution                                           │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    TRANSPILER PIPELINE                               │
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │   PARSER     │    │ TRANSFORMER  │    │   EMITTER    │          │
-│  │  (ts-morph)  │───▶│  (Visitor)   │───▶│  (Builder)   │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-│         │                   │                   │                   │
-│         ▼                   ▼                   ▼                   │
-│      TSX AST          IR Tree            Markdown String            │
-│                                                                      │
-│  Input:                                                             │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │ <Command name="foo" description="...">                   │       │
-│  │   <h2>Section</h2>                                       │       │
-│  │   <p>Content</p>                                         │       │
-│  │ </Command>                                               │       │
-│  └─────────────────────────────────────────────────────────┘       │
-│                                                                      │
-│  IR:                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │ FrontmatterNode { name: "foo", description: "..." }      │       │
-│  │ └─ HeadingNode { level: 2, content: "Section" }          │       │
-│  │ └─ ParagraphNode { content: "Content" }                  │       │
-│  └─────────────────────────────────────────────────────────┘       │
-│                                                                      │
-│  Output:                                                            │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │ ---                                                      │       │
-│  │ name: foo                                                │       │
-│  │ description: ...                                         │       │
-│  │ ---                                                      │       │
-│  │                                                          │       │
-│  │ ## Section                                               │       │
-│  │                                                          │       │
-│  │ Content                                                  │       │
-│  └─────────────────────────────────────────────────────────┘       │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Detailed Transform Flow
-
-```
-1. PARSE PHASE
-   SourceFile.tsx
-        │
-        ▼ ts-morph Project.addSourceFilesAtPaths()
-        │
-   SourceFile node
-        │
-        ▼ sourceFile.getFirstDescendantByKind(SyntaxKind.JsxElement)
-        │
-   JsxElement (Command)
-        │
-        ├─▶ openingElement.getTagNameNode().getText() → "Command"
-        ├─▶ openingElement.getAttributes() → props
-        └─▶ getJsxChildren() → child JSX nodes
-
-2. TRANSFORM PHASE
-   JsxElement (Command)
-        │
-        ▼ visitCommand()
-        │
-        ├─▶ extractProps() → { name, description, allowedTools }
-        │         │
-        │         ▼
-        │   FrontmatterNode
-        │
-        └─▶ forEachDescendant() with visitor
-                  │
-                  ├─▶ visitHeading(h2) → HeadingNode
-                  ├─▶ visitParagraph(p) → ParagraphNode
-                  ├─▶ visitList(ul) → ListNode
-                  └─▶ ...etc
-
-   Output: IRNode tree
-
-3. EMIT PHASE
-   IRNode tree
-        │
-        ▼ emitter.emit(rootNode)
-        │
-        ├─▶ emitFrontmatter() → "---\nname: ...\n---"
-        ├─▶ emitHeading() → "## Section"
-        ├─▶ emitParagraph() → "Content"
-        └─▶ emitXmlBlock() → "<name>\n...\n</name>"
-
-   Output: Markdown string
-```
-
----
-
-## Suggested Build Order
-
-Based on dependency analysis and testability, build in this order:
-
-### Phase 1: Core Pipeline (Foundation)
-
-**Build order within phase:**
-1. **IR Types** - Define all intermediate representation node types
-2. **Emitter** - Build markdown emitter that works with IR nodes
-3. **Basic Transformer** - Handle minimal JSX → IR conversion
-4. **Integration** - Wire parser → transformer → emitter
-
-**Rationale:** You can test the emitter in isolation with hand-crafted IR nodes. Then test transformer independently. Integration is last.
-
-**Deliverable:** Can transpile simple TSX with `<h1>`, `<p>`, `<br>` to markdown.
-
-### Phase 2: Element Coverage
-
-**Build order within phase:**
-1. **Frontmatter** - Command props → YAML
-2. **Text formatting** - `<b>`, `<i>`, `<code>`, `<a>`
-3. **Lists** - `<ul>`, `<ol>`, `<li>` with nesting
-4. **Named blocks** - `<div name="...">` → XML blocks
-5. **Raw passthrough** - `<Markdown>` component
-
-**Rationale:** Each element type can be developed and tested independently. Frontmatter is first because it's the primary differentiator.
-
-**Deliverable:** Full element coverage for the example TSX file.
-
-### Phase 3: CLI + Watch
-
-**Build order within phase:**
-1. **Basic CLI** - Single file transpilation
-2. **Directory mode** - Glob patterns, multiple files
-3. **Watch mode** - chokidar integration
-4. **Error handling** - Source location in errors
-
-**Rationale:** CLI is independent of transpiler internals. Build after core works.
-
-**Deliverable:** Usable CLI tool with watch mode.
-
-### Phase 4: Advanced Features
-
-**Build order within phase:**
-1. **Component composition** - Handle nested custom components
-2. **Props spreading** - `{...props}` support
-3. **Source maps** (optional) - Error tracing to original TSX
-4. **Configuration** - tsconfig-style config file
-
-**Rationale:** These are enhancements. Core functionality must work first.
-
-**Deliverable:** Production-ready transpiler.
-
----
-
-## Integration Points
-
-### Parser ↔ Transformer
-
-**Interface:** ts-morph `Node` types
+**New in emitter.ts:**
 
 ```typescript
-interface TransformContext {
-  sourceFile: SourceFile;
-  project: Project;
+// Add to emitBlock switch
+case 'spawnAgent':
+  return this.emitSpawnAgent(node);
+
+// New emitter methods
+private emitSpawnAgent(node: SpawnAgentNode): string {
+  const parts: string[] = [];
+
+  // Emit as Task() invocation documentation
+  parts.push(`Use the **${node.agentName}** agent with Task tool:`);
+  parts.push('');
+  parts.push('```');
+  parts.push(`Task(${node.agentName})`);
+  parts.push('```');
+
+  // If input type defined, document expected input
+  if (node.inputType) {
+    parts.push('');
+    parts.push('**Input:**');
+    parts.push('');
+    for (const prop of node.inputType.properties) {
+      const optMarker = prop.optional ? '(optional) ' : '';
+      parts.push(`- \`${prop.name}\`: ${optMarker}${prop.type}`);
+      if (prop.description) {
+        parts.push(`  ${prop.description}`);
+      }
+    }
+  }
+
+  // Emit children as context
+  if (node.children.length > 0) {
+    parts.push('');
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+  }
+
+  return parts.join('\n');
 }
 
-function transform(ctx: TransformContext, root: JsxElement): IRNode {
-  // Entry point for transformation
+/**
+ * Emit AgentDocumentNode to Claude Code agent format
+ */
+emitAgent(doc: AgentDocumentNode): string {
+  const parts: string[] = [];
+
+  // Agent frontmatter
+  parts.push(this.emitAgentFrontmatter(doc.frontmatter));
+
+  // System prompt content
+  for (const child of doc.children) {
+    parts.push(this.emitBlock(child));
+  }
+
+  return parts.join('\n\n') + '\n';
+}
+
+private emitAgentFrontmatter(node: AgentFrontmatterNode): string {
+  const data: Record<string, unknown> = {
+    name: node.data.name,
+    description: node.data.description,
+  };
+
+  // Only include optional fields if specified
+  if (node.data.model) data.model = node.data.model;
+  if (node.data.tools) data.tools = node.data.tools.join(', ');
+  if (node.data.disallowedTools) data.disallowedTools = node.data.disallowedTools.join(', ');
+  if (node.data.permissionMode) data.permissionMode = node.data.permissionMode;
+
+  return matter.stringify('', data).trimEnd();
 }
 ```
 
-**Key ts-morph APIs Used:**
-- `node.getKind()` - identify node type
-- `node.forEachDescendant()` - traverse with control
-- `jsxElement.getJsxChildren()` - get children
-- `jsxAttribute.getName()`, `.getInitializer()` - extract props
+### CLI Layer Changes
 
-### Transformer ↔ Emitter
-
-**Interface:** IR node types
+**Modified build.ts:**
 
 ```typescript
-interface EmitterOptions {
-  indentSize?: number;
-  lineEnding?: '\n' | '\r\n';
-}
-
-function emit(node: IRNode, options?: EmitterOptions): string {
-  // Entry point for emission
-}
-```
-
-**Contract:** Emitter must handle all IR node kinds. Unknown kinds throw.
-
-### CLI ↔ File Orchestrator
-
-**Interface:** File operations
-
-```typescript
-interface TranspileOptions {
-  watch?: boolean;
-  outDir?: string;
-}
-
-interface TranspileResult {
-  inputPath: string;
+interface BuildResult {
+  inputFile: string;
   outputPath: string;
-  success: boolean;
-  error?: Error;
+  content: string;
+  size: number;
+  type: 'command' | 'agent';  // NEW: track output type
 }
 
-async function transpile(
-  patterns: string[],
-  options: TranspileOptions
-): AsyncIterable<TranspileResult>;
-```
+async function runBuild(...) {
+  for (const inputFile of tsxFiles) {
+    // Parse and find root
+    const sourceFile = project.addSourceFileAtPath(inputFile);
+    const root = findRootJsxElement(sourceFile);
 
-### Watch Mode ↔ Transpiler
+    // Detect type from root element
+    const rootName = getElementName(root);
+    const isAgent = rootName === 'Agent';
 
-**Interface:** Event-driven
+    // Transform (returns DocumentNode or AgentDocumentNode)
+    const doc = transform(root, sourceFile);
 
-```typescript
-// chokidar events trigger re-transpilation
-watcher.on('change', async (path) => {
-  const result = await transpileFile(path);
-  console.log(`Transpiled: ${result.outputPath}`);
-});
-```
+    // Emit with appropriate method
+    const markdown = isAgent
+      ? emitter.emitAgent(doc as AgentDocumentNode)
+      : emitter.emit(doc as DocumentNode);
 
----
+    // Route to correct output directory
+    const basename = path.basename(inputFile, '.tsx');
+    const outputDir = isAgent ? '.claude/agents' : options.out;
+    const outputPath = path.join(outputDir, `${basename}.md`);
 
-## Architecture Anti-Patterns to Avoid
-
-### 1. Direct String Manipulation in Transformer
-
-**Bad:**
-```typescript
-function transformElement(node: JsxElement): string {
-  if (node.getName() === 'h1') {
-    return '# ' + getTextContent(node);  // Direct string output
+    results.push({
+      inputFile,
+      outputPath,
+      content: markdown,
+      size: Buffer.byteLength(markdown, 'utf8'),
+      type: isAgent ? 'agent' : 'command',
+    });
   }
 }
 ```
 
-**Good:**
-```typescript
-function transformElement(node: JsxElement): IRNode {
-  if (node.getName() === 'h1') {
-    return { kind: 'heading', level: 1, content: transformChildren(node) };
-  }
+---
+
+## Data Flow for Type Extraction
+
+### Agent Definition (owns the contract)
+
+```
+// agents/researcher.tsx
+interface ResearchInput {
+  /** What to research */
+  topic: string;
+  /** Optional focus areas */
+  areas?: string[];
+}
+
+interface ResearchOutput {
+  /** Summary of findings */
+  summary: string;
+  /** Sources consulted */
+  sources: string[];
+}
+
+export { ResearchInput, ResearchOutput };
+
+export default function Researcher() {
+  return (
+    <Agent
+      name="researcher"
+      description="Research a topic and return findings"
+      model="sonnet"
+      tools={['WebSearch', 'WebFetch', 'Read', 'Grep']}
+      inputType={ResearchInput}     // Type reference
+      outputType={ResearchOutput}   // Type reference
+    >
+      <h2>Role</h2>
+      <p>You are a research agent that investigates topics thoroughly.</p>
+
+      <XmlBlock name="input_format">
+        <p>You receive input as:</p>
+        <pre><code>{`{ topic: string, areas?: string[] }`}</code></pre>
+      </XmlBlock>
+
+      <XmlBlock name="output_format">
+        <p>You must return:</p>
+        <pre><code>{`{ summary: string, sources: string[] }`}</code></pre>
+      </XmlBlock>
+    </Agent>
+  );
 }
 ```
 
-**Why:** Intermediate representation enables testing, reuse, and future output formats.
+### Command Usage (imports the contract)
 
-### 2. Monolithic Visitor Function
+```
+// commands/analyze.tsx
+import { ResearchInput } from '../agents/researcher';
 
-**Bad:**
-```typescript
-function visit(node: Node) {
-  // 500 lines of switch cases
+export default function AnalyzeCommand() {
+  return (
+    <Command name="analyze" description="Analyze a codebase">
+      <h2>Steps</h2>
+      <ol>
+        <li>Read the codebase structure</li>
+        <li>
+          <SpawnAgent
+            agent="researcher"
+            input={ResearchInput}  // Type validation at compile time
+          >
+            <p>Research best practices for this type of codebase.</p>
+          </SpawnAgent>
+        </li>
+        <li>Generate analysis report</li>
+      </ol>
+    </Command>
+  );
 }
 ```
 
-**Good:**
-```typescript
-const visitors: Record<string, Visitor> = {
-  h1: visitHeading,
-  h2: visitHeading,
-  p: visitParagraph,
-  // ...
-};
+### Compile-Time Validation Flow
 
-function visit(node: Node) {
-  const visitor = visitors[getTagName(node)];
-  return visitor ? visitor(node) : visitDefault(node);
-}
 ```
-
-**Why:** Individual visitors can be tested and modified independently.
-
-### 3. Tight Coupling to ts-morph Types in Emitter
-
-**Bad:**
-```typescript
-function emit(node: JsxElement): string {
-  // Emitter directly uses ts-morph types
-}
+1. Parse Command file
+   |
+   v
+2. Find SpawnAgent with input={ResearchInput}
+   |
+   v
+3. Resolve import: '../agents/researcher'
+   |
+   v
+4. Extract ResearchInput interface from agent file
+   |
+   v
+5. Store type reference in SpawnAgentNode
+   |
+   v
+6. Emit includes type documentation in markdown
 ```
-
-**Good:**
-```typescript
-function emit(node: IRNode): string {
-  // Emitter only knows about IR types
-}
-```
-
-**Why:** Emitter should be format-agnostic. Could emit HTML, MDX, or other formats from same IR.
 
 ---
 
-## Technology Decisions
+## Output Format Comparison
 
-### ts-morph for Parsing
+### Command Output (.claude/commands/analyze.md)
 
-**Chosen because:**
-- Wraps TypeScript Compiler API cleanly
-- `forEachDescendant()` with traversal control is perfect for visitors
-- JSX support is first-class
-- Active maintenance (latest release Oct 2025)
-- 5.7K+ GitHub stars, battle-tested
+```markdown
+---
+name: analyze
+description: Analyze a codebase
+---
 
-**Alternative considered:** Direct TypeScript Compiler API
-**Why not:** Much more verbose, ts-morph provides better DX
+## Steps
 
-### chokidar for Watch Mode
+1. Read the codebase structure
+2. Use the **researcher** agent with Task tool:
 
-**Chosen because:**
-- Industry standard (used by webpack, gulp, karma, etc.)
-- Handles cross-platform edge cases
-- Minimal CPU usage (uses native fs.watch)
-- v5 released Nov 2025, actively maintained
+```
+Task(researcher)
+```
 
-**Alternative considered:** Native fs.watch
-**Why not:** Platform inconsistencies, edge cases
+**Input:**
 
-### String Concatenation for Emitter
+- `topic`: string - What to research
+- `areas`: (optional) string[] - Optional focus areas
 
-**Chosen because:**
-- Simple, fast, predictable
-- No template compilation overhead
-- Easy to debug output issues
+Research best practices for this type of codebase.
 
-**Alternative considered:** Template literals / template engine
-**Why not:** Overkill for markdown generation
+3. Generate analysis report
+```
+
+### Agent Output (.claude/agents/researcher.md)
+
+```markdown
+---
+name: researcher
+description: Research a topic and return findings
+model: sonnet
+tools: WebSearch, WebFetch, Read, Grep
+---
+
+## Role
+
+You are a research agent that investigates topics thoroughly.
+
+<input_format>
+You receive input as:
+
+```
+{ topic: string, areas?: string[] }
+```
+</input_format>
+
+<output_format>
+You must return:
+
+```
+{ summary: string, sources: string[] }
+```
+</output_format>
+```
 
 ---
 
-## Scalability Considerations
+## Build Order Recommendation
 
-| Concern | Current Approach | At Scale |
-|---------|------------------|----------|
-| Large files | Single-pass transform | Same (AST in memory) |
-| Many files | Sequential processing | Parallel with worker threads |
-| Complex nesting | Recursive visitor | Stack depth limit (~1000) |
-| Watch mode | File-by-file rebuild | Incremental (cache IR) |
+Based on dependency analysis:
 
-**Note:** For a Claude Code command transpiler, scale is not a concern. 100s of files max.
+### Phase 1: IR Extensions (Foundation)
+
+**Build order:**
+1. Add `AgentFrontmatterNode` and `AgentDocumentNode` to `nodes.ts`
+2. Add `SpawnAgentNode` and `TypeReference` to `nodes.ts`
+3. Update `IRNode` union type
+4. Add `assertNever` cases
+
+**Deliverable:** Extended type system compiles.
+
+### Phase 2: Basic Agent Transpilation
+
+**Build order:**
+1. Add `Agent` to `SPECIAL_COMPONENTS` in transformer
+2. Implement `transformAgent()` method
+3. Implement `emitAgent()` and `emitAgentFrontmatter()` in emitter
+4. Update CLI for agent routing
+
+**Deliverable:** Can transpile `<Agent>` to `.claude/agents/*.md`
+
+### Phase 3: SpawnAgent Component
+
+**Build order:**
+1. Add `SpawnAgent` to transformer
+2. Implement `transformSpawnAgent()` method
+3. Implement `emitSpawnAgent()` in emitter
+
+**Deliverable:** Commands can include `<SpawnAgent>` references
+
+### Phase 4: Type Extraction
+
+**Build order:**
+1. Create `type-extractor.ts` with interface extraction
+2. Wire type extraction into `transformSpawnAgent()`
+3. Emit type documentation in SpawnAgent output
+
+**Deliverable:** Full type-safe agent framework
+
+### Phase 5: Cross-File Validation
+
+**Build order:**
+1. Validate agent exists when SpawnAgent references it
+2. Validate imported type matches agent's expected input
+3. Clear error messages for type mismatches
+
+**Deliverable:** Compile-time contract enforcement
+
+---
+
+## JSX Component Type Stubs
+
+**New in jsx.ts:**
+
+```typescript
+/**
+ * Props for the Agent component
+ */
+export interface AgentProps {
+  /** Agent name (used in frontmatter and Task() calls) */
+  name: string;
+  /** When Claude should delegate to this agent */
+  description: string;
+  /** Model to use: sonnet, opus, haiku, or inherit */
+  model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
+  /** Tools the agent can access (comma-separated or array) */
+  tools?: string[];
+  /** Tools to explicitly deny */
+  disallowedTools?: string[];
+  /** Permission handling mode */
+  permissionMode?: 'default' | 'acceptEdits' | 'dontAsk' | 'bypassPermissions' | 'plan';
+  /** Agent system prompt content */
+  children?: ReactNode;
+}
+
+/**
+ * Props for the SpawnAgent component
+ */
+export interface SpawnAgentProps {
+  /** Name of agent to spawn (must exist in .claude/agents/) */
+  agent: string;
+  /** TypeScript type for input validation (optional) */
+  input?: unknown;
+  /** Context/instructions for the agent */
+  children?: ReactNode;
+}
+
+/**
+ * Agent component - creates a Claude Code agent definition
+ */
+export function Agent(_props: AgentProps): null {
+  return null;
+}
+
+/**
+ * SpawnAgent component - invokes an agent from a command
+ */
+export function SpawnAgent(_props: SpawnAgentProps): null {
+  return null;
+}
+```
+
+---
+
+## Risk Areas
+
+### High Risk: Type Extraction Complexity
+
+**What could go wrong:** TypeScript types can be arbitrarily complex (generics, mapped types, conditional types). Full extraction is non-trivial.
+
+**Mitigation:** Limit supported types to:
+- Simple interfaces with primitive properties
+- Optional properties
+- Array types
+- Reject complex types with clear error
+
+### Medium Risk: Cross-File Resolution
+
+**What could go wrong:** Resolving types across files requires accurate module resolution.
+
+**Mitigation:** Leverage ts-morph's existing `importDecl.getModuleSpecifierSourceFile()` which already handles this in v1.0.
+
+### Low Risk: Output Directory Routing
+
+**What could go wrong:** Agent files going to wrong directory.
+
+**Mitigation:** Single check based on root element name. Already have pattern from Command detection.
 
 ---
 
 ## Sources
 
-**HIGH Confidence (Official Documentation):**
-- [ts-morph Official Documentation](https://ts-morph.com/)
-- [ts-morph Navigation Guide](https://ts-morph.com/navigation/)
-- [TypeScript JSX Documentation](https://www.typescriptlang.org/docs/handbook/jsx.html)
-- [chokidar GitHub](https://github.com/paulmillr/chokidar)
+**HIGH Confidence:**
+- [Claude Code Subagent Documentation](https://code.claude.com/docs/en/sub-agents) - Official agent format
+- [ts-morph Documentation](https://ts-morph.com/) - Type extraction APIs
+- Existing v1.0 codebase (`transformer.ts`, `emitter.ts`, `nodes.ts`)
 
-**MEDIUM Confidence (Verified Guides):**
-- [How to Write a Transpiler - Strumenta](https://tomassetti.me/how-to-write-a-transpiler/)
-- [ts-morph JsxElement Source](https://github.com/dsherret/ts-morph/blob/latest/packages/ts-morph/src/compiler/ast/jsx/JsxElement.ts)
-- [jsx-md GitHub](https://github.com/dbartholomae/jsx-md)
-- [TypeScript Compiler JSX Transform](https://github.com/microsoft/TypeScript/blob/main/src/compiler/transformers/jsx.ts)
+**MEDIUM Confidence:**
+- [GSD Framework GitHub](https://github.com/glittercowboy/get-shit-done) - Task() pattern inspiration
+- [Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices)
 
-**LOW Confidence (Community Sources):**
-- [Crafting Interpreters - Representing Code](https://craftinginterpreters.com/representing-code.html)
-- Various compiler design academic resources
+**LOW Confidence:**
+- Community patterns for agent orchestration (multiple blog sources)

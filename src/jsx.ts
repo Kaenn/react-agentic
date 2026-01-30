@@ -3,90 +3,106 @@
  *
  * These components are compile-time only - they're transformed by the transpiler
  * and never executed at runtime. They exist to provide TypeScript type checking.
+ *
+ * This file re-exports all components from their organized module locations.
  */
 
-import type { ReactNode } from 'react';
+// ============================================================================
+// Core Components
+// ============================================================================
 
-/**
- * Props for the Command component
- */
-export interface CommandProps {
-  /** Command name (used in frontmatter) */
-  name: string;
-  /** Command description (used in frontmatter) */
-  description: string;
-  /** Optional list of allowed tools (maps to allowed-tools in frontmatter) */
-  allowedTools?: string[];
-  /** Command body content */
-  children?: ReactNode;
-}
+export {
+  // Document components
+  Command,
+  Agent,
+  SpawnAgent,
+  OnStatus,
 
-/**
- * Props for the Markdown component
- */
-export interface MarkdownProps {
-  /** Raw Markdown content to pass through */
-  children?: ReactNode;
-}
+  // Content components
+  Markdown,
+  XmlBlock,
+  Indent,
+  Table,
+  List,
 
-/**
- * Props for the XmlBlock component
- */
-export interface XmlBlockProps {
-  /** XML tag name for the block */
-  name: string;
-  /** Block content */
-  children?: ReactNode;
-}
+  // Control flow
+  If,
+  Else,
+  Loop,
+  Break,
+  Return,
+  AskUser,
 
-/**
- * Command component - creates a Claude Code command with frontmatter
- *
- * This is a compile-time component transformed by react-agentic.
- * It's never executed at runtime.
- *
- * @example
- * <Command name="my-command" description="Does something useful">
- *   <p>Command instructions here</p>
- * </Command>
- */
-export function Command(_props: CommandProps): null {
-  return null;
-}
+  // Runtime primitives
+  useRuntimeVar,
+  runtimeFn,
 
-/**
- * Markdown component - passes content through as raw Markdown
- *
- * This is a compile-time component transformed by react-agentic.
- * It's never executed at runtime.
- *
- * @example
- * <Markdown>
- * ## Pre-formatted Section
- *
- * Content that is already in Markdown format.
- * </Markdown>
- */
-export function Markdown(_props: MarkdownProps): null {
-  return null;
-}
+  // Utilities
+  useOutput,
+  defineAgent,
+  isAgentRef,
+  getAgentName,
+  getAgentPath,
+  isRuntimeVar,
+  getRuntimeVarInfo,
+  toJqExpression,
+  toJqPath,
+  isRuntimeFn,
+  getRuntimeFnRegistry,
+  clearRuntimeFnRegistry,
+  getRuntimeFn,
 
-/**
- * XmlBlock component - creates a named XML block
- *
- * This is a compile-time component transformed by react-agentic.
- * It's never executed at runtime.
- *
- * @example
- * <XmlBlock name="instructions">
- *   <p>Content inside the block</p>
- * </XmlBlock>
- *
- * Outputs:
- * <instructions>
- * Content inside the block
- * </instructions>
- */
-export function XmlBlock(_props: XmlBlockProps): null {
-  return null;
-}
+  // Markers
+  IF_MARKER,
+  ELSE_MARKER,
+  LOOP_MARKER,
+  BREAK_MARKER,
+  RETURN_MARKER,
+  ASK_USER_MARKER,
+
+  // Types
+  type CommandProps,
+  type CommandContext,
+  type AgentProps,
+  type AgentContext,
+  type AgentStatus,
+  type BaseOutput,
+  type SpawnAgentProps,
+  type V3SpawnAgentProps,
+  type OnStatusProps,
+  type OutputRef,
+  type AgentRef,
+  type DefineAgentConfig,
+  type MarkdownProps,
+  type XmlBlockProps,
+  type IndentProps,
+  type TableProps,
+  type TableAlignment,
+  type ListProps,
+  type IfProps,
+  type ElseProps,
+  type LoopProps,
+  type BreakProps,
+  type ReturnProps,
+  type ReturnStatus,
+  type Condition,
+  type AskUserProps,
+  type AskUserOption,
+  type RuntimeVar,
+  type RuntimeVarProxy,
+  type OrRuntimeVar,
+  type AllowRuntimeVars,
+  type RuntimeFunction,
+  type RuntimeCallProps,
+  type RuntimeCallComponent,
+  type RuntimeFnComponent,
+} from './components/index.js';
+
+// ============================================================================
+// Semantic Components (merged from V1 sections)
+// ============================================================================
+
+export {
+  ExecutionContext,
+  type ExecutionContextProps,
+} from './workflow/sections/index.js';

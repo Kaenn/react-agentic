@@ -22,6 +22,10 @@ import {
   JsxSpreadAttribute,
   ObjectLiteralExpression,
   SyntaxKind,
+  InterfaceDeclaration,
+  TemplateExpression,
+  CallExpression,
+  ArrowFunction,
 } from 'ts-morph';
 
 export interface CreateProjectOptions {
@@ -133,6 +137,160 @@ export function getAttributeValue(
 }
 
 /**
+ * Known test helper function names from jsx.ts
+ */
+const TEST_HELPERS = new Set(['fileExists', 'dirExists', 'isEmpty', 'notEmpty', 'equals', 'and', 'or']);
+
+/**
+ * Get the value of a test attribute, supporting both string literals
+ * and test helper function calls like fileExists(varRef), isEmpty(varRef), etc.
+ *
+ * @param element - The JSX element to get the attribute from
+ * @param name - The attribute name (typically 'test')
+ * @param variables - Map of declared useVariable results for resolving identifiers
+ * @returns The test expression string, or undefined if not found/invalid
+ */
+export function getTestAttributeValue(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init) {
+    return undefined;
+  }
+
+  // String literal: attr="value"
+  if (Node.isStringLiteral(init)) {
+    return init.getLiteralValue();
+  }
+
+  // JSX expression: attr={value}, attr={"value"}, or attr={helperFn(var)}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (!expr) {
+      return undefined;
+    }
+
+    // String literal inside expression: attr={"value"}
+    if (Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // Call expression: attr={fileExists(varRef)} or attr={equals(varRef, "value")}
+    if (Node.isCallExpression(expr)) {
+      return evaluateTestHelperCall(expr, variables);
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * ts-morph Node type alias for use in local function signatures
+ */
+type TsMorphNode = import('ts-morph').Node;
+
+/**
+ * Evaluate a test helper function call at compile time.
+ *
+ * Supports:
+ * - fileExists(varRef) -> [ -f $VAR_NAME ]
+ * - dirExists(varRef) -> [ -d $VAR_NAME ]
+ * - isEmpty(varRef) -> [ -z "$VAR_NAME" ]
+ * - notEmpty(varRef) -> [ -n "$VAR_NAME" ]
+ * - equals(varRef, "value") -> [ $VAR_NAME = value ]
+ * - and(...tests) -> test1 && test2 && ...
+ * - or(...tests) -> test1 || test2 || ...
+ */
+function evaluateTestHelperCall(
+  callExpr: CallExpression,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  const callee = callExpr.getExpression();
+  if (!Node.isIdentifier(callee)) {
+    return undefined;
+  }
+
+  const funcName = callee.getText();
+  if (!TEST_HELPERS.has(funcName)) {
+    return undefined;
+  }
+
+  const args = callExpr.getArguments();
+
+  switch (funcName) {
+    case 'fileExists': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -f $${varName} ]` : undefined;
+    }
+    case 'dirExists': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -d $${varName} ]` : undefined;
+    }
+    case 'isEmpty': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -z "$${varName}" ]` : undefined;
+    }
+    case 'notEmpty': {
+      const varName = resolveVariableArg(args[0], variables);
+      return varName ? `[ -n "$${varName}" ]` : undefined;
+    }
+    case 'equals': {
+      const varName = resolveVariableArg(args[0], variables);
+      const value = args[1] && Node.isStringLiteral(args[1]) ? args[1].getLiteralValue() : undefined;
+      return varName && value ? `[ $${varName} = ${value} ]` : undefined;
+    }
+    case 'and': {
+      const tests = args.map((arg: TsMorphNode) => evaluateTestArg(arg, variables)).filter((t: string | undefined): t is string => t !== undefined);
+      return tests.length > 0 ? tests.join(' && ') : undefined;
+    }
+    case 'or': {
+      const tests = args.map((arg: TsMorphNode) => evaluateTestArg(arg, variables)).filter((t: string | undefined): t is string => t !== undefined);
+      return tests.length > 0 ? tests.join(' || ') : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolve a variable reference argument to its shell variable name.
+ */
+function resolveVariableArg(
+  arg: TsMorphNode | undefined,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  if (!arg || !Node.isIdentifier(arg)) {
+    return undefined;
+  }
+  const variable = variables.get(arg.getText());
+  return variable?.envName;
+}
+
+/**
+ * Evaluate a test argument for and/or composition.
+ * Handles both string literals and nested helper calls.
+ */
+function evaluateTestArg(
+  arg: TsMorphNode,
+  variables: Map<string, ExtractedVariable>
+): string | undefined {
+  if (Node.isStringLiteral(arg)) {
+    return arg.getLiteralValue();
+  }
+  if (Node.isCallExpression(arg)) {
+    return evaluateTestHelperCall(arg, variables);
+  }
+  return undefined;
+}
+
+/**
  * Find the root JSX element returned by the default export function
  *
  * Searches for a ReturnStatement containing JSX within the file.
@@ -226,14 +384,23 @@ export function extractText(node: JsxText): string | null {
 /**
  * Extract text content from a JsxText node for inline context
  *
- * Returns null for whitespace-only nodes.
+ * For inline context, we need to preserve whitespace that separates
+ * inline elements. Only skip nodes that are purely formatting whitespace
+ * (newlines + indentation between block elements).
+ *
  * Preserves leading/trailing spaces as they separate inline elements.
  */
 export function extractInlineText(node: JsxText): string | null {
-  if (isWhitespaceOnlyText(node)) {
+  const raw = node.getText();
+
+  // Skip purely structural whitespace (newlines with optional indentation)
+  // These are formatting between block-level elements
+  if (/^\s*\n\s*$/.test(raw)) {
     return null;
   }
-  const normalized = normalizeInlineWhitespace(node.getText());
+
+  // Normalize multiple whitespace to single space, preserving edges
+  const normalized = normalizeInlineWhitespace(raw);
   return normalized || null;
 }
 
@@ -464,6 +631,36 @@ export function resolveComponentImport(
  * @param decl - The component's declaration node
  * @returns The JSX element/fragment returned, or null if not found
  */
+/**
+ * Extract generic type arguments from a JSX element
+ *
+ * For <SpawnAgent<ResearcherInput>> returns ['ResearcherInput']
+ * For <Agent<MyInput>> returns ['MyInput']
+ * Returns undefined if no type arguments present
+ *
+ * Uses ts-morph's getDescendantsOfKind to find TypeReference nodes within the
+ * opening element's tag, which is where JSX type arguments are attached.
+ */
+export function extractTypeArguments(
+  element: JsxElement | JsxSelfClosingElement
+): string[] | undefined {
+  // Get the opening element (where generics are attached in JSX)
+  const openingElement = Node.isJsxElement(element)
+    ? element.getOpeningElement()
+    : element;
+
+  // Get all TypeReference descendants of the opening tag
+  // In JSX, type arguments appear as TypeReference children of the tag name
+  const typeRefNodes = openingElement.getDescendantsOfKind(SyntaxKind.TypeReference);
+
+  if (typeRefNodes.length === 0) {
+    return undefined;
+  }
+
+  // Extract the type name text from each TypeReference
+  return typeRefNodes.map(node => node.getText());
+}
+
 export function extractJsxFromComponent(
   decl: Node
 ): JsxElement | JsxSelfClosingElement | JsxFragment | null {
@@ -529,4 +726,514 @@ export function extractJsxFromComponent(
   });
 
   return result;
+}
+
+// ============================================================================
+// Cross-File Type Resolution Utilities
+// ============================================================================
+
+/**
+ * Result of resolving a type import
+ */
+export interface ResolvedType {
+  sourceFile: SourceFile;
+  interfaceName: string;
+  interface: InterfaceDeclaration;
+}
+
+/**
+ * Resolve a type name to its interface declaration
+ * Follows import declarations to find the source file and interface
+ *
+ * @param typeName - Name of the type to resolve (e.g., 'ResearcherInput')
+ * @param sourceFile - Source file containing the import
+ * @returns ResolvedType with source file and interface, or undefined if not found
+ */
+export function resolveTypeImport(
+  typeName: string,
+  sourceFile: SourceFile
+): ResolvedType | undefined {
+  // Check if type is defined locally first
+  const localInterface = sourceFile.getInterface(typeName);
+  if (localInterface) {
+    return {
+      sourceFile,
+      interfaceName: typeName,
+      interface: localInterface,
+    };
+  }
+
+  // Find import declaration for this type
+  for (const importDecl of sourceFile.getImportDeclarations()) {
+    // Check named imports: import { TypeName } from '...'
+    for (const namedImport of importDecl.getNamedImports()) {
+      if (namedImport.getName() === typeName) {
+        const resolved = importDecl.getModuleSpecifierSourceFile();
+        if (!resolved) {
+          return undefined;
+        }
+
+        // Handle aliased imports: import { X as Y } from '...'
+        const originalName = namedImport.getAliasNode()?.getText() ?? typeName;
+
+        // Get the interface from the resolved file
+        const iface = resolved.getInterface(originalName);
+        if (!iface) {
+          // Try exported declarations (for re-exports)
+          const exported = resolved.getExportedDeclarations().get(originalName);
+          const exportedIface = exported?.find(d => Node.isInterfaceDeclaration(d));
+          if (exportedIface && Node.isInterfaceDeclaration(exportedIface)) {
+            return {
+              sourceFile: resolved,
+              interfaceName: originalName,
+              interface: exportedIface,
+            };
+          }
+          return undefined;
+        }
+
+        return {
+          sourceFile: resolved,
+          interfaceName: originalName,
+          interface: iface,
+        };
+      }
+    }
+
+    // Check type-only imports: import type { TypeName } from '...'
+    if (importDecl.isTypeOnly()) {
+      for (const namedImport of importDecl.getNamedImports()) {
+        if (namedImport.getName() === typeName) {
+          const resolved = importDecl.getModuleSpecifierSourceFile();
+          if (!resolved) {
+            return undefined;
+          }
+
+          const originalName = namedImport.getAliasNode()?.getText() ?? typeName;
+          const iface = resolved.getInterface(originalName);
+          if (iface) {
+            return {
+              sourceFile: resolved,
+              interfaceName: originalName,
+              interface: iface,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Property information extracted from an interface
+ */
+export interface InterfaceProperty {
+  name: string;
+  required: boolean;
+  type: string;
+}
+
+/**
+ * Extract property information from an interface
+ *
+ * @param iface - Interface declaration to extract from
+ * @returns Array of property information
+ */
+export function extractInterfaceProperties(
+  iface: InterfaceDeclaration
+): InterfaceProperty[] {
+  const properties: InterfaceProperty[] = [];
+
+  for (const prop of iface.getProperties()) {
+    properties.push({
+      name: prop.getName(),
+      required: !prop.hasQuestionToken(),
+      type: prop.getType().getText(),
+    });
+  }
+
+  return properties;
+}
+
+/**
+ * Extract {placeholder} patterns from a prompt string
+ *
+ * @param prompt - Prompt string with {variable} placeholders
+ * @returns Set of placeholder names (without braces)
+ */
+export function extractPromptPlaceholders(prompt: string): Set<string> {
+  const matches = prompt.matchAll(/\{(\w+)\}/g);
+  return new Set([...matches].map(m => m[1]));
+}
+
+// ============================================================================
+// Variable Declaration Extraction (useVariable hook)
+// ============================================================================
+
+/**
+ * Extracted variable information from useVariable() call
+ */
+export interface ExtractedVariable {
+  /** Local const name (e.g., "phaseDir") */
+  localName: string;
+  /** Shell variable name (e.g., "PHASE_DIR") */
+  envName: string;
+}
+
+/**
+ * Extract all useVariable() and defineVars() declarations from a source file
+ *
+ * Finds patterns like:
+ *   const phaseDir = useVariable("PHASE_DIR");
+ *   const vars = defineVars({ MODEL_PROFILE: { type: 'string' } });
+ *
+ * For defineVars, each property becomes a separate entry:
+ *   vars.MODEL_PROFILE -> { localName: 'vars.MODEL_PROFILE', envName: 'MODEL_PROFILE' }
+ *
+ * @param sourceFile - Source file to extract from
+ * @returns Map from local variable name to ExtractedVariable info
+ */
+export function extractVariableDeclarations(
+  sourceFile: SourceFile
+): Map<string, ExtractedVariable> {
+  const result = new Map<string, ExtractedVariable>();
+
+  // Find all variable declarations
+  sourceFile.forEachDescendant((node) => {
+    if (!Node.isVariableDeclaration(node)) return;
+
+    const initializer = node.getInitializer();
+    if (!initializer || !Node.isCallExpression(initializer)) return;
+
+    const callExpr = initializer.getExpression();
+    if (!Node.isIdentifier(callExpr)) return;
+
+    const funcName = callExpr.getText();
+
+    // Handle useVariable() call
+    if (funcName === 'useVariable') {
+      const args = initializer.getArguments();
+      if (args.length < 1) return;
+
+      // First arg: string literal for env name
+      const firstArg = args[0];
+      if (!Node.isStringLiteral(firstArg)) return;
+      const envName = firstArg.getLiteralValue();
+
+      // Get local variable name
+      const localName = node.getName();
+
+      result.set(localName, {
+        localName,
+        envName,
+      });
+    }
+
+    // Handle defineVars() call
+    if (funcName === 'defineVars') {
+      const args = initializer.getArguments();
+      if (args.length < 1) return;
+
+      const schemaArg = args[0];
+      if (!Node.isObjectLiteralExpression(schemaArg)) return;
+
+      // Get the variable name (e.g., "vars")
+      const varName = node.getName();
+
+      // Extract each property from the schema
+      for (const prop of schemaArg.getProperties()) {
+        if (!Node.isPropertyAssignment(prop)) continue;
+
+        // Get property name (e.g., "MODEL_PROFILE")
+        const propName = prop.getName();
+
+        // Create entry like "vars.MODEL_PROFILE" -> "MODEL_PROFILE"
+        const localName = `${varName}.${propName}`;
+        result.set(localName, {
+          localName,
+          envName: propName,
+        });
+      }
+    }
+  });
+
+  return result;
+}
+
+
+// ============================================================================
+// SpawnAgent Input Utilities
+// ============================================================================
+
+import type { StateSchema, StateSchemaField } from '../ir/nodes.js';
+import type { InputProperty, InputValue } from '../ir/runtime-nodes.js';
+
+/**
+ * Check if an identifier references a useVariable result
+ *
+ * @param identifier - The identifier node to check
+ * @param variables - Map of declared useVariable results
+ * @returns true if identifier references a known useVariable
+ */
+export function isVariableRef(
+  identifier: string,
+  variables: Map<string, ExtractedVariable>
+): boolean {
+  return variables.has(identifier);
+}
+
+/**
+ * Extract SpawnAgent input object literal properties
+ *
+ * Handles property values:
+ * - String literal: { propName: "value" } -> { type: 'string', value: str }
+ * - {placeholder} pattern: { propName: "{var}" } -> { type: 'placeholder', name: var }
+ * - Identifier referencing variable: { propName: varRef } -> { type: 'variable', name: envName }
+ *
+ * @param objLiteral - The ObjectLiteralExpression from JSX input prop
+ * @param variables - Map of declared useVariable results
+ * @returns Array of InputProperty with proper InputValue types
+ */
+export function extractInputObjectLiteral(
+  objLiteral: ObjectLiteralExpression,
+  variables: Map<string, ExtractedVariable>
+): InputProperty[] {
+  const properties: InputProperty[] = [];
+
+  for (const prop of objLiteral.getProperties()) {
+    if (!Node.isPropertyAssignment(prop)) continue;
+
+    const name = prop.getName();
+    const initializer = prop.getInitializer();
+    if (!initializer) continue;
+
+    let value: InputValue;
+
+    if (Node.isStringLiteral(initializer)) {
+      const strValue = initializer.getLiteralValue();
+      value = { type: 'string', value: strValue };
+    } else if (Node.isNoSubstitutionTemplateLiteral(initializer)) {
+      const strValue = initializer.getLiteralValue();
+      value = { type: 'string', value: strValue };
+    } else if (Node.isIdentifier(initializer)) {
+      // Identifier referencing a variable - treat as string
+      // V3 RuntimeVar references are handled by v3-spawner.ts using parseRuntimeVarRef
+      const varName = initializer.getText();
+      value = { type: 'string', value: varName };
+    } else {
+      // Unsupported initializer type - skip this property
+      continue;
+    }
+
+    properties.push({ name, value });
+  }
+
+  return properties;
+}
+
+// ============================================================================
+// State Schema Extraction
+// ============================================================================
+
+/**
+ * Map TypeScript type to SQL type
+ */
+function mapTsTypeToSql(tsType: string): 'TEXT' | 'INTEGER' {
+  switch (tsType) {
+    case 'number':
+      return 'INTEGER';
+    case 'boolean':
+      return 'INTEGER';  // 0/1
+    default:
+      return 'TEXT';  // string, Date, enums, etc.
+  }
+}
+
+/**
+ * Get default value for a type
+ */
+function getDefaultValue(tsType: string, sqlType: 'TEXT' | 'INTEGER'): string {
+  if (sqlType === 'INTEGER') {
+    return '0';
+  }
+  return '';  // Empty string for TEXT
+}
+
+/**
+ * Extract enum values from union type
+ * 'major' | 'minor' | 'patch' -> ['major', 'minor', 'patch']
+ */
+function extractEnumValues(typeText: string): string[] | undefined {
+  // Match pattern like "'value1' | 'value2' | 'value3'"
+  const matches = typeText.match(/'([^']+)'/g);
+  if (matches && matches.length > 1) {
+    return matches.map(m => m.replace(/'/g, ''));
+  }
+  return undefined;
+}
+
+/**
+ * Flatten interface properties into schema fields
+ * Handles nested objects with underscore separation
+ *
+ * @param sourceFile - Source file containing the interface
+ * @param interfaceName - Name of the interface to extract
+ */
+export function extractStateSchema(
+  sourceFile: SourceFile,
+  interfaceName: string
+): StateSchema | undefined {
+  const fields: StateSchemaField[] = [];
+
+  // Find the interface declaration
+  const interfaceDecl = sourceFile.getInterface(interfaceName);
+  if (!interfaceDecl) {
+    return undefined;
+  }
+
+  // Recursive helper to flatten nested properties
+  function processProperties(
+    properties: ReturnType<InterfaceDeclaration['getProperties']>,
+    prefix: string = ''
+  ): void {
+    for (const prop of properties) {
+      const propName = prop.getName();
+      const typeNode = prop.getTypeNode();
+      const fullName = prefix ? `${prefix}_${propName}` : propName;
+
+      if (!typeNode) continue;
+
+      const typeText = typeNode.getText();
+
+      // Check if this is a nested object type (TypeLiteral or interface reference)
+      if (Node.isTypeLiteral(typeNode)) {
+        // Inline object type: { debug: boolean; timeout: number; }
+        const nestedProps = typeNode.getProperties();
+        // Process nested properties with updated prefix
+        for (const nestedProp of nestedProps) {
+          const nestedName = nestedProp.getName();
+          const nestedType = nestedProp.getTypeNode();
+          if (!nestedType) continue;
+
+          const nestedTypeText = nestedType.getText();
+          const nestedFullName = `${fullName}_${nestedName}`;
+
+          // For now, only go one level deep (can extend later)
+          const tsType = nestedTypeText.includes('|') ? 'string' : nestedTypeText;
+          const sqlType = mapTsTypeToSql(tsType);
+          const enumValues = extractEnumValues(nestedTypeText);
+
+          fields.push({
+            name: nestedFullName,
+            tsType,
+            sqlType,
+            defaultValue: getDefaultValue(tsType, sqlType),
+            enumValues
+          });
+        }
+      } else {
+        // Simple type
+        const tsType = typeText.includes('|') ? 'string' : typeText;
+        const sqlType = mapTsTypeToSql(tsType);
+        const enumValues = extractEnumValues(typeText);
+
+        fields.push({
+          name: fullName,
+          tsType,
+          sqlType,
+          defaultValue: getDefaultValue(tsType, sqlType),
+          enumValues
+        });
+      }
+    }
+  }
+
+  processProperties(interfaceDecl.getProperties());
+
+  return {
+    interfaceName,
+    fields
+  };
+}
+
+/**
+ * Extract $variable arguments from SQL template
+ * Returns unique argument names without the $ prefix
+ */
+export function extractSqlArguments(sqlTemplate: string): string[] {
+  const regex = /\$([a-z_][a-z0-9_]*)/gi;
+  const args = new Set<string>();
+  let match;
+  while ((match = regex.exec(sqlTemplate)) !== null) {
+    args.add(match[1].toLowerCase());
+  }
+  return Array.from(args);
+}
+
+// ============================================================================
+// Render Props Pattern Detection
+// ============================================================================
+
+/**
+ * Result of analyzing JSX children for render props pattern
+ */
+export interface RenderPropsInfo {
+  /** True if children is a single arrow function */
+  isRenderProps: boolean;
+  /** Parameter name used in arrow function (e.g., 'ctx') */
+  paramName?: string;
+  /** The arrow function AST node */
+  arrowFunction?: ArrowFunction;
+}
+
+/**
+ * Analyze JSX element children for render props pattern
+ *
+ * Detects when children is a single arrow function: {(ctx) => ...}
+ * Returns info about the arrow function for transformer use.
+ *
+ * @param element - JSX element to analyze
+ * @returns RenderPropsInfo with detection results
+ */
+export function analyzeRenderPropsChildren(
+  element: JsxElement
+): RenderPropsInfo {
+  const children = element.getJsxChildren();
+
+  // Filter out whitespace-only text nodes
+  const nonWhitespace = children.filter(child => {
+    if (Node.isJsxText(child)) {
+      return child.getText().trim().length > 0;
+    }
+    return true;
+  });
+
+  // Must have exactly one child that's a JSX expression
+  if (nonWhitespace.length !== 1) {
+    return { isRenderProps: false };
+  }
+
+  const child = nonWhitespace[0];
+  if (!Node.isJsxExpression(child)) {
+    return { isRenderProps: false };
+  }
+
+  const expr = child.getExpression();
+  if (!expr || !Node.isArrowFunction(expr)) {
+    return { isRenderProps: false };
+  }
+
+  // Extract parameter (zero or one parameter supported)
+  const params = expr.getParameters();
+  if (params.length > 1) {
+    return { isRenderProps: false };
+  }
+
+  return {
+    isRenderProps: true,
+    paramName: params.length > 0 ? params[0].getName() : undefined,
+    arrowFunction: expr,
+  };
 }
