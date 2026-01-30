@@ -5,6 +5,7 @@ This document provides a formal grammar specification for all valid JSX elements
 ## Table of Contents
 
 - [Document Roots](#document-roots)
+- [External Components](#external-components)
 - [Block Elements](#block-elements)
 - [Inline Elements](#inline-elements)
 - [Component Reference](#component-reference)
@@ -78,6 +79,69 @@ Creates a spawnable agent definition with YAML frontmatter.
 | `folder` | `string` | No | Output path subfolder |
 | `model` | `string` | No | Model name override |
 | `children` | `ReactNode \| (ctx) => ReactNode` | No | Body content or render props |
+
+---
+
+## External Components
+
+Components can be imported from external files for reuse across commands and agents:
+
+```tsx
+// Named imports
+import { Banner, Footer } from './components/layout';
+
+// Default imports
+import Card from './components/card';
+
+export default (
+  <Command name="example" description="Uses external components">
+    {() => (
+      <>
+        <Banner title="Welcome" />
+        <Card>
+          <p>Card content</p>
+        </Card>
+        <Footer />
+      </>
+    )}
+  </Command>
+);
+```
+
+### Defining External Components
+
+External components follow standard React patterns:
+
+```tsx
+// ./components/layout.tsx
+
+// Arrow function component
+export const Banner = ({ title }: { title: string }) => (
+  <h1>{title}</h1>
+);
+
+// Function declaration component
+export function Footer() {
+  return <p>© 2024</p>;
+}
+
+// Default export
+const Card = ({ children }: { children?: any }) => (
+  <XmlBlock name="card">
+    {children}
+  </XmlBlock>
+);
+export default Card;
+```
+
+### Constraints
+
+| Constraint | Description |
+|------------|-------------|
+| Relative imports only | External components must use relative paths (e.g., `./components/banner`). Node modules are ignored. |
+| PascalCase names | Only PascalCase identifiers are treated as components |
+| Local precedence | Local component definitions take precedence over imported components with the same name |
+| Static only | External components cannot use runtime features (`useRuntimeVar`, `runtimeFn`). Use runtime features in the consuming command/agent instead. |
 
 ---
 

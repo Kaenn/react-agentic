@@ -16,6 +16,7 @@ export {
   OnStatus,
   Markdown,
   XmlBlock,
+  Indent,
   Table,
   List,
 
@@ -73,6 +74,7 @@ export {
   type DefineAgentConfig,
   type MarkdownProps,
   type XmlBlockProps,
+  type IndentProps,
   type TableProps,
   type TableAlignment,
   type ListProps,
@@ -136,6 +138,7 @@ export {
   extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
   extractLocalComponentDeclarations,
+  extractExternalComponentDeclarations,
   transformRuntimeCommand,
   transformToRuntimeBlock,
   transformRuntimeBlockChildren,
@@ -196,3 +199,12 @@ export { defineVars, defineFiles, defineContext } from './primitives/schema.js';
 // ============================================================================
 
 export { emit, emitAgent, emitSkill, emitSkillFile, emitSettings, mergeSettings } from './emitter/index.js';
+
+// ============================================================================
+// Semantic Components
+// ============================================================================
+
+export {
+  ExecutionContext,
+  type ExecutionContextProps,
+} from './workflow/sections/index.js';

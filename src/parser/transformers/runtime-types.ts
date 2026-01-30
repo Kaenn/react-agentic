@@ -60,7 +60,7 @@ export interface RuntimeFunctionInfo {
  * Information about a local component definition
  *
  * Tracks PascalCase function components defined in the same file
- * for build-time inlining.
+ * or imported from external files for build-time inlining.
  */
 export interface LocalComponentInfo {
   /** Component name (PascalCase) */
@@ -71,6 +71,12 @@ export interface LocalComponentInfo {
   propNames: string[];
   /** Cached JSX returned by the component (filled on first expansion) */
   jsx?: JsxElement | JsxSelfClosingElement | JsxFragment;
+  /** Source file path where component is defined (for external components) */
+  sourceFilePath?: string;
+  /** Whether this component is imported from an external file */
+  isExternal?: boolean;
+  /** Import path if imported (e.g., './components/banner') */
+  importPath?: string;
 }
 
 // ============================================================================

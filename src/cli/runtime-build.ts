@@ -15,6 +15,7 @@ import {
   extractRuntimeVarDeclarations,
   extractRuntimeFnDeclarations,
   extractLocalComponentDeclarations,
+  extractExternalComponentDeclarations,
   getRuntimeFunctionNames,
   getRuntimeImportPaths,
   transformRuntimeCommand,
@@ -225,6 +226,7 @@ export async function buildRuntimeFile(
   extractRuntimeVarDeclarations(sourceFile, ctx);
   extractRuntimeFnDeclarations(sourceFile, ctx);
   extractLocalComponentDeclarations(sourceFile, ctx);
+  extractExternalComponentDeclarations(sourceFile, ctx);
 
   // Phase 2: Find root element
   const rootElement = findRuntimeRootElement(sourceFile);

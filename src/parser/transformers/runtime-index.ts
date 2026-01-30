@@ -17,6 +17,7 @@ export {
 // Local component transformer
 export {
   extractLocalComponentDeclarations,
+  extractExternalComponentDeclarations,
   transformLocalComponent,
 } from './runtime-component.js';
 

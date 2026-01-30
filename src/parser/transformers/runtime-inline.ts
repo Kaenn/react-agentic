@@ -227,6 +227,7 @@ function collectPropertyPath(expr: Node): string[] {
  * Transform property access expression to inline node
  *
  * If the root identifier is a RuntimeVar, emit a jq expression.
+ * If it's a component prop access (props.xxx), substitute the value.
  * Otherwise, return the raw text.
  */
 function transformPropertyAccess(
@@ -239,6 +240,19 @@ function transformPropertyAccess(
   if (path.length === 0) return null;
 
   const rootName = path[0];
+
+  // Check for component prop access: props.xxx
+  if (rootName === 'props' && path.length >= 2 && ctx.componentProps) {
+    const propName = path[1];
+    if (ctx.componentProps.has(propName)) {
+      const propValue = ctx.componentProps.get(propName);
+      if (propValue !== undefined && propValue !== null) {
+        return { kind: 'text', value: String(propValue) };
+      }
+      return null;
+    }
+  }
+
   const runtimeVar = ctx.runtimeVars.get(rootName);
 
   if (runtimeVar) {
@@ -288,14 +302,23 @@ function transformTemplateLiteral(
         const inline = transformPropertyAccess(spanExpr, ctx);
         if (inline) result.push(inline);
       } else if (Node.isIdentifier(spanExpr)) {
-        // Direct identifier - check if it's a RuntimeVar
         const varName = spanExpr.getText();
-        const runtimeVar = ctx.runtimeVars.get(varName);
-        if (runtimeVar) {
-          const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
-          result.push({ kind: 'text', value });
+
+        // Check for component prop first
+        if (ctx.componentProps && ctx.componentProps.has(varName)) {
+          const propValue = ctx.componentProps.get(varName);
+          if (propValue !== undefined && propValue !== null) {
+            result.push({ kind: 'text', value: String(propValue) });
+          }
         } else {
-          result.push({ kind: 'text', value: varName });
+          // Check if it's a RuntimeVar
+          const runtimeVar = ctx.runtimeVars.get(varName);
+          if (runtimeVar) {
+            const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
+            result.push({ kind: 'text', value });
+          } else {
+            result.push({ kind: 'text', value: varName });
+          }
         }
       } else {
         // Other expression - render raw

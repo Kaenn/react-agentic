@@ -279,7 +279,7 @@ export class RuntimeMarkdownEmitter {
       case 'executionContext':
         return this.emitExecutionContext(node as import('../ir/nodes.js').ExecutionContextNode);
       case 'group':
-        return node.children.map(c => this.emitBlock(c)).join('\n');
+        return node.children.map(c => this.emitBlock(c)).join('\n\n');
       case 'raw':
         return node.content;
       case 'indent':

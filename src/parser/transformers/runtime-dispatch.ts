@@ -325,11 +325,37 @@ function transformRuntimeMixedChildren(
           contentAccumulator.push(value);
         }
       } else if (expr && Node.isTemplateExpression(expr)) {
-        // Template literal with interpolation - extract content preserving ${...}
+        // Template literal with interpolation - substitute props if in component context
         const parts: string[] = [];
         parts.push(expr.getHead().getLiteralText());
         for (const span of expr.getTemplateSpans()) {
-          parts.push(`\${${span.getExpression().getText()}}`);
+          const spanExpr = span.getExpression();
+          const spanText = spanExpr.getText();
+
+          // Check for prop substitution when in component context
+          if (ctx.componentProps) {
+            // Handle props.xxx pattern
+            if (Node.isPropertyAccessExpression(spanExpr)) {
+              const obj = spanExpr.getExpression();
+              const propName = spanExpr.getName();
+              if (Node.isIdentifier(obj) && obj.getText() === 'props' && ctx.componentProps.has(propName)) {
+                const propValue = ctx.componentProps.get(propName);
+                parts.push(propValue !== undefined && propValue !== null ? String(propValue) : '');
+                parts.push(span.getLiteral().getLiteralText());
+                continue;
+              }
+            }
+            // Handle direct identifier (destructured props)
+            if (Node.isIdentifier(spanExpr) && ctx.componentProps.has(spanText)) {
+              const propValue = ctx.componentProps.get(spanText);
+              parts.push(propValue !== undefined && propValue !== null ? String(propValue) : '');
+              parts.push(span.getLiteral().getLiteralText());
+              continue;
+            }
+          }
+
+          // Not a prop reference - preserve as ${...}
+          parts.push(`\${${spanText}}`);
           parts.push(span.getLiteral().getLiteralText());
         }
         const value = parts.join('');
@@ -345,14 +371,36 @@ function transformRuntimeMixedChildren(
           flushContent();
           // Insert the component children
           blocks.push(...ctx.componentChildren);
-        } else if (ctx.componentProps && Node.isIdentifier(expr) && ctx.componentProps.has(exprText)) {
-          // Component prop substitution
-          const propValue = ctx.componentProps.get(exprText);
-          if (propValue !== undefined && propValue !== null) {
-            contentAccumulator.push(String(propValue));
+        } else if (ctx.componentProps) {
+          // Component prop substitution - check both patterns
+          let propValue: unknown = undefined;
+          let matched = false;
+
+          // Check props.xxx pattern
+          if (Node.isPropertyAccessExpression(expr)) {
+            const obj = expr.getExpression();
+            const propName = expr.getName();
+            if (Node.isIdentifier(obj) && obj.getText() === 'props' && ctx.componentProps.has(propName)) {
+              propValue = ctx.componentProps.get(propName);
+              matched = true;
+            }
+          }
+          // Check direct identifier (destructured props)
+          else if (Node.isIdentifier(expr) && ctx.componentProps.has(exprText)) {
+            propValue = ctx.componentProps.get(exprText);
+            matched = true;
+          }
+
+          if (matched) {
+            if (propValue !== undefined && propValue !== null) {
+              contentAccumulator.push(String(propValue));
+            }
+          } else {
+            // Not a prop reference - add placeholder syntax
+            contentAccumulator.push(`{${exprText}}`);
           }
         } else {
-          // Other expressions - add placeholder syntax
+          // Not in component context - add placeholder syntax
           contentAccumulator.push(`{${exprText}}`);
         }
       }
@@ -459,6 +507,116 @@ function transformRuntimeIndent(
     spaces,
     children: children as any[],
   };
+}
+
+// ============================================================================
+// Runtime Code Block Transformer
+// ============================================================================
+
+/**
+ * Transform code block (pre element) with component prop substitution
+ *
+ * Uses V3 context to support props.xxx substitution in template literals.
+ */
+function transformRuntimeCodeBlock(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Get optional language attribute
+  const language = getAttributeValue(openingElement, 'lang') ||
+    getAttributeValue(openingElement, 'language');
+
+  if (Node.isJsxSelfClosingElement(node)) {
+    return { kind: 'codeBlock', language, content: '' };
+  }
+
+  // Extract code content with prop substitution
+  const parts: string[] = [];
+
+  for (const child of node.getJsxChildren()) {
+    if (Node.isJsxText(child)) {
+      // Get raw text preserving whitespace
+      const sourceFile = child.getSourceFile();
+      const text = sourceFile.getFullText().slice(child.getStart(), child.getEnd());
+      parts.push(text);
+    } else if (Node.isJsxExpression(child)) {
+      const expr = child.getExpression();
+      if (expr) {
+        if (Node.isStringLiteral(expr)) {
+          parts.push(expr.getLiteralValue());
+        } else if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+          parts.push(expr.getLiteralValue());
+        } else if (Node.isTemplateExpression(expr)) {
+          // Template literal with interpolation - substitute props
+          const templateParts: string[] = [];
+          templateParts.push(expr.getHead().getLiteralText());
+
+          for (const span of expr.getTemplateSpans()) {
+            const spanExpr = span.getExpression();
+            const spanText = spanExpr.getText();
+
+            // Check for prop substitution when in component context
+            if (ctx.componentProps) {
+              // Handle props.xxx pattern
+              if (Node.isPropertyAccessExpression(spanExpr)) {
+                const obj = spanExpr.getExpression();
+                const propName = spanExpr.getName();
+                if (Node.isIdentifier(obj) && obj.getText() === 'props' && ctx.componentProps.has(propName)) {
+                  const propValue = ctx.componentProps.get(propName);
+                  templateParts.push(propValue !== undefined && propValue !== null ? String(propValue) : '');
+                  templateParts.push(span.getLiteral().getLiteralText());
+                  continue;
+                }
+              }
+              // Handle direct identifier (destructured props)
+              if (Node.isIdentifier(spanExpr) && ctx.componentProps.has(spanText)) {
+                const propValue = ctx.componentProps.get(spanText);
+                templateParts.push(propValue !== undefined && propValue !== null ? String(propValue) : '');
+                templateParts.push(span.getLiteral().getLiteralText());
+                continue;
+              }
+            }
+
+            // Not a prop reference - preserve as ${...}
+            templateParts.push(`\${${spanText}}`);
+            templateParts.push(span.getLiteral().getLiteralText());
+          }
+
+          parts.push(templateParts.join(''));
+        } else {
+          // Other expression - render as is
+          parts.push(expr.getText());
+        }
+      }
+    }
+  }
+
+  // Process the combined content
+  let content = parts.join('');
+
+  // Remove leading/trailing newlines that come from JSX formatting
+  content = content.replace(/^\n/, '').replace(/\n$/, '');
+
+  // Dedent the content (remove common leading whitespace)
+  const lines = content.split('\n');
+  if (lines.length > 1) {
+    let minIndent = Infinity;
+    for (const line of lines) {
+      if (line.trim().length > 0) {
+        const leadingSpaces = line.match(/^[ \t]*/)?.[0].length ?? 0;
+        minIndent = Math.min(minIndent, leadingSpaces);
+      }
+    }
+    if (minIndent !== Infinity && minIndent > 0) {
+      content = lines.map(line => line.slice(minIndent)).join('\n');
+    }
+  }
+
+  return { kind: 'codeBlock', language, content: content };
 }
 
 // ============================================================================
@@ -665,9 +823,9 @@ function transformRuntimeElement(
     return transformBlockquote(node, sharedCtx) as BlockNode;
   }
 
-  // Code block
+  // Code block - use v3 transformer for component prop support
   if (name === 'pre') {
-    return transformCodeBlock(node, sharedCtx) as BlockNode;
+    return transformRuntimeCodeBlock(node, ctx);
   }
 
   // Div (XML block or group) - use V3 transformer for proper children handling

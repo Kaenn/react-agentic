@@ -23,6 +23,7 @@ import {
   JsxElement,
   JsxSelfClosingElement,
   JsxFragment,
+  ImportDeclaration,
 } from 'ts-morph';
 import type { BlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext, LocalComponentInfo } from './runtime-types.js';
@@ -79,6 +80,105 @@ export function extractLocalComponentDeclarations(
       propNames: extractFunctionPropNames(funcDecl),
     });
   }
+}
+
+/**
+ * Extract external component declarations from imports
+ *
+ * Scans for relative imports that reference PascalCase components
+ * and registers them in the context for build-time inlining.
+ *
+ * Supports:
+ * - Default imports: `import Banner from './banner'`
+ * - Named imports: `import { Header, Footer } from './ui'`
+ */
+export function extractExternalComponentDeclarations(
+  sourceFile: SourceFile,
+  ctx: RuntimeTransformContext
+): void {
+  for (const importDecl of sourceFile.getImportDeclarations()) {
+    const specifier = importDecl.getModuleSpecifierValue();
+
+    // Skip non-relative imports (node_modules)
+    if (!specifier.startsWith('.')) continue;
+
+    // Process default imports
+    const defaultImport = importDecl.getDefaultImport();
+    if (defaultImport && isCustomComponent(defaultImport.getText())) {
+      extractExternalComponent(defaultImport.getText(), importDecl, ctx, true);
+    }
+
+    // Process named imports
+    for (const namedImport of importDecl.getNamedImports()) {
+      const name = namedImport.getName();
+      if (isCustomComponent(name)) {
+        extractExternalComponent(name, importDecl, ctx, false);
+      }
+    }
+  }
+}
+
+/**
+ * Extract a single external component and add to context
+ */
+function extractExternalComponent(
+  name: string,
+  importDecl: ImportDeclaration,
+  ctx: RuntimeTransformContext,
+  isDefault: boolean
+): void {
+  // Skip if already defined locally (local definitions take precedence)
+  if (ctx.localComponents.has(name)) return;
+
+  const externalFile = importDecl.getModuleSpecifierSourceFile();
+  if (!externalFile) {
+    throw ctx.createError(`Cannot resolve import for '${name}'`, importDecl);
+  }
+
+  // Get exported declarations
+  const exports = externalFile.getExportedDeclarations();
+  const decls = isDefault ? exports.get('default') : exports.get(name);
+
+  if (!decls || decls.length === 0) {
+    throw ctx.createError(`Component '${name}' not exported from '${importDecl.getModuleSpecifierValue()}'`, importDecl);
+  }
+
+  const decl = decls[0];
+
+  // Extract prop names from the component declaration
+  const propNames = extractExternalPropNames(decl);
+
+  // Store in localComponents (same map, isExternal flag differentiates)
+  ctx.localComponents.set(name, {
+    name,
+    declaration: decl,
+    propNames,
+    sourceFilePath: externalFile.getFilePath(),
+    isExternal: true,
+    importPath: importDecl.getModuleSpecifierValue(),
+  });
+}
+
+/**
+ * Extract prop names from an external component declaration
+ *
+ * Handles both variable declarations (arrow functions) and function declarations.
+ */
+function extractExternalPropNames(decl: Node): string[] {
+  // Variable declaration with arrow function or function expression
+  if (Node.isVariableDeclaration(decl)) {
+    const init = decl.getInitializer();
+    if (init && (Node.isArrowFunction(init) || Node.isFunctionExpression(init))) {
+      return extractPropNames(init);
+    }
+  }
+
+  // Function declaration
+  if (Node.isFunctionDeclaration(decl)) {
+    return extractFunctionPropNames(decl);
+  }
+
+  return [];
 }
 
 /**
