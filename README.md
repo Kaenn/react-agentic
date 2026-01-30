@@ -1,4 +1,4 @@
-# react-agentic
+# React Agentic
 
 **Build your company's GSD** — Enterprise-grade agentic workflows for Claude Code, authored in TypeScript.
 
