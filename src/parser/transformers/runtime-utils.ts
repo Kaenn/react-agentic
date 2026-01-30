@@ -4,7 +4,10 @@
  * Helper functions for runtime transformers.
  */
 
-import { Node, JsxOpeningElement, JsxSelfClosingElement, Expression } from 'ts-morph';
+import { Node, JsxOpeningElement, JsxSelfClosingElement, Expression, SyntaxKind } from 'ts-morph';
+import type { RuntimeCallArgValue, RuntimeVarRefNode } from '../../ir/index.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
 
 // ============================================================================
 // Attribute Extraction
@@ -345,6 +348,250 @@ export function extractJsonValue(expr: Expression): unknown {
 
   // Unknown - return as string representation
   return expr.getText();
+}
+
+// ============================================================================
+// RuntimeCall Argument Extraction
+// ============================================================================
+
+/**
+ * Generate a human-readable description of an expression
+ *
+ * Used for ternary expressions, logical operators, and comparisons
+ * that can't be directly resolved to a value.
+ *
+ * @example
+ * ctx.flags.gaps ? 'gap_closure' : 'standard'
+ * // Returns: "If ctx.flags.gaps then \"gap_closure\", otherwise \"standard\""
+ *
+ * @example
+ * status === 'PASSED'
+ * // Returns: "status equals \"PASSED\""
+ */
+export function describeExpression(expr: Expression, ctx: RuntimeTransformContext): string {
+  if (Node.isConditionalExpression(expr)) {
+    // Ternary expression: cond ? then : else
+    const condition = expr.getCondition();
+    const whenTrue = expr.getWhenTrue();
+    const whenFalse = expr.getWhenFalse();
+
+    const condDesc = describeExpressionPart(condition, ctx);
+    const trueVal = describeExpressionValue(whenTrue, ctx);
+    const falseVal = describeExpressionValue(whenFalse, ctx);
+
+    return `If ${condDesc} then ${trueVal}, otherwise ${falseVal}`;
+  }
+
+  if (Node.isBinaryExpression(expr)) {
+    const left = expr.getLeft();
+    const right = expr.getRight();
+    const op = expr.getOperatorToken().getText();
+
+    const leftDesc = describeExpressionPart(left, ctx);
+    const rightDesc = describeExpressionValue(right, ctx);
+
+    switch (op) {
+      case '===':
+      case '==':
+        return `${leftDesc} equals ${rightDesc}`;
+      case '!==':
+      case '!=':
+        return `${leftDesc} does not equal ${rightDesc}`;
+      case '&&':
+        return `${leftDesc} AND ${describeExpressionPart(right, ctx)}`;
+      case '||':
+        return `${leftDesc} OR ${describeExpressionPart(right, ctx)}`;
+      case '>':
+        return `${leftDesc} is greater than ${rightDesc}`;
+      case '>=':
+        return `${leftDesc} is at least ${rightDesc}`;
+      case '<':
+        return `${leftDesc} is less than ${rightDesc}`;
+      case '<=':
+        return `${leftDesc} is at most ${rightDesc}`;
+      default:
+        return expr.getText();
+    }
+  }
+
+  if (Node.isPrefixUnaryExpression(expr)) {
+    const opToken = expr.getOperatorToken();
+    const operand = expr.getOperand();
+    if (opToken === SyntaxKind.ExclamationToken) {
+      return `NOT ${describeExpressionPart(operand, ctx)}`;
+    }
+  }
+
+  return expr.getText();
+}
+
+/**
+ * Describe a part of an expression (for conditions in ternaries)
+ */
+function describeExpressionPart(expr: Expression, ctx: RuntimeTransformContext): string {
+  // Check for RuntimeVar reference first
+  const ref = parseRuntimeVarRef(expr, ctx);
+  if (ref) {
+    const path = ref.path.length === 0
+      ? ref.varName
+      : `${ref.varName}.${ref.path.join('.')}`;
+    return path;
+  }
+
+  // Recursively describe binary expressions
+  if (Node.isBinaryExpression(expr)) {
+    return describeExpression(expr, ctx);
+  }
+
+  return expr.getText();
+}
+
+/**
+ * Describe a value expression (for results of ternaries)
+ */
+function describeExpressionValue(expr: Expression, ctx: RuntimeTransformContext): string {
+  if (Node.isStringLiteral(expr)) {
+    return `"${expr.getLiteralValue()}"`;
+  }
+  if (Node.isNumericLiteral(expr)) {
+    return expr.getLiteralText();
+  }
+  if (Node.isTrueLiteral(expr)) {
+    return 'true';
+  }
+  if (Node.isFalseLiteral(expr)) {
+    return 'false';
+  }
+  if (Node.isNullLiteral(expr)) {
+    return 'null';
+  }
+
+  // Check for RuntimeVar reference
+  const ref = parseRuntimeVarRef(expr, ctx);
+  if (ref) {
+    const path = ref.path.length === 0
+      ? ref.varName
+      : `${ref.varName}.${ref.path.join('.')}`;
+    return path;
+  }
+
+  return expr.getText();
+}
+
+/**
+ * Extract a single RuntimeCall argument value
+ *
+ * Checks for RuntimeVar reference FIRST before falling back to literals.
+ *
+ * @returns RuntimeCallArgValue with proper type discrimination
+ */
+export function extractRuntimeCallArg(
+  expr: Expression,
+  ctx: RuntimeTransformContext
+): RuntimeCallArgValue {
+  // Check for RuntimeVar reference FIRST (this is the key fix)
+  const ref = parseRuntimeVarRef(expr, ctx);
+  if (ref) {
+    return { type: 'runtimeVarRef', ref };
+  }
+
+  // Literal values
+  if (Node.isStringLiteral(expr)) {
+    return { type: 'literal', value: expr.getLiteralValue() };
+  }
+
+  if (Node.isNumericLiteral(expr)) {
+    return { type: 'literal', value: Number(expr.getLiteralText()) };
+  }
+
+  if (Node.isTrueLiteral(expr)) {
+    return { type: 'literal', value: true };
+  }
+
+  if (Node.isFalseLiteral(expr)) {
+    return { type: 'literal', value: false };
+  }
+
+  if (Node.isNullLiteral(expr)) {
+    return { type: 'literal', value: null };
+  }
+
+  // Template literal (no substitution)
+  if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+    return { type: 'literal', value: expr.getLiteralValue() };
+  }
+
+  // Nested object
+  if (Node.isObjectLiteralExpression(expr)) {
+    const nested: Record<string, RuntimeCallArgValue> = {};
+    for (const prop of expr.getProperties()) {
+      if (Node.isPropertyAssignment(prop)) {
+        const name = prop.getName();
+        const value = prop.getInitializer();
+        if (value) {
+          nested[name] = extractRuntimeCallArg(value, ctx);
+        }
+      }
+    }
+    return { type: 'json', value: nested };
+  }
+
+  // Array
+  if (Node.isArrayLiteralExpression(expr)) {
+    const items = expr.getElements().map(el => extractRuntimeCallArg(el, ctx));
+    return { type: 'json', value: items };
+  }
+
+  // Ternary, binary expressions, etc. - generate description
+  if (Node.isConditionalExpression(expr) || Node.isBinaryExpression(expr) || Node.isPrefixUnaryExpression(expr)) {
+    return {
+      type: 'expression',
+      source: expr.getText(),
+      description: describeExpression(expr, ctx),
+    };
+  }
+
+  // Unknown - treat as expression
+  return {
+    type: 'expression',
+    source: expr.getText(),
+    description: expr.getText(),
+  };
+}
+
+/**
+ * Extract RuntimeCall args from an object literal expression
+ *
+ * @param objExpr - Object literal expression from args prop
+ * @param ctx - Transform context
+ * @returns Record of argument name to RuntimeCallArgValue
+ */
+export function extractRuntimeCallArgs(
+  objExpr: Expression,
+  ctx: RuntimeTransformContext
+): Record<string, RuntimeCallArgValue> {
+  if (!Node.isObjectLiteralExpression(objExpr)) {
+    throw new Error('args must be an object literal');
+  }
+
+  const result: Record<string, RuntimeCallArgValue> = {};
+
+  for (const prop of objExpr.getProperties()) {
+    if (Node.isPropertyAssignment(prop)) {
+      const name = prop.getName();
+      const value = prop.getInitializer();
+      if (value) {
+        result[name] = extractRuntimeCallArg(value, ctx);
+      }
+    } else if (Node.isShorthandPropertyAssignment(prop)) {
+      // { foo } is equivalent to { foo: foo }
+      const name = prop.getName();
+      const nameNode = prop.getNameNode();
+      result[name] = extractRuntimeCallArg(nameNode as unknown as Expression, ctx);
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================

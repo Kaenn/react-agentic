@@ -26,6 +26,7 @@ import type {
   RuntimeVarRefNode,
   RuntimeVarDeclNode,
   InputValue,
+  RuntimeCallArgValue,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
@@ -306,18 +307,81 @@ export class RuntimeMarkdownEmitter {
   }
 
   /**
-   * Emit RuntimeCallNode as bash code block
+   * Emit RuntimeCallNode as declarative table
    *
    * Output:
-   * ```bash
-   * CTX=$(node runtime.js fnName '{"args"}')
-   * ```
+   * **Runtime Call**: `functionName`
+   *
+   * | Argument | Value |
+   * |----------|-------|
+   * | phaseId | CTX.phaseId |
+   * | mode | If ctx.flags.gaps then "gap_closure", otherwise "standard" |
+   *
+   * **Output Variable**: RESULT
    */
   private emitRuntimeCall(node: RuntimeCallNode): string {
-    const argsJson = JSON.stringify(node.args);
-    // Escape single quotes in JSON for shell
-    const escapedArgs = argsJson.replace(/'/g, "'\"'\"'");
-    return `\`\`\`bash\n${node.outputVar}=$(node runtime.js ${node.fnName} '${escapedArgs}')\n\`\`\``;
+    const lines: string[] = [];
+
+    // Function name header
+    lines.push(`**Runtime Call**: \`${node.fnName}\``);
+    lines.push('');
+
+    // Build arguments table
+    const argEntries = Object.entries(node.args);
+    if (argEntries.length > 0) {
+      lines.push('| Argument | Value |');
+      lines.push('|----------|-------|');
+
+      for (const [name, value] of argEntries) {
+        const formattedValue = this.formatArgValue(value);
+        // Escape pipe characters in values for table formatting
+        const escapedValue = formattedValue.replace(/\|/g, '\\|');
+        lines.push(`| ${name} | ${escapedValue} |`);
+      }
+
+      lines.push('');
+    }
+
+    // Output variable
+    lines.push(`**Output Variable**: ${node.outputVar}`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Format a RuntimeCallArgValue for display in the arguments table
+   */
+  private formatArgValue(value: RuntimeCallArgValue): string {
+    switch (value.type) {
+      case 'literal':
+        if (value.value === null) return 'null';
+        if (typeof value.value === 'string') return `"${value.value}"`;
+        return String(value.value);
+
+      case 'runtimeVarRef': {
+        const { varName, path } = value.ref;
+        if (path.length === 0) {
+          return varName;
+        }
+        return `${varName}.${path.join('.')}`;
+      }
+
+      case 'expression':
+        return value.description;
+
+      case 'json': {
+        if (Array.isArray(value.value)) {
+          const items = value.value.map(v => this.formatArgValue(v));
+          return `[${items.join(', ')}]`;
+        }
+        const entries = Object.entries(value.value as Record<string, RuntimeCallArgValue>)
+          .map(([k, v]) => `${k}: ${this.formatArgValue(v)}`);
+        return `{ ${entries.join(', ')} }`;
+      }
+
+      default:
+        return String(value);
+    }
   }
 
   /**

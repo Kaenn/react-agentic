@@ -82,7 +82,7 @@ describe('V3 Runtime Components', () => {
       expect(() => transformCommand(tsx)).not.toThrow();
     });
 
-    it('emits function call syntax', () => {
+    it('emits function call in declarative format', () => {
       const tsx = `
         async function doWork(args: { input: string }): Promise<{ output: string }> {
           return { output: args.input };
@@ -100,8 +100,9 @@ describe('V3 Runtime Components', () => {
         }
       `;
       const output = transformCommand(tsx);
-      // Should emit bash code block with function invocation
-      expect(output).toContain('```bash');
+      // Should emit declarative table format instead of bash
+      expect(output).toContain('**Runtime Call**');
+      expect(output).toContain('| Argument | Value |');
     });
 
     it('supports RuntimeVar in args', () => {
@@ -123,6 +124,176 @@ describe('V3 Runtime Components', () => {
         }
       `;
       expect(() => transformCommand(tsx)).not.toThrow();
+    });
+
+    it('emits RuntimeVar reference as variable path (not literal string)', () => {
+      const tsx = `
+        async function process(args: { phaseId: string }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const ctx = useRuntimeVar<{ phaseId: string }>('CTX');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ phaseId: ctx.phaseId }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain the variable path, not a literal string
+      expect(output).toContain('CTX.phaseId');
+      // Should NOT contain quoted literal string
+      expect(output).not.toContain('"ctx.phaseId"');
+    });
+
+    it('emits nested property access correctly', () => {
+      const tsx = `
+        async function process(args: { path: string }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const ctx = useRuntimeVar<{ data: { nested: { value: string } } }>('CTX');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ path: ctx.data.nested.value }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain the full nested path
+      expect(output).toContain('CTX.data.nested.value');
+    });
+
+    it('emits ternary expression as description', () => {
+      const tsx = `
+        async function process(args: { mode: string }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const ctx = useRuntimeVar<{ flags: { gaps: boolean } }>('CTX');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ mode: ctx.flags.gaps ? 'gap_closure' : 'standard' }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain a human-readable description of the ternary
+      expect(output).toContain('If');
+      expect(output).toContain('gap_closure');
+      expect(output).toContain('standard');
+    });
+
+    it('emits comparison expression as description', () => {
+      const tsx = `
+        async function process(args: { passed: boolean }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const status = useRuntimeVar<{ status: string }>('STATUS');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ passed: status.status === 'PASSED' }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain a human-readable description of the comparison
+      expect(output).toContain('equals');
+      expect(output).toContain('PASSED');
+    });
+
+    it('emits logical OR expression as description', () => {
+      const tsx = `
+        async function process(args: { skip: boolean }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const ctx = useRuntimeVar<{ flags: { skipResearch: boolean; gaps: boolean } }>('CTX');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ skip: ctx.flags.skipResearch || ctx.flags.gaps }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain a human-readable description of the OR
+      expect(output).toContain('OR');
+    });
+
+    it('handles mixed literal and RuntimeVar args', () => {
+      const tsx = `
+        async function process(args: { name: string; count: number; active: boolean }): Promise<{ done: boolean }> {
+          return { done: true };
+        }
+
+        const Process = runtimeFn(process);
+        const ctx = useRuntimeVar<{ name: string }>('CTX');
+        const result = useRuntimeVar<{ done: boolean }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Process.Call args={{ name: ctx.name, count: 42, active: true }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should contain both RuntimeVar reference and literals
+      expect(output).toContain('CTX.name');
+      expect(output).toContain('42');
+      expect(output).toContain('true');
+    });
+
+    it('emits declarative table format', () => {
+      const tsx = `
+        async function doWork(args: { input: string }): Promise<{ output: string }> {
+          return { output: args.input };
+        }
+
+        const Work = runtimeFn(doWork);
+        const ctx = useRuntimeVar<{ input: string }>('CTX');
+        const result = useRuntimeVar<{ output: string }>('RESULT');
+
+        export default function Doc() {
+          return (
+            <Command name="test" description="Test">
+              <Work.Call args={{ input: ctx.input }} output={result} />
+            </Command>
+          );
+        }
+      `;
+      const output = transformCommand(tsx);
+      // Should emit declarative table format
+      expect(output).toContain('**Runtime Call**');
+      expect(output).toContain('| Argument | Value |');
+      expect(output).toContain('**Output Variable**');
     });
   });
 

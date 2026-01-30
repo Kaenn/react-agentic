@@ -517,6 +517,7 @@ function transformRuntimeIndent(
  * Transform code block (pre element) with component prop substitution
  *
  * Uses V3 context to support props.xxx substitution in template literals.
+ * Handles both <pre>content</pre> and <pre><code>content</code></pre> patterns.
  */
 function transformRuntimeCodeBlock(
   node: JsxElement | JsxSelfClosingElement,
@@ -526,15 +527,42 @@ function transformRuntimeCodeBlock(
     ? node.getOpeningElement()
     : node;
 
-  // Get optional language attribute
-  const language = getAttributeValue(openingElement, 'lang') ||
+  // Get optional language attribute from <pre>
+  let language = getAttributeValue(openingElement, 'lang') ||
     getAttributeValue(openingElement, 'language');
 
   if (Node.isJsxSelfClosingElement(node)) {
     return { kind: 'codeBlock', language, content: '' };
   }
 
-  // Extract code content with prop substitution
+  // Check for <code> child element first (common pattern: <pre><code>...</code></pre>)
+  const children = node.getJsxChildren();
+  for (const child of children) {
+    if (Node.isJsxElement(child) && getElementName(child) === 'code') {
+      // Extract language from <code className="language-xxx">
+      const codeOpening = child.getOpeningElement();
+      const codeClassName = getAttributeValue(codeOpening, 'className');
+      const codeLanguage = codeClassName?.replace(/^language-/, '') || language;
+
+      // Extract content from inside <code> using helper
+      const content = extractCodeContentWithProps(child, ctx);
+      return { kind: 'codeBlock', language: codeLanguage, content };
+    }
+  }
+
+  // Fallback: extract content directly from <pre> (no <code> wrapper)
+  const content = extractCodeContentWithProps(node, ctx);
+  return { kind: 'codeBlock', language, content };
+}
+
+/**
+ * Extract code content from a JsxElement with component prop substitution
+ * Handles text, string literals, template literals with ${...} interpolation
+ */
+function extractCodeContentWithProps(
+  node: JsxElement,
+  ctx: RuntimeTransformContext
+): string {
   const parts: string[] = [];
 
   for (const child of node.getJsxChildren()) {
@@ -616,7 +644,7 @@ function transformRuntimeCodeBlock(
     }
   }
 
-  return { kind: 'codeBlock', language, content: content };
+  return content;
 }
 
 // ============================================================================

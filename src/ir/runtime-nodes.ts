@@ -49,17 +49,32 @@ export interface RuntimeVarRefNode {
 // ============================================================================
 
 /**
+ * Discriminated union for RuntimeCall argument values
+ *
+ * Supports:
+ * - Literal values (strings, numbers, booleans, null)
+ * - RuntimeVar references (ctx.phaseId)
+ * - Expressions with descriptions (ternaries, logical ops)
+ * - Nested JSON objects/arrays
+ */
+export type RuntimeCallArgValue =
+  | { type: 'literal'; value: string | number | boolean | null }
+  | { type: 'runtimeVarRef'; ref: RuntimeVarRefNode }
+  | { type: 'expression'; source: string; description: string }
+  | { type: 'json'; value: Record<string, RuntimeCallArgValue> | RuntimeCallArgValue[] };
+
+/**
  * Runtime function call
  *
  * Created from <RuntimeFn.Call args={...} output={...} /> elements.
- * Emits as: VAR=$(node runtime.js fnName '{"args"}')
+ * Emits as a declarative table for LLM consumption.
  */
 export interface RuntimeCallNode {
   kind: 'runtimeCall';
   /** Function name in the runtime registry */
   fnName: string;
-  /** JSON-serializable arguments */
-  args: Record<string, unknown>;
+  /** Typed arguments with proper handling of RuntimeVar references */
+  args: Record<string, RuntimeCallArgValue>;
   /** Output variable name to store result */
   outputVar: string;
 }
