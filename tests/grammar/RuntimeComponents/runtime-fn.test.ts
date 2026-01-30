@@ -102,7 +102,7 @@ describe('V3 Runtime Components', () => {
       const output = transformCommand(tsx);
       // Should emit declarative table format instead of bash
       expect(output).toContain('**Runtime Call**');
-      expect(output).toContain('| Argument | Value |');
+      expect(output).toContain('| Argument | Source |');
     });
 
     it('supports RuntimeVar in args', () => {
@@ -292,8 +292,8 @@ describe('V3 Runtime Components', () => {
       const output = transformCommand(tsx);
       // Should emit declarative table format
       expect(output).toContain('**Runtime Call**');
-      expect(output).toContain('| Argument | Value |');
-      expect(output).toContain('**Output Variable**');
+      expect(output).toContain('| Argument | Source |');
+      expect(output).toContain('Resolve each argument from its source');
     });
   });
 

@@ -1,6 +1,6 @@
 {
   "name": "react-agentic",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Compile-time safety for Claude Code commands - malformed commands fail at build time, not runtime",
   "type": "module",
   "main": "dist/index.js",

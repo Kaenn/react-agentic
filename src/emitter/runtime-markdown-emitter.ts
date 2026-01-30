@@ -312,10 +312,10 @@ export class RuntimeMarkdownEmitter {
    * Output:
    * **Runtime Call**: `functionName`
    *
-   * | Argument | Value |
-   * |----------|-------|
-   * | phaseId | CTX.phaseId |
-   * | mode | If ctx.flags.gaps then "gap_closure", otherwise "standard" |
+   * | Argument | Source |
+   * |----------|--------|
+   * | projectId | CTX.projectId |
+   * | shouldForce | CTX.flags.dryRun OR CTX.flags.force |
    *
    * **Output Variable**: RESULT
    */
@@ -329,8 +329,8 @@ export class RuntimeMarkdownEmitter {
     // Build arguments table
     const argEntries = Object.entries(node.args);
     if (argEntries.length > 0) {
-      lines.push('| Argument | Value |');
-      lines.push('|----------|-------|');
+      lines.push('| Argument | Source |');
+      lines.push('|----------|--------|');
 
       for (const [name, value] of argEntries) {
         const formattedValue = this.formatArgValue(value);
