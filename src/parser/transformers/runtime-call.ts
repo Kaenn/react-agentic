@@ -10,7 +10,8 @@ import type { RuntimeCallNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
 import { resolveRuntimeFn, markRuntimeFnUsed } from './runtime-fn.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
-import { getAttributeExpression, extractJsonValue } from './runtime-utils.js';
+import { getAttributeExpression, extractRuntimeCallArgs } from './runtime-utils.js';
+import type { RuntimeCallArgValue } from '../../ir/index.js';
 
 // ============================================================================
 // RuntimeFn.Call Detection
@@ -111,10 +112,10 @@ export function transformRuntimeCall(
     );
   }
 
-  // Parse args to JSON-serializable object
-  let args: Record<string, unknown>;
+  // Parse args with RuntimeVar reference detection
+  let args: Record<string, RuntimeCallArgValue>;
   if (Node.isObjectLiteralExpression(argsExpr)) {
-    args = extractJsonValue(argsExpr) as Record<string, unknown>;
+    args = extractRuntimeCallArgs(argsExpr, ctx);
   } else {
     throw ctx.createError(
       `${wrapperName}.Call args must be an object literal`,
