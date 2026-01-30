@@ -128,8 +128,24 @@ function validateConfig(config: ReactAgenticConfig): void {
 }
 
 /**
+ * Derive runtime directory from output directory
+ * Replaces 'commands' with 'runtime' in the path
+ */
+function deriveRuntimeDir(outputDir: string): string {
+  // If outputDir contains 'commands', replace with 'runtime'
+  if (outputDir.includes('commands')) {
+    return outputDir.replace(/commands/g, 'runtime');
+  }
+  // Otherwise, use sibling 'runtime' directory
+  return path.join(path.dirname(outputDir), 'runtime');
+}
+
+/**
  * Resolve final configuration by merging:
  * defaults → config file → CLI flags
+ *
+ * When --out is specified but --runtime-out is not, the runtime directory
+ * is derived from the output directory (replacing 'commands' with 'runtime').
  *
  * @throws {ConfigValidationError} if configuration is invalid
  */
@@ -140,10 +156,29 @@ export async function resolveConfig(
   // Load config file (if exists)
   const fileConfig = await loadConfigFile(cwd);
 
-  // Merge: defaults → file → CLI
+  // Resolve output directory first
+  const outputDir = cliOptions.out ?? fileConfig.outputDir ?? DEFAULT_CONFIG.outputDir;
+
+  // Resolve runtime directory:
+  // 1. Explicit CLI flag takes precedence
+  // 2. Config file setting
+  // 3. If --out was specified, derive from it
+  // 4. Fall back to default
+  let runtimeDir: string;
+  if (cliOptions.runtimeOut) {
+    runtimeDir = cliOptions.runtimeOut;
+  } else if (fileConfig.runtimeDir) {
+    runtimeDir = fileConfig.runtimeDir;
+  } else if (cliOptions.out) {
+    // Derive from custom output directory
+    runtimeDir = deriveRuntimeDir(outputDir);
+  } else {
+    runtimeDir = DEFAULT_CONFIG.runtimeDir;
+  }
+
   const config: ReactAgenticConfig = {
-    outputDir: cliOptions.out ?? fileConfig.outputDir ?? DEFAULT_CONFIG.outputDir,
-    runtimeDir: cliOptions.runtimeOut ?? fileConfig.runtimeDir ?? DEFAULT_CONFIG.runtimeDir,
+    outputDir,
+    runtimeDir,
     minify: cliOptions.minify ?? fileConfig.minify ?? DEFAULT_CONFIG.minify,
     codeSplit: cliOptions.codeSplit ?? fileConfig.codeSplit ?? DEFAULT_CONFIG.codeSplit,
   };
