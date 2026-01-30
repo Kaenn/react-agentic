@@ -561,25 +561,17 @@ Task(
     const attrs = node.attributes
       ? ' ' + Object.entries(node.attributes).map(([k, v]) => `${k}="${v}"`).join(' ')
       : '';
-    // Emit children with smart joining
+    // Emit children and join with double newlines for block separation
     const parts: string[] = [];
-    for (let i = 0; i < node.children.length; i++) {
-      const child = node.children[i] as BlockNode;
-      const emitted = this.emitBlock(child);
-
-      // Add blank line between consecutive xmlBlocks
-      if (i > 0 && child.kind === 'xmlBlock' && node.children[i - 1].kind === 'xmlBlock') {
-        parts.push('\n\n' + emitted);
-      } else {
-        parts.push(emitted);
-      }
+    for (const child of node.children) {
+      const emitted = this.emitBlock(child as BlockNode);
+      if (emitted) parts.push(emitted);
     }
-    const content = parts.join('');
-    // Preserve up to 2 trailing newlines (one blank line) before closing tag
-    // This maintains intentional blank lines in source while preventing excessive whitespace
-    // Strip leading newline (added by emitter), preserve up to 2 trailing newlines
-    const normalizedContent = content.replace(/^\n/, '').replace(/\n{3,}$/, '\n\n');
-    return `<${node.name}${attrs}>\n${normalizedContent}</${node.name}>`;
+    // Join blocks with double newlines (same as document-level emission)
+    const content = parts.join('\n\n');
+    // Strip leading/trailing newlines, then add exactly one newline before closing tag
+    const normalizedContent = content.replace(/^\n+/, '').replace(/\n+$/, '');
+    return `<${node.name}${attrs}>\n${normalizedContent}\n</${node.name}>`;
   }
 
   /**
