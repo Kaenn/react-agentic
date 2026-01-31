@@ -12,10 +12,10 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 Phase: 27 of 33 (Baseline & Registry)
 Plan: 1 of 2 in current phase
 Status: In progress
-Last activity: 2026-01-31 — Completed 27-02-PLAN.md
+Last activity: 2026-01-31 — Completed 27-01-PLAN.md
 
 Progress: [====================] v2.1: Complete | [█                   ] v3.0: 8%
-Next: `/gsd:execute-phase 27 03` (snapshot tests)
+Next: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
 
 ## Milestone History
 
@@ -38,8 +38,8 @@ Next: `/gsd:execute-phase 27 03` (snapshot tests)
 
 **Velocity:**
 - Total plans completed: 99 (v1.0-v2.1 + v3.0 ongoing)
-- Average duration: ~3m
-- Total execution time: ~4.95 hours
+- Average duration: ~4m
+- Total execution time: ~5.0 hours
 
 **By Milestone:**
 
@@ -59,7 +59,10 @@ Next: `/gsd:execute-phase 27 03` (snapshot tests)
 All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone archives.
 
 **v3.0 Phase 27:**
-- Registry tracks 22 primitive components across 3 layers
+- 64 snapshot tests capturing current component markdown output (27-01)
+- External snapshots prevent accidental output changes during refactoring
+- Test baseline covers all primitive components with key nesting combinations
+- Registry tracks 22 primitive components across 3 layers (27-02 planned)
 - Presentation primitives marked for Phase 32 composite migration
 - Registry exported for user introspection and metaprogramming
 - Classification based on component purpose: plumbing vs presentation
@@ -79,6 +82,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-01-31T16:00:19Z
-Stopped at: Completed 27-02-PLAN.md
-Resume with: `/gsd:execute-phase 27 03` or `/gsd:plan-phase 28`
+Last session: 2026-01-31T16:01:47Z
+Stopped at: Completed 27-01-PLAN.md execution
+Resume with: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
