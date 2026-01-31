@@ -90,7 +90,7 @@ Plans:
 - [x] **Phase 28: Content Types** - Type foundation for content constraints
 - [x] **Phase 29: Reference Printing** - Direct interpolation and Ref component
 - [x] **Phase 30: Component Composition** - Children and props support
-- [ ] **Phase 31: Content Validation** - Type-safe nesting constraints
+- [x] **Phase 31: Content Validation** - Type-safe nesting constraints
 - [ ] **Phase 32: Composite Library** - Move components to user-definable layer
 - [ ] **Phase 33: Documentation** - User-facing docs and examples
 
@@ -168,7 +168,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 31-01-PLAN.md — Enhance JSDoc, type Command/Agent children, add validation tests
+- [x] 31-01-PLAN.md — Enhance JSDoc, type Command/Agent children, add validation tests
 
 ### Phase 32: Composite Library
 **Goal**: Move current components to user-definable composite layer
@@ -217,7 +217,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 28 | v3.0 | 1/1 | Complete | 2026-01-31 |
 | 29 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 30 | v3.0 | 2/2 | Complete | 2026-01-31 |
-| 31 | v3.0 | 0/1 | Not started | - |
+| 31 | v3.0 | 1/1 | Complete | 2026-01-31 |
 | 32 | v3.0 | 0/3 | Not started | - |
 | 33 | v3.0 | 0/1 | Not started | - |
 

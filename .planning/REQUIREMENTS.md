@@ -95,9 +95,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 30 | Pending |
 | COMP-03 | Phase 30 | Pending |
 | COMP-04 | Phase 30 | Pending |
-| VALID-01 | Phase 31 | Pending |
-| VALID-02 | Phase 31 | Pending |
-| VALID-03 | Phase 31 | Pending |
+| VALID-01 | Phase 31 | Complete |
+| VALID-02 | Phase 31 | Complete |
+| VALID-03 | Phase 31 | Complete |
 | LIB-01 | Phase 32 | Pending |
 | LIB-02 | Phase 32 | Pending |
 | LIB-03 | Phase 32 | Pending |
