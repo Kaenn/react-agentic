@@ -88,7 +88,7 @@ Plans:
 
 - [x] **Phase 27: Baseline & Registry** - Snapshot tests and primitive classification
 - [x] **Phase 28: Content Types** - Type foundation for content constraints
-- [ ] **Phase 29: Reference Printing** - .ref property and Ref component
+- [ ] **Phase 29: Reference Printing** - Direct interpolation and Ref component
 - [ ] **Phase 30: Component Composition** - Children and props support
 - [ ] **Phase 31: Content Validation** - Type-safe nesting constraints
 - [ ] **Phase 32: Composite Library** - Move components to user-definable layer
@@ -130,16 +130,15 @@ Plans:
 **Depends on**: Phase 28
 **Requirements**: REF-01, REF-02, REF-03, REF-04
 **Success Criteria** (what must be TRUE):
-  1. `ctx.ref` on RuntimeVar prints `$CTX` in markdown
-  2. `ctx.data.status.ref` prints jq expression `$(echo "$CTX" | jq -r '.data.status')`
-  3. `myFn.ref` on RuntimeFn prints function call syntax
-  4. `<Ref value={ctx.status} />` component renders reference in markdown context
-  5. References work inside custom component children
-**Plans**: TBD
+  1. RuntimeVar interpolation `{ctx}` emits `$CTX` in markdown
+  2. RuntimeVar interpolation `{ctx.data.status}` emits `$CTX.data.status` (shell variable syntax)
+  3. RuntimeFn has `.name`, `.call`, `.input`, `.output` properties for reference metadata
+  4. `<Ref value={ctx.status} />` component renders `$CTX.status` in markdown context
+  5. `<Ref value={myFn} call />` renders function call syntax with parens
+**Plans**: 1 plan
 
 Plans:
-- [ ] 29-01-PLAN.md — TBD
-- [ ] 29-02-PLAN.md — TBD
+- [ ] 29-01-PLAN.md — RuntimeVar shell syntax, RuntimeFn properties, Ref component
 
 ### Phase 30: Component Composition
 **Goal**: Full support for children and props in custom components

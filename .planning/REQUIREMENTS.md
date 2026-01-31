@@ -17,10 +17,10 @@ Requirements for v3.0 Primitive/Composite Architecture. Each maps to roadmap pha
 
 ### Reference Printing
 
-- [ ] **REF-01**: `.ref` property on useRuntimeVar return value prints `$VARIABLE` syntax
-- [ ] **REF-02**: `.ref` property on RuntimeVar proxy chain prints jq expression (e.g., `$(echo "$VAR" | jq -r '.path')`)
-- [ ] **REF-03**: `.ref` property on runtimeFn for function call syntax emission
-- [ ] **REF-04**: `<Ref>` component for explicit variable reference printing in markdown context
+- [ ] **REF-01**: RuntimeVar interpolation `{ctx}` emits `$CTX` shell variable syntax in markdown
+- [ ] **REF-02**: RuntimeVar interpolation `{ctx.data.status}` emits `$CTX.data.status` (dot notation for paths)
+- [ ] **REF-03**: RuntimeFn has `.name`, `.call`, `.input`, `.output` properties for reference metadata
+- [ ] **REF-04**: `<Ref>` component for explicit variable/function reference rendering in markdown context
 
 ### Component Composition
 
