@@ -116,14 +116,14 @@ Plans:
 **Depends on**: Phase 27
 **Requirements**: FOUND-03, FOUND-04, FOUND-05
 **Success Criteria** (what must be TRUE):
-  1. MarkdownContent type exists with full feature set (SpawnAgent, control flow allowed)
+  1. CommandContent and AgentContent types exist with full feature set (SpawnAgent, control flow allowed)
   2. SubComponentContent type exists with restricted features (no SpawnAgent, no top-level control flow)
-  3. Both types exported from `react-agentic` for user component typing
+  3. All three types exported from `react-agentic` for user component typing
   4. Types are discriminated unions with clear membership
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 28-01-PLAN.md — TBD
+- [ ] 28-01-PLAN.md — Create content-types.ts with discriminated union types, export from package root
 
 ### Phase 29: Reference Printing
 **Goal**: Enable composites to print variable and function references in markdown output
@@ -214,7 +214,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27 | v3.0 | 2/2 | Complete | 2026-01-31 |
-| 28 | v3.0 | 0/1 | Not started | - |
+| 28 | v3.0 | 0/1 | Ready | - |
 | 29 | v3.0 | 0/2 | Not started | - |
 | 30 | v3.0 | 0/2 | Not started | - |
 | 31 | v3.0 | 0/1 | Not started | - |
