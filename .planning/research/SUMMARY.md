@@ -1,195 +1,193 @@
 # Project Research Summary
 
-**Project:** react-agentic (TSX-to-Markdown transpiler for Claude Code commands)
-**Domain:** Compiler/Transpiler
-**Researched:** 2026-01-20
+**Project:** react-agentic v3.0 Primitive/Composite Architecture
+**Domain:** TSX-to-Markdown compiler refactoring
+**Researched:** 2026-01-31
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a compile-time transformation tool, not a runtime framework. The architecture follows the classic compiler pattern: Parse (TSX via ts-morph) -> Transform (to intermediate representation) -> Generate (Markdown with YAML frontmatter). The critical insight from research is that we parse JSX as data structure, not render it. There is no need for React runtime, jsx-runtime, or virtual DOM.
+The react-agentic v3.0 refactoring separates "primitives" (components requiring compiler knowledge) from "composites" (user-definable components that compose primitives). This pattern is well-established across React, SolidJS, Ink, MDX, and Astro, where a small set of "host" or "intrinsic" elements are handled by the rendering infrastructure while all other components are plain functions that compose those primitives.
 
-The recommended approach is a three-phase architecture using ts-morph for TypeScript-aware AST parsing. ts-morph provides clean JSX node traversal (`JsxElement`, `JsxAttribute`, `JsxSpreadAttribute`) without the verbosity of raw TypeScript Compiler API. The transformation should produce an intermediate representation (IR) before emitting Markdown, enabling testable and maintainable code.
+The recommended approach is a four-phase restructuring: (1) establish content type foundations and add `.ref` properties for variable/function printing, (2) formalize the primitive registry and separate composites from compiler core, (3) implement content validation and improve error messages, and (4) deliver user-facing documentation and examples. The current codebase already has most infrastructure in place via `transformLocalComponent` in `runtime-component.ts` and the `SPECIAL_COMPONENTS` set in `transformer.ts`, but these implicit patterns need formalization.
 
-Key risks center on ts-morph's node invalidation behavior (old references become invalid after AST manipulation) and the temptation to skip the intermediate representation. Both are mitigated by adopting a read-only traversal pattern from the start. The parser ambiguity between generics (`<T>`) and JSX tags requires clear error messages for users.
+The highest-risk pitfall is **silent behavior changes** during migration, where refactored components produce different markdown output without errors, breaking existing Claude Code commands. This requires comprehensive snapshot testing before any refactoring begins. The most likely pitfall is **distributed monolith**, where composites appear independent but secretly depend on compiler context, making them fragile when composed differently than expected.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is optimized for AST manipulation and CLI tooling, not runtime React. All versions verified via npm.
+The stack research surveyed React Fiber, SolidJS, MDX, Ink, Astro, and MDAST for patterns applicable to primitive/composite separation.
 
-**Core technologies:**
-- **ts-morph ^27.0.2**: TypeScript AST parsing and traversal - wraps TS Compiler API with ergonomic methods, handles JSX natively
-- **commander ^14.0.2**: CLI argument parsing - zero dependencies, simple API, massive adoption
-- **chokidar ^5.0.0**: File watching for watch mode - de facto standard, v5 is ESM-only (requires Node 20+)
-- **gray-matter ^4.0.3**: YAML frontmatter serialization - battle-tested, bidirectional (parse and stringify)
-- **TypeScript ^5.9.3**: Type system and compilation
-- **tsx ^4.21.0 / tsup ^8.5.1 / vitest ^4.0.17**: Development tooling (runner, bundler, tests)
+**Core patterns to adopt:**
+- **React Fiber host/composite discrimination:** Use string vs function type to identify primitives vs composites. Primitives are "host" components handled by compiler; composites are functions that return primitive trees.
+- **MDAST content categories:** Use discriminated unions with content type constraints (`FlowContent`, `PhrasingContent`) to validate what children can appear where at compile time.
+- **SolidJS run-once model:** Components execute once at build time (not re-render), matching react-agentic's TSX-to-Markdown compilation model.
+- **TypeScript `JSX.IntrinsicElements`:** Standard pattern for typing primitive props; composites use regular function prop interfaces.
 
-**What NOT to use:** React/react-dom, jsx-runtime, Babel (ts-morph is purpose-built), yargs (16 dependencies vs commander's 0), marked/markdown-it (we generate, not parse).
+**Key version/tooling:**
+- TypeScript discriminated unions for IR node types (already using `kind` discriminator)
+- ts-morph for import resolution (already in use for component resolution)
+- No new dependencies required; architecture refactoring only
 
 ### Expected Features
 
 **Must have (table stakes):**
-- TSX parsing with full JSX syntax support
-- YAML frontmatter generation from Command props
-- HTML elements to Markdown (h1-h6, p, ul, ol, code, pre, blockquote, a)
-- Props spreading support (`{...props}` at transpile time)
-- Single file and directory/glob processing
-- Watch mode with file monitoring
-- Error messages with source location (line:column)
-- CLI with help/version flags and proper exit codes
+- **Children prop support for custom components** - `<MyComponent>full markdown children</MyComponent>` not just string templates
+- **Prop passing to custom components** - Currently forbidden in `markdown.ts:206-209`; must unify static/runtime transformer behavior
+- **MarkdownContent type for sub-components** - Typed content that prevents `<SpawnAgent>` inside sub-components
+- **Variable reference printing** - `.ref` property on RuntimeVar for printing `$CTX` or jq expressions in markdown
+- **Clear primitive/composite boundary** - Documented list so users know what they can customize
 
 **Should have (differentiators):**
-- Dry run/preview mode (`--dry-run`)
-- Verbose/quiet output modes
-- Validation mode (check without generating)
-- Config file support (`tsxmd.config.js`)
-- Colored terminal output (respecting NO_COLOR)
+- **Explicit `<Ref>` component** - `<Ref value={ctx.status} />` for type-safe reference printing
+- **Composite library export** - `import { If, Else } from 'react-agentic/composites'` for customization
+- **Type-safe content constraints** - TypeScript errors for invalid nesting (e.g., `<SpawnAgent>` inside sub-component)
 
 **Defer (v2+):**
-- Incremental compilation (complex dependency tracking)
-- Source maps (overkill for command files)
-- Plugin system (premature abstraction)
-- Component composition beyond simple nesting
-
-**Anti-features (do not build):**
-- Runtime JSX execution
-- Dynamic prop values (`allowedTools={getTools()}`)
-- Conditional rendering (`{condition && <section/>}`)
-- Browser-based transpilation
-- Full React component support
+- **Slot-based composition (asChild pattern)** - Radix-style component merging; adds complexity
+- **Function ref printing** - Less common; add when requested
+- **Deep prop merging** - Creates hidden behavior; keep composition explicit
 
 ### Architecture Approach
 
-Classic three-phase compiler: Parse -> Transform -> Generate, with an intermediate representation (IR) between TSX AST and Markdown output. The IR enables testing each phase independently and allows future output formats.
+The architecture restructures the existing pipeline from `Parse -> Transform -> Emit` to `Parse -> Resolve Composites -> Transform (primitives only) -> Emit`. Composites are expanded before IR transformation, producing a pure primitive tree that the compiler handles. This keeps the compiler focused on ~15-20 primitives while enabling unlimited user composites.
 
 **Major components:**
-1. **Parser Layer (ts-morph)** - Convert TSX to AST, uses `Project`, `SourceFile`, `JsxElement` types
-2. **AST Transformer** - Visitor pattern traversal, converts JSX nodes to IR nodes (HeadingNode, ParagraphNode, XmlBlockNode, etc.)
-3. **Code Generator/Emitter** - Tree-walking emitter producing Markdown strings with YAML frontmatter
-4. **CLI Interface** - commander-based CLI with watch mode via chokidar
-5. **File Orchestrator** - Glob patterns, file routing, output path resolution
-
-**Key pattern:** Read-only AST traversal. Complete all AST reads in a single pass, produce IR, then emit. Never interleave reading and manipulation.
+1. **Primitive Registry** (`src/primitives/registry.ts`) - Explicit list replacing implicit `SPECIAL_COMPONENTS`: Document roots (`Command`, `Agent`), Content primitives (`XmlBlock`, `Table`, `Markdown`), Runtime primitives (`If`, `Else`, `Loop`, `SpawnAgent`)
+2. **Composite Resolver** (`src/parser/composite-resolver.ts`) - Extracts/generalizes `transformLocalComponent` logic; handles imported composites via ts-morph resolution
+3. **Content Type System** (`src/ir/content-types.ts`) - `StaticContent` (no runtime nodes, for Agents), `RuntimeContent` (full, for Commands), `PrimitiveContent` (subset for composite expansion)
+4. **RuntimeVar/RuntimeFn `.ref` property** - Enable composites to print variable references in markdown output
 
 ### Critical Pitfalls
 
-1. **Direct AST-to-output generation** - Skip intermediate representation and tangle parsing with output. Prevent by designing IR types first, implementing elements second.
+1. **Distributed Monolith** - Composites that still depend on `TransformContext` or transformation ordering. Prevent by defining explicit primitive criteria: only components needing context access, IR node emission, or sibling coordination are primitives.
 
-2. **ts-morph node invalidation** - Old node references become invalid after manipulation. Prevent by read-only traversal pattern; extract all data in single pass.
+2. **Silent Behavior Changes** - Refactored components produce different whitespace or formatting without errors. Prevent by creating comprehensive snapshot tests for ALL components BEFORE any refactoring begins.
 
-3. **getType() vs getTypeNode() confusion** - Returns computed type vs AST node. Use ts-ast-viewer.com to understand node structure.
+3. **Breaking Discriminated Union Exhaustiveness** - IR node changes break exhaustive switches across emitter files. Prevent by documenting all switch locations and batching IR changes (add node + update handlers + remove old node in single PR).
 
-4. **Generics vs JSX parser ambiguity** - `<T>` is ambiguous. Document `<T,>` workaround, provide clear error messages.
+4. **Circular Dependencies During Migration** - Incremental refactoring creates import cycles between primitive/composite modules. Prevent by mapping dependencies first (`madge --circular src/parser/`) and extracting in dependency order.
 
-5. **Watch mode without debouncing** - Multiple events per save. Use chokidar's `awaitWriteFinish` option plus 250-500ms debounce.
+5. **Loss of Compile-Time Validation** - Moving validation-heavy components to composites loses custom error messages. Prevent by keeping `Table`, `XmlBlock`, `SpawnAgent` as primitives due to complex validation needs.
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 1: Core Pipeline
-**Rationale:** Foundation must be solid before adding features. IR pattern prevents early architectural mistakes.
-**Delivers:** Working transpiler for simple TSX (h1, p, br elements only)
-**Addresses:** TSX parsing, basic element mapping, Markdown generation
-**Avoids:** Direct AST-to-output (Pitfall 1), node invalidation (Pitfall 2)
+### Phase 0: Baseline Snapshots (Pre-Refactoring)
 
-Build order:
-1. IR type definitions
-2. Markdown emitter (test with hand-crafted IR)
-3. Basic JSX transformer
-4. Parser integration (ts-morph setup)
+**Rationale:** Pitfall research emphasizes silent behavior changes as highest-risk. Must capture current behavior before any changes.
+**Delivers:** Snapshot test suite for every existing component's markdown output
+**Addresses:** Backwards compatibility gate; enables safe refactoring
+**Avoids:** Silent behavior changes (Pitfall 3)
 
-### Phase 2: Element Coverage
-**Rationale:** Full element support enables real command authoring. Frontmatter is the primary differentiator.
-**Delivers:** Complete element handling for Claude Code command format
-**Uses:** ts-morph for props extraction, gray-matter for YAML
-**Implements:** Transformer layer (all visitors), Frontmatter generator
+### Phase 1: Type Foundation
 
-Build order:
-1. Command props -> YAML frontmatter
-2. Text formatting (b, i, code, a)
-3. Lists (ul, ol, li with nesting)
-4. Named blocks (div[name] -> XML blocks)
-5. Raw markdown passthrough
+**Rationale:** Content types and `.ref` properties are prerequisites for all subsequent work. Low risk, additive changes.
+**Delivers:**
+- `src/ir/content-types.ts` with `StaticContent`, `RuntimeContent`, `PrimitiveContent` type aliases
+- `.ref` property on RuntimeVarProxy (returns `"ctx.error"` or jq expression string)
+- `.ref` property on RuntimeFn (returns function name string for call syntax)
+**Implements:** FEATURES table stakes #5 (Variable ref printing), #6 (Function ref printing)
+**Avoids:** Breaking exhaustiveness (existing tests pass; new tests for `.ref`)
 
-### Phase 3: CLI and Watch Mode
-**Rationale:** User-facing interface after core transpilation works. Independent of internals.
-**Delivers:** Usable CLI tool with file watching
-**Uses:** commander, chokidar
-**Implements:** CLI interface, File orchestrator
+### Phase 2: Primitive Classification
 
-Build order:
-1. Basic CLI (single file)
-2. Directory mode (glob patterns)
-3. Watch mode (with debouncing)
-4. Error formatting with source location
+**Rationale:** Formalizes implicit `SPECIAL_COMPONENTS` into explicit registry with clear criteria. Medium risk.
+**Delivers:**
+- `src/primitives/registry.ts` with `DOCUMENT_PRIMITIVES`, `CONTENT_PRIMITIVES`, `RUNTIME_PRIMITIVES`
+- `isPrimitive()` function replacing ad-hoc checks
+- Updated `isCustomComponent()` to use registry
+**Implements:** FEATURES table stakes #4 (Clear boundary), ARCHITECTURE primitive registry
+**Avoids:** Over-modularization (target 15-20 primitives max); Component registry confusion (Pitfall 9)
 
-### Phase 4: Polish and Advanced Features
-**Rationale:** Enhancements after core is stable. Props spreading is medium complexity.
-**Delivers:** Production-ready transpiler
-**Addresses:** Props spreading, component composition, validation mode, config files
+### Phase 3: Composite Resolution Pipeline
 
-Build order:
-1. Props spreading support
-2. Dry run mode
-3. Validation mode
-4. Config file support
+**Rationale:** Enables user-defined composites by running resolution as separate pass before transformation. Highest risk phase.
+**Delivers:**
+- `src/parser/composite-resolver.ts` extracted from `transformLocalComponent`
+- Support for imported composites (not just same-file)
+- Pipeline becomes: Parse -> Resolve Composites -> Transform -> Emit
+**Implements:** FEATURES table stakes #1 (Children prop support), #2 (Prop passing)
+**Avoids:** Distributed monolith (composites pure functions, no context access)
+**Needs:** Careful dependency management to avoid circular imports
+
+### Phase 4: Content Type Validation
+
+**Rationale:** Enforces content type restrictions to catch invalid nesting at compile time. Medium risk.
+**Delivers:**
+- Context-dependent validation in transformers
+- Better error messages for invalid nesting (e.g., `<SpawnAgent>` inside Agent)
+- Updated component interfaces to use specific content types
+**Implements:** FEATURES table stakes #3 (MarkdownContent type), differentiator #3 (Type-safe constraints)
+**Avoids:** Loss of type safety (Pitfall 5)
+
+### Phase 5: User-Facing Polish
+
+**Rationale:** Documentation and examples for users to create their own composites.
+**Delivers:**
+- Documentation for writing composites
+- Example composites showing patterns
+- Migration guide for any breaking changes
+- Composite library export (`react-agentic/composites`)
+**Implements:** FEATURES differentiator #4 (Composite library export)
 
 ### Phase Ordering Rationale
 
-- **IR first, elements second:** Architecture research strongly recommends intermediate representation. Testing emitter in isolation before transformer enables faster iteration.
-- **Frontmatter before elements:** Primary differentiator. Validate output format early.
-- **CLI after core:** CLI is independent layer. Can be developed in parallel once Phase 1 completes.
-- **Spreading last:** Requires understanding literal vs runtime values. Defer until core patterns established.
+- **Phase 0 before all:** Snapshot tests prevent silent regressions; research emphasizes this as non-negotiable
+- **Phase 1 before 2:** Content types needed for registry classification decisions
+- **Phase 2 before 3:** Registry must exist before composite resolution can distinguish primitives
+- **Phase 3 before 4:** Composite resolution must work before content validation can be applied
+- **Phase 5 last:** Polish after core architecture stabilizes
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2:** Props spreading static analysis limitations need validation with real TSX patterns
-- **Phase 4:** Component composition patterns may have edge cases not covered in research
+- **Phase 3 (Composite Resolution):** Complex because current `transformLocalComponent` is embedded in transformer; extracting requires understanding all context dependencies
+- **Phase 4 (Content Validation):** Context-dependent rules (e.g., runtime nodes allowed in Command but not Agent) need careful design
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1:** Classic compiler architecture, well-documented ts-morph APIs
-- **Phase 3:** Standard CLI patterns, chokidar is well-documented
+- **Phase 1 (Type Foundation):** Well-documented TypeScript patterns; MDAST content categories provide clear model
+- **Phase 2 (Primitive Classification):** Straightforward registry extraction from existing `SPECIAL_COMPONENTS`
+- **Phase 5 (User-Facing):** Documentation work; patterns established by earlier phases
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified via npm, well-established libraries |
-| Features | HIGH | Based on established transpiler/CLI patterns |
-| Architecture | HIGH | Classic compiler pattern, verified ts-morph APIs |
-| Pitfalls | HIGH | Verified against ts-morph docs and GitHub issues |
+| Stack | HIGH | Patterns verified from React Fiber, MDAST, Ink official sources |
+| Features | HIGH | Features derived from codebase analysis with specific line references |
+| Architecture | HIGH | Based on detailed transformer/emitter codebase analysis |
+| Pitfalls | HIGH | Architectural risks well-documented; migration risks from codebase complexity |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Props spreading edge cases:** Research indicates static analysis cannot see runtime spread values. Need to define exactly which patterns are supported vs rejected.
-- **Component composition depth:** How deeply nested components should be supported? Need test cases during Phase 2.
-- **JSX whitespace handling:** Rules are subtle. Build explicit test suite early in Phase 2.
+- **Imported composite resolution:** Current `transformLocalComponent` only handles same-file components; ts-morph import following needs implementation verification during Phase 3
+- **Context-dependent content rules:** The rule "runtime nodes in Command, not in Agent" is implicit; needs explicit specification during Phase 4
+- **Whitespace preservation:** Current transformer has complex whitespace handling (`extractRawMarkdownText`, If/Else sibling pairing); must verify composites preserve this behavior
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- ts-morph Official Documentation (https://ts-morph.com/)
-- TypeScript JSX Documentation (https://www.typescriptlang.org/docs/handbook/jsx.html)
-- chokidar GitHub (https://github.com/paulmillr/chokidar)
-- gray-matter GitHub (https://github.com/jonschlinkert/gray-matter)
-- npm registry (version verification for all packages)
+- [React Fiber Architecture](https://github.com/acdlite/react-fiber-architecture) - Host vs composite discrimination
+- [React Implementation Notes](https://legacy.reactjs.org/docs/implementation-notes.html) - Reconciler patterns
+- [MDAST Specification](https://github.com/syntax-tree/mdast) - Content category types
+- [TypeScript JSX Documentation](https://www.typescriptlang.org/docs/handbook/jsx.html) - IntrinsicElements typing
+- [Codebase: src/ir/nodes.ts, src/parser/transformer.ts, src/parser/transformers/*] - Current architecture
 
 ### Secondary (MEDIUM confidence)
-- Strumenta: How to Write a Transpiler (https://tomassetti.me/how-to-write-a-transpiler/)
-- ts-morph GitHub issues (#240 JSX generation, #897 formatting)
-- Babel Plugin Handbook (visitor pattern)
+- [Ink GitHub](https://github.com/vadimdemedes/ink) - Custom renderer primitive vocabulary
+- [SolidJS Docs](https://docs.solidjs.com/concepts/components/basics) - Run-once component model
+- [MDX Using MDX](https://mdxjs.com/docs/using-mdx/) - Composite component mapping
+- [Radix Primitives](https://www.radix-ui.com/primitives/docs/guides/composition) - asChild and Slot patterns
 
 ### Tertiary (LOW confidence)
-- Various compiler design resources (Crafting Interpreters)
-- Community forum discussions on JSX AST handling
+- [Monolith Modularization IEEE](https://ieeexplore.ieee.org/document/9425828/) - Distributed monolith risks
+- [Total TypeScript on Children Types](https://www.totaltypescript.com/type-safe-children-in-react-and-typescript) - Children type limitations
 
 ---
-*Research completed: 2026-01-20*
+*Research completed: 2026-01-31*
 *Ready for roadmap: yes*

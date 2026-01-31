@@ -1,153 +1,238 @@
-# Pitfalls Research: Agent Framework for TSX-to-Markdown Transpiler (v1.1)
+# Pitfalls Research: Primitive/Composite Refactoring
 
-**Domain:** Adding typed Agent inter-component communication to existing TSX transpiler
-**Researched:** 2026-01-21
-**Overall Confidence:** HIGH for transpiler-specific pitfalls, MEDIUM for GSD-specific patterns
+**Domain:** Refactoring TSX-to-Markdown compiler from monolithic to primitive/composite architecture
+**Researched:** 2026-01-31
+**Overall Confidence:** HIGH for architectural pitfalls, MEDIUM for migration-specific risks
+
+---
+
+## Executive Summary
+
+The react-agentic refactoring from monolithic component handling to primitive/composite split carries distinct risks:
+
+1. **Architectural risks:** Creating a "distributed monolith" where composites remain tightly coupled to compiler internals
+2. **Type system risks:** Breaking discriminated union exhaustiveness during IR node migration
+3. **Backwards compatibility risks:** Changing behavior for existing components without clear migration path
+
+The codebase has ~37 transformer modules in `src/parser/transformers/` and discriminated union IR nodes in `src/ir/nodes.ts`. The refactoring must preserve behavior for all existing components while enabling user-defined composites.
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that will cause project failure or require major architectural changes.
+Mistakes that will cause project failure or require major rewrites.
 
-### Pitfall 1: Type Information Loss at the Transpilation Boundary
+### Pitfall 1: Distributed Monolith - Composites That Still Need Compiler Knowledge
 
-**What goes wrong:** TypeScript types are erased during transpilation. The Agent defines an interface contract (`interface AgentInput { ... }`), but the Markdown output is just text. The Command imports and uses this interface for compile-time checking, but the generated output contains no runtime representation of the type.
+**What goes wrong:** Composites are moved to user TSX functions but still require internal compiler behavior to work correctly. The `transformCustomComponent` function in `markdown.ts` resolves and inlines user components, but if composites depend on specific transformation ordering, context propagation, or IR node generation, they become "distributed" but still coupled.
 
-**Why it happens:** TypeScript fundamentally erases types at compile time. The transpiler outputs Markdown strings, not JavaScript. There's no mechanism to preserve type information in the output format.
+**Why it happens:** The current codebase shows evidence of deep coupling:
+- `transformBlockChildren` in `dispatch.ts` handles If/Else sibling pairing specially
+- `TransformContext` carries state that affects child transformations
+- Some components emit IR nodes that require specific emitter handling
+
+When moving to composites, developers may create functions that look independent but secretly depend on being called in specific transformer contexts.
 
 **Consequences:**
-- Commands using `<SpawnAgent input={data}>` have TypeScript checking during authoring
-- But the emitted Markdown just contains the serialized values with no schema
-- If the Agent's expected input format changes, Commands won't fail at build time unless they also import the updated interface
-- Type mismatches become runtime failures in Claude Code, not build-time errors
+- Composites work when used one way but break when composed differently
+- Users create composites that silently produce incorrect Markdown
+- Debugging requires understanding compiler internals, defeating the purpose of composites
+
+**Warning signs:**
+- Composite behavior changes when parent component changes
+- Tests pass for simple usage but fail for nested compositions
+- Composites that work in `<Command>` but fail in `<Agent>`
+- Need to "wrap" composites in specific primitives to get correct output
 
 **Prevention:**
-1. **Document the limitation clearly:** Type safety exists only within the TSX authoring phase, not across compiled artifacts
-2. **Consider generating schema comments:** Emit `<!-- Input schema: { field: string, ... } -->` in the Markdown for debugging
-3. **Require interface exports from Agent files:** Agent must `export interface` its contract, Command must import it
-4. **Validate at transpile time:** When processing `<SpawnAgent>`, resolve the Agent's interface and compare prop types
+1. **Define primitive boundary clearly:** Primitives are ONLY components that:
+   - Need TransformContext access
+   - Emit IR nodes (not just compose other components)
+   - Require special transformer logic (like If/Else sibling handling)
+2. **Composites must be pure functions:** A composite receives typed props and returns JSX using only other primitives/composites - no context, no side effects
+3. **Test composites in isolation:** Composites should produce identical output regardless of where they're used
+4. **Create "composite compatibility" lint rule:** Flag composites that import from `src/parser/` or `src/ir/`
 
-**Detection (early warning signs):**
-- Tests pass for isolated Command/Agent compilation but fail for cross-file type checking
-- Users report "it compiled but Claude Code got confused about the format"
-- Interface changes don't trigger Command rebuilds
+**Phase to address:** Phase 1 - Define primitive vs composite boundary before any implementation
 
-**Phase to address:** Phase 1 (Interface Design) - establish the contract pattern before implementing components
-
-**Confidence:** HIGH - verified against TypeScript type erasure documentation and the fundamental constraint that Markdown has no type system
+**Confidence:** HIGH - derived from [monolith modularization research](https://microservices.io/refactoring/) and analysis of current `dispatch.ts` coupling
 
 ---
 
-### Pitfall 2: Circular Dependencies Between Agent and Command Files
+### Pitfall 2: Breaking Discriminated Union Exhaustiveness
 
-**What goes wrong:** Agent defines interface, Command imports interface, but transformer needs to resolve both to validate the connection. If the resolution order isn't careful, circular import chains form.
+**What goes wrong:** The IR uses discriminated unions (`BaseBlockNode`, `BlockNode`) with `kind` property as discriminator. Refactoring that adds, removes, or renames node types breaks exhaustive switch statements throughout the codebase.
 
-**Why it happens:** The existing `resolveComponentImport()` in transformer.ts tracks visited paths for circular detection on *component composition*. But Agent/Command have a different relationship - one defines types that the other consumes, plus the orchestration flows the other direction.
+**Why it happens:** The current codebase in `src/ir/nodes.ts` shows:
+```typescript
+export type BaseBlockNode =
+  | HeadingNode
+  | ParagraphNode
+  | ListNode
+  // ... 20+ node types
+  | StepNode;
+```
+
+The emitter in `emitter.ts` likely has exhaustive switches on `node.kind`. Adding new primitive node types or renaming existing ones causes TypeScript errors in all switches, but more dangerously, removing node types for "composite-only" components may leave dead switch cases.
 
 **Consequences:**
-- `Circular import detected` errors on valid Agent + Command pairs
-- Or worse: infinite loops in the transformer if detection isn't updated
-- Confusing error messages that don't explain the Agent/Command relationship
+- TypeScript errors in 10+ files for a single IR change
+- Silent bugs where old node types are handled but never produced
+- `assertNever(x: never)` throws at runtime for unhandled new types
+- Incomplete refactoring leaves ghost code paths
+
+**Warning signs:**
+- TypeScript errors cascade across multiple files for IR changes
+- `default` cases added to "suppress" errors instead of handling properly
+- Tests pass but new node types aren't actually emitted
+- `assertNever` calls throw in production
 
 **Prevention:**
-1. **Separate type resolution from component resolution:** Agent interfaces are *type-only imports* (`import type { AgentInput } from './agent'`), which should be handled differently
-2. **Use TypeScript's `import type` detection:** ts-morph can distinguish `import type` from `import`, allowing different circular dependency rules
-3. **Allow cross-references for types only:** Command can import Agent's interface without triggering component resolution
-4. **Test the diamond dependency pattern:** Agent defines interface, two Commands both import it, both spawn the same Agent
+1. **Never add `default` to exhaustive switches:** Let TypeScript catch missing cases
+2. **Batch related IR changes:** Add new node, update all handlers, then remove old node in single PR
+3. **Use `assertNever` pattern consistently:** Already in `nodes.ts`, enforce in all switch statements
+4. **Create IR change checklist:** Every node add/remove requires updating: transformer, emitter, runtime-emitter, tests
+5. **Automate exhaustiveness verification:** CI check that all `kind` values appear in emitter switches
 
-**Detection (early warning signs):**
-- Circular import errors when Agent and Command are in same directory
-- Need to move interface to third file to make it work (symptom of underlying issue)
-- Tests with simple Agent/Command pairs pass but multi-file scenarios fail
+**Phase to address:** Phase 1 - Document all exhaustive switch locations before any IR changes
 
-**Phase to address:** Phase 1 (Architecture) - update `resolveComponentImport` logic or create parallel `resolveTypeImport` path
-
-**Confidence:** HIGH - the existing codebase already handles circular detection for composition, this is an extension
+**Confidence:** HIGH - verified against [TypeScript discriminated union documentation](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html) and current `assertNever` usage in codebase
 
 ---
 
-### Pitfall 3: Context Isolation Misunderstanding (@ References Don't Cross Task Boundaries)
+### Pitfall 3: Silent Behavior Changes in Backwards Compatibility
 
-**What goes wrong:** GSD's `@` references (like `@.planning/PROJECT.md`) are lazy-loading signals that tell agents what files to read. They're NOT pre-loaded content. Developers assume the transpiler should inline referenced content, but that breaks the context isolation pattern GSD relies on.
+**What goes wrong:** Refactoring a component from compiler-handled to composite-based changes its output in subtle ways. Existing TSX files that worked before produce different Markdown after the refactoring.
 
-**Why it happens:** Intuition from bundlers (Webpack, Rollup) says "resolve and inline." GSD intentionally doesn't work that way - each Task/Agent gets fresh 200K token context, and @ references are instructions to *that* agent, not the orchestrator.
+**Why it happens:** The current compiler handles whitespace, child ordering, and IR generation in complex ways:
+- `extractRawMarkdownText` in `dispatch.ts` preserves newlines specially
+- `transformBlockChildren` handles If/Else pairing and whitespace filtering
+- Emitter adds `\n\n` between blocks
+
+Moving logic to composites may not preserve these exact behaviors.
 
 **Consequences:**
-- Transpiler inlines @ references, bloating the Markdown with content that should stay lazy
-- Context budget consumed in orchestrator instead of distributed across spawned agents
-- Breaks GSD's "fresh context per subagent" pattern, degrading quality
+- Users upgrade react-agentic and their commands/agents produce different output
+- No error messages - just silently different Markdown
+- Users must diff old vs new output to find changes
+- Breaks Claude Code commands that rely on specific formatting
+
+**Warning signs:**
+- "Refactored" components produce subtly different whitespace
+- Tests using `.toContain()` pass but `.toEqual()` fails
+- Users report "my command stopped working after upgrade"
+- Snapshot tests fail with "1 newline removed" type differences
 
 **Prevention:**
-1. **Treat @ references as opaque strings:** Emit them verbatim in the Markdown, do NOT resolve them
-2. **Document the pattern explicitly:** "@ references are passed through unchanged - they're instructions for the agent, not the transpiler"
-3. **Consider a `<Reference path="...">` component:** Explicit JSX syntax that makes the "emit as-is" behavior clear
-4. **Test that @ references survive round-trip:** Input TSX with `@.planning/foo.md` should produce output with identical text
+1. **Snapshot test EVERY existing component before refactoring:**
+   ```typescript
+   // Create snapshots for all components in current behavior
+   describe('backwards compatibility snapshots', () => {
+     it('Table produces exact output', () => {
+       const output = transpile('<Table headers={["A","B"]} rows={[["1","2"]]} />');
+       expect(output).toMatchSnapshot();
+     });
+   });
+   ```
+2. **Define "behavior boundary":** Which behaviors are guaranteed vs implementation details?
+3. **Version component behavior:** `<Table v="2" />` opt-in to new behavior
+4. **Migration guide per component:** Document any unavoidable changes
+5. **Semver correctly:** Behavior changes = major version bump
 
-**Detection (early warning signs):**
-- Build output is much larger than expected
-- File paths in output have been resolved to absolute paths
-- Tests check for content inlining (wrong) instead of reference preservation (right)
+**Phase to address:** Phase 0 (before refactoring begins) - Create comprehensive snapshot suite
 
-**Phase to address:** Phase 2 (Component Implementation) - when building `<Agent>` and `<SpawnAgent>` components
-
-**Confidence:** MEDIUM - derived from GSD documentation, need to verify exact behavior with actual GSD usage
+**Confidence:** HIGH - derived from [React compiler migration risks](https://stevekinney.com/courses/react-performance/react-compiler-migration-guide) and analysis of current transformer complexity
 
 ---
 
-### Pitfall 4: Generic Component Type Inference Failures in TSX
+### Pitfall 4: Circular Dependencies During Incremental Migration
 
-**What goes wrong:** TypeScript's generic inference in TSX has known edge cases where type parameters aren't correctly propagated, especially with complex nested generics or conditional types.
+**What goes wrong:** Refactoring primitives and composites incrementally creates circular import chains. Composite A uses Primitive B, which is still in the old monolithic transformer, which imports the new composite module to check for custom components.
 
-**Why it happens:** Parser ambiguity between `<T>` as generic parameter vs JSX tag. TypeScript 2.9+ added `<Component<Type> ...>` syntax but inference still struggles with certain patterns.
+**Why it happens:** The current `dispatch.ts` imports from all transformer modules:
+```typescript
+import { transformList, transformBlockquote, ... } from './html.js';
+import { transformTable, ... } from './semantic.js';
+import { transformMarkdown, transformCustomComponent } from './markdown.js';
+```
+
+If composites are in a separate location that primitives need to reference, and primitives are still imported by dispatch, circular chains form.
 
 **Consequences:**
-- `<SpawnAgent<MyInput> input={...}>` may not correctly infer that `input` must match `MyInput`
-- Developers get vague "Type '{}' is not assignable" errors instead of helpful messages
-- Complex Agent interfaces with generics fail to provide autocomplete
+- `ReferenceError: Cannot access 'X' before initialization`
+- Module load order becomes fragile
+- "Works on my machine" but fails in CI
+- Refactoring one component breaks unrelated imports
+
+**Warning signs:**
+- Import errors that reference modules not directly imported
+- Tests pass individually but fail when run together
+- Build order sensitivity
+- Need to restructure imports to "break cycles" during development
 
 **Prevention:**
-1. **Prefer explicit interface props over inline generics:** `interface SpawnAgentProps<T> { agent: Agent<T>; input: T }` with explicit type on the agent reference
-2. **Use trailing comma syntax for generic functions in TSX:** `<T,>` not `<T>` to avoid parser ambiguity
-3. **Test generic inference explicitly:** Include tests that verify autocomplete/type errors work as expected
-4. **Consider non-generic alternative:** `<SpawnAgent agent={MyAgent} input={...}>` where type is inferred from agent reference
+1. **Define clear module boundaries:**
+   - `src/primitives/` - compiler-only, no composite imports
+   - `src/composites/` - user-facing, only imports primitive types
+   - `src/compiler/` - orchestration, imports both
+2. **Use `import type` for type-only dependencies:** Already used in codebase
+3. **Create dependency graph before refactoring:**
+   ```bash
+   # Visualize current dependencies
+   npx madge --circular src/parser/
+   ```
+4. **Refactor in dependency order:** Extract leaf modules first, work toward dispatch.ts
+5. **CI check for circular imports:** Fail build if cycles detected
 
-**Detection (early warning signs):**
-- TypeScript errors mention `{}` or `unknown` where specific type was expected
-- IDE autocomplete shows wrong or no suggestions for props
-- Works in `.ts` test file but fails in actual `.tsx` usage
+**Phase to address:** Phase 1 - Map current dependencies, define target architecture
 
-**Phase to address:** Phase 1 (Interface Design) - choose component API that avoids inference pitfalls
-
-**Confidence:** HIGH - verified against TypeScript GitHub issues and community documentation
+**Confidence:** HIGH - verified against [circular dependency patterns](https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de) and current transformer structure
 
 ---
 
-### Pitfall 5: Structured Return Format Mismatch
+### Pitfall 5: Loss of Compile-Time Type Safety for Composite Props
 
-**What goes wrong:** GSD expects agents to return structured data in specific XML formats (`<execution_context>`, `<context>`, `<step>` blocks). The transpiler emits Markdown that doesn't match these conventions, causing GSD orchestration to fail.
+**What goes wrong:** Moving components from compiler-handled to user TSX functions changes how prop types are validated. Compiler can do deep analysis; user functions rely only on TypeScript checking.
 
-**Why it happens:** The existing emitter produces generic Markdown. GSD has specific expectations about XML block naming, attribute patterns (`name` in snake_case, `priority` values), and nesting structure.
+**Why it happens:** Current compiler validates props at transform time:
+- `getAttributeValue` extracts and validates attribute types
+- `transformTable` checks for required `rows` prop
+- Custom validation logic like `isValidXmlName` in `shared.ts`
+
+User composites can only do TypeScript-level validation, which happens before transpilation.
 
 **Consequences:**
-- Agents compile successfully but GSD can't parse their output
-- Orchestrator logs show "unexpected format" or silently drops data
-- Users debug their Agent logic when the issue is output format
+- Runtime errors for prop issues that were compile-time errors before
+- Less helpful error messages (TypeScript vs custom transformer errors)
+- Complex prop relationships (e.g., `headers` length must match column count) can't be validated
+- Malformed Markdown output instead of helpful error
+
+**Warning signs:**
+- "Type 'string' is not assignable to type 'never'" instead of "Table requires rows prop"
+- Errors point to component definition instead of usage site
+- Valid TypeScript produces invalid Markdown
 
 **Prevention:**
-1. **Study GSD output format requirements:** Identify required vs optional XML blocks, naming conventions, attribute schemas
-2. **Create dedicated IR nodes for GSD constructs:** `ExecutionContextNode`, `StepNode` with enforced naming patterns
-3. **Validate structured return blocks at transpile time:** Error if `<step>` is missing `name` attribute or uses wrong casing
-4. **Include format examples in component documentation:** Show exact output that GSD expects
+1. **Keep validation-heavy components as primitives:**
+   - `Table` (complex row/header/align validation)
+   - `XmlBlock` (XML name validation)
+   - `SpawnAgent` (type contract validation)
+2. **Create prop validation utilities for composites:**
+   ```typescript
+   // In composites, use runtime checks with helpful errors
+   export function MyComposite(props: MyCompositeProps) {
+     if (!props.required) {
+       throw new Error('MyComposite requires "required" prop');
+     }
+     return <XmlBlock name="my-thing">{props.children}</XmlBlock>;
+   }
+   ```
+3. **Document validation differences:** Which props are TypeScript-only vs compiler-validated
+4. **Consider branded types:** `type NonEmptyArray<T> = T[] & { _nonEmpty: true }` for compile-time hints
 
-**Detection (early warning signs):**
-- Manual comparison of transpiler output vs GSD examples shows differences
-- Tests validate IR structure but don't verify final Markdown against GSD expectations
-- Users report "Agent works standalone but not when spawned"
+**Phase to address:** Phase 2 - When classifying which components become composites
 
-**Phase to address:** Phase 2 (Component Implementation) - study GSD format before implementing `<Agent>` component
-
-**Confidence:** MEDIUM - need to verify exact GSD parsing requirements (may vary by version)
+**Confidence:** MEDIUM - depends on which components are selected for composite migration
 
 ---
 
@@ -155,244 +240,118 @@ Mistakes that will cause project failure or require major architectural changes.
 
 Mistakes that cause delays or technical debt but are recoverable.
 
-### Pitfall 6: Props vs Children Ambiguity for Agent Content
+### Pitfall 6: Over-Modularization - Too Many Primitives
 
-**What goes wrong:** Unclear API design for Agent content. Should instructions be props (`<Agent instructions="...">`) or children (`<Agent><p>Instructions...</p></Agent>`)? Inconsistent decisions lead to confusing API.
+**What goes wrong:** Fear of "distributed monolith" leads to making too many things primitives. The primitive set becomes as large as the original monolith, just with different boundaries.
 
-**Why it happens:** The existing Command uses children for body content. But Agent has multiple content sections (system prompt, role, execution context, structured return). Mixing props and children creates awkwardness.
+**Why it happens:** Every edge case seems to need "special compiler handling":
+- "This component needs context access" -> primitive
+- "This component has complex children" -> primitive
+- "This component validation can't be TypeScript-only" -> primitive
+
+**Warning signs:**
+- 80%+ of components remain primitives
+- Composite set is trivially small (only wrappers)
+- New features always require compiler changes
 
 **Prevention:**
-1. **Define clear slots upfront:** Role (prop), System prompt (child of specific component), Execution context (child), Structured return (child)
-2. **Consider slot components:** `<Agent.SystemPrompt>`, `<Agent.ExecutionContext>`, `<Agent.Return>` pattern
-3. **Follow Command precedent:** If it works for Command, use same pattern for Agent's body
-4. **Document slot composition:** Show complete example with all slots filled
-
-**Detection (early warning signs):**
-- Debates about "where does X go" during implementation
-- Need to nest components 3+ levels deep for basic Agent definition
-- Users ask "why is this a prop and that's a child?"
-
-**Phase to address:** Phase 1 (Interface Design) - decide API before implementation
+1. **Set target ratio:** 10-15 primitives, rest are composites
+2. **Challenge every "needs to be primitive" decision:** Can the behavior be achieved by composing existing primitives?
+3. **Primitives are closed set:** After initial migration, adding new primitive requires RFC
 
 ---
 
-### Pitfall 7: Implicit vs Explicit Agent Resolution
+### Pitfall 7: Incomplete TransformContext Migration
 
-**What goes wrong:** `<SpawnAgent>` needs to reference a specific Agent. Should it use string name (`agent="researcher"`), import reference (`agent={Researcher}`), or path reference (`agent="./agents/researcher.tsx"`)? Each has tradeoffs.
+**What goes wrong:** `TransformContext` in `types.ts` carries multiple responsibilities. Refactoring splits some but not all, leaving composites with access to things they shouldn't need.
 
-**Why it happens:** Multiple valid approaches exist. String names are simple but not type-safe. Import references are type-safe but couple files. Path references work at transpile time but lose IDE support.
+**Why it happens:** Current context includes:
+- `sourceFile` - for component resolution
+- `visitedPaths` - for circular detection
+- `createError` - for source-located errors
+
+Composites need error creation but not file resolution.
 
 **Prevention:**
-1. **Require import reference for type safety:** `import { Researcher } from './agents/researcher'` then `<SpawnAgent agent={Researcher}>`
-2. **Resolve agent interface from import:** At transpile time, follow the import to extract the Agent's interface
-3. **Allow string override for external agents:** `agentPath="~/.claude/commands/external.md"` when Agent isn't in transpiler scope
-4. **Test both internal and external agent patterns**
-
-**Detection (early warning signs):**
-- Implementation starts before deciding resolution strategy
-- Tests use strings but product uses imports (or vice versa)
-- IDE shows no autocomplete for agent reference
-
-**Phase to address:** Phase 1 (Interface Design) - choose resolution strategy upfront
+1. **Split context into layers:**
+   - `PrimitiveContext` - full context for compiler
+   - `CompositeContext` - subset safe for user code
+2. **Composites receive minimal context:** Only what's needed for error messages
+3. **Type system enforces separation:** Composite functions take `CompositeContext`, can't access `sourceFile`
 
 ---
 
-### Pitfall 8: Frontmatter Schema Extension Conflicts
+### Pitfall 8: Emitter Changes Required for IR Simplification
 
-**What goes wrong:** Command uses frontmatter for `name`, `description`, `allowed-tools`. Agent needs additional fields (model, spawn-strategy, etc.). Mixing these creates confusion about which fields apply where.
+**What goes wrong:** Simplifying IR nodes for composites requires corresponding emitter changes. The emitter in `emitter.ts` and `runtime-emitter.ts` has parallel switch statements that must stay synchronized.
 
-**Why it happens:** YAML frontmatter is untyped. Easy to add fields without schema validation. Different component types need different schemas.
+**Warning signs:**
+- IR changes compile but runtime output is wrong
+- Tests using transpile() pass but tests using emit() fail
+- Markdown emitter and runtime emitter diverge
 
 **Prevention:**
-1. **Define schema per component type:** CommandFrontmatter vs AgentFrontmatter interfaces
-2. **Validate at transpile time:** Error on unknown frontmatter fields
-3. **Use distinct required fields:** Command requires `name`, Agent requires `name` + something Agent-specific
-4. **Document frontmatter schemas clearly:** Table showing field, type, which components use it
-
-**Detection (early warning signs):**
-- Users put Command fields on Agent or vice versa
-- Silent acceptance of typos in field names
-- "Works sometimes" because field was ignored
-
-**Phase to address:** Phase 2 (Component Implementation) - implement validation when building components
+1. **Single source of truth for IR changes:** Update both emitters in same PR
+2. **Test at emission level, not just IR level:** Verify actual Markdown output
+3. **Consider shared emit logic:** `emitNode(node)` dispatches to correct emitter
 
 ---
 
-### Pitfall 9: Whitespace Sensitivity in Structured Blocks
+### Pitfall 9: Component Registry Confusion
 
-**What goes wrong:** GSD's XML blocks may be whitespace-sensitive for parsing. The existing emitter normalizes whitespace. Normalization might break expected indentation in code blocks or structured returns.
+**What goes wrong:** The current `SPECIAL_COMPONENTS` set in `shared.ts` tracks compiler-handled components. With primitives/composites, there are now three categories: primitives (compiler), composites (library), and custom (user). Misclassification causes wrong transformation.
 
-**Why it happens:** The Markdown emitter joins blocks with `\n\n`. XML blocks use `\n` for inner content. Mismatch between "pretty" output and "parseable" output.
+**Warning signs:**
+- User component treated as primitive (error)
+- Primitive treated as custom component (infinite loop)
+- Composite not found in any registry
 
 **Prevention:**
-1. **Test output whitespace exactly:** Snapshot tests that capture exact spacing
-2. **Preserve whitespace in structured return blocks:** Don't normalize content inside `<execution_context>` etc.
-3. **Add emitter option for strict whitespace:** Some blocks need preservation, others can be pretty-printed
-4. **Verify against actual GSD parsing:** Feed transpiler output to GSD and confirm it works
-
-**Detection (early warning signs):**
-- Tests pass but visual diff shows unexpected blank lines
-- Code blocks inside XML blocks lose indentation
-- GSD reports "malformed block" on valid-looking output
-
-**Phase to address:** Phase 3 (Integration Testing) - verify against real GSD
+1. **Three explicit registries:**
+   ```typescript
+   const PRIMITIVES = new Set(['Command', 'Agent', 'If', 'Loop', ...]);
+   const COMPOSITES = new Set(['Section', 'Warning', 'Note', ...]);
+   // Custom = neither primitive nor composite, user-defined
+   ```
+2. **Clear resolution order:** Primitive -> Composite -> Custom -> Error
+3. **Test each classification explicitly**
 
 ---
 
 ## Minor Pitfalls
 
-Mistakes that cause annoyance but are easily fixable.
+Annoyances that are easily fixable.
 
-### Pitfall 10: Naming Convention Mismatch
+### Pitfall 10: Documentation Lag
 
-**What goes wrong:** TSX uses PascalCase for components (`SpawnAgent`), but GSD conventions might expect snake_case for certain identifiers (task names, step names). Output uses wrong case.
+**What goes wrong:** Docs in `docs/` describe old component behavior. After refactoring, docs are stale.
 
 **Prevention:**
-1. **Document casing rules:** "Component names are PascalCase, output identifiers are snake_case"
-2. **Auto-convert where appropriate:** `<Step name="validateInput">` emits `name="validate_input"`
-3. **Warn on casing violations:** At transpile time, flag names that don't match expected convention
+1. **Update docs in same PR as component change**
+2. **Doc tests that verify examples still work**
+3. **Changelog for behavior changes**
 
 ---
 
-### Pitfall 11: Missing Source Location in Agent Errors
+### Pitfall 11: Test Fixture Maintenance
 
-**What goes wrong:** Errors from Agent/SpawnAgent don't include helpful file:line:col information because the error happens during inter-file resolution, not single-file parsing.
+**What goes wrong:** Test fixtures for transformer tests become invalid after IR changes. Tests using snapshot matching break.
 
 **Prevention:**
-1. **Propagate source location through resolution:** When resolving Agent import, track the SpawnAgent usage location
-2. **Include both locations in errors:** "SpawnAgent at file.tsx:15:5 references Agent at agent.tsx:3:1"
-3. **Test error messages explicitly:** Verify errors show correct locations
+1. **Regenerate snapshots intentionally:** `npm test -- --update-snapshots` with review
+2. **Comment fixtures with expected output:** Easier to understand what changed
+3. **Separate unit tests (IR structure) from integration tests (Markdown output)**
 
 ---
 
-### Pitfall 12: Stale Type Definitions After Agent Changes
+### Pitfall 12: Performance Regression from Indirection
 
-**What goes wrong:** Developer changes Agent's interface but doesn't rebuild. Command uses old type definitions from previous transpilation. Type mismatch only discovered at runtime.
+**What goes wrong:** Composites add function call overhead. Deep composition chains become slow.
 
 **Prevention:**
-1. **Document rebuild requirements:** "After changing Agent interfaces, rebuild all dependent Commands"
-2. **Consider emitting `.d.ts` files:** Let TypeScript track dependencies normally
-3. **Watch mode should rebuild dependents:** When Agent changes, rebuild Commands that import it
-
----
-
-## Prevention Strategies
-
-### Strategy 1: Type-Only Import Detection
-
-**Applies to:** Pitfalls 1, 2
-
-```typescript
-// In transformer.ts or new type-resolver.ts
-function isTypeOnlyImport(importDecl: ImportDeclaration): boolean {
-  // TypeScript 3.8+ has import type syntax
-  return importDecl.isTypeOnly();
-}
-
-function resolveAgentInterface(
-  componentName: string,
-  sourceFile: SourceFile
-): InterfaceDeclaration | null {
-  const importDecl = sourceFile.getImportDeclaration((decl) => {
-    // Find import that includes the interface name
-    return decl.getNamedImports().some((ni) => ni.getName() === componentName);
-  });
-
-  if (!importDecl) return null;
-
-  // Type-only imports follow different resolution rules
-  // They don't trigger circular dependency errors
-  const isTypeOnly = isTypeOnlyImport(importDecl);
-
-  // ... resolve to interface declaration
-}
-```
-
-### Strategy 2: GSD Format Validation
-
-**Applies to:** Pitfall 5
-
-```typescript
-// New validation in emitter or post-emit phase
-const GSD_STEP_NAME_PATTERN = /^[a-z][a-z0-9_]*$/;
-
-function validateStepNode(node: StepNode): ValidationError[] {
-  const errors: ValidationError[] = [];
-
-  if (!node.name) {
-    errors.push({ message: '<step> requires name attribute' });
-  } else if (!GSD_STEP_NAME_PATTERN.test(node.name)) {
-    errors.push({
-      message: `Step name "${node.name}" must be snake_case`,
-      suggestion: toSnakeCase(node.name),
-    });
-  }
-
-  return errors;
-}
-```
-
-### Strategy 3: Interface Contract Extraction
-
-**Applies to:** Pitfalls 1, 4, 7
-
-```typescript
-// Extract interface schema from Agent definition
-interface ExtractedContract {
-  inputInterface: string;      // Interface name
-  inputSchema: PropertyInfo[]; // Simplified schema for documentation
-  outputFormat: string;        // "structured" | "markdown" | "raw"
-}
-
-function extractAgentContract(
-  agentSourceFile: SourceFile
-): ExtractedContract {
-  // Find exported interface that matches naming convention
-  const inputInterface = agentSourceFile.getInterface((iface) =>
-    iface.getName()?.endsWith('Input')
-  );
-
-  // Extract property names and types for schema comment
-  const properties = inputInterface?.getProperties().map((p) => ({
-    name: p.getName(),
-    type: p.getType().getText(),
-    optional: p.hasQuestionToken(),
-  }));
-
-  return {
-    inputInterface: inputInterface?.getName() ?? 'unknown',
-    inputSchema: properties ?? [],
-    outputFormat: detectOutputFormat(agentSourceFile),
-  };
-}
-```
-
-### Strategy 4: @ Reference Preservation Test
-
-**Applies to:** Pitfall 3
-
-```typescript
-// Test that verifies @ references are NOT resolved
-describe('@ reference handling', () => {
-  it('preserves @ references verbatim', () => {
-    const input = `
-      <Agent name="researcher">
-        <Markdown>
-          Load context from @.planning/PROJECT.md before proceeding.
-        </Markdown>
-      </Agent>
-    `;
-
-    const output = transpile(input);
-
-    // @ reference should appear unchanged in output
-    expect(output).toContain('@.planning/PROJECT.md');
-
-    // Should NOT contain resolved content
-    expect(output).not.toContain('# Project Name'); // hypothetical file content
-  });
-});
-```
+1. **Benchmark before/after:** Compare transpile time for realistic command set
+2. **Limit composition depth:** Warn on >5 nested composites
+3. **Consider memoization:** Cache resolved composites by path
 
 ---
 
@@ -400,104 +359,122 @@ describe('@ reference handling', () => {
 
 | Phase | Topic | Likely Pitfall | Mitigation |
 |-------|-------|----------------|------------|
-| Phase 1 | Interface Design | Generic type inference failures (Pitfall 4) | Test API with complex types before committing to design |
-| Phase 1 | Interface Design | Props vs children ambiguity (Pitfall 6) | Define slot pattern upfront with examples |
-| Phase 1 | Architecture | Circular dependency handling (Pitfall 2) | Separate type resolution from component resolution |
-| Phase 2 | Agent Component | @ reference inlining (Pitfall 3) | Emit references verbatim, test preservation |
-| Phase 2 | Agent Component | Structured return format (Pitfall 5) | Study GSD output examples before implementation |
-| Phase 2 | SpawnAgent Component | Agent resolution strategy (Pitfall 7) | Require import reference for type safety |
-| Phase 2 | Frontmatter | Schema conflicts (Pitfall 8) | Define distinct schemas per component type |
-| Phase 3 | Integration | Whitespace sensitivity (Pitfall 9) | Snapshot test exact output format |
-| Phase 3 | Integration | Type boundary loss (Pitfall 1) | Document limitation, consider schema comments |
-| Post-MVP | DX | Stale types (Pitfall 12) | Watch mode should track cross-file dependencies |
+| Phase 0 | Preparation | Missing baseline snapshots (3) | Create comprehensive snapshot suite before ANY changes |
+| Phase 1 | Architecture | Distributed monolith (1) | Define primitive boundary with explicit criteria |
+| Phase 1 | Architecture | Circular dependencies (4) | Map dependencies, define module boundaries |
+| Phase 1 | IR Design | Breaking exhaustiveness (2) | Document all switch locations, batch changes |
+| Phase 2 | Component Classification | Over-modularization (6) | Target 10-15 primitives max |
+| Phase 2 | Component Migration | Type safety loss (5) | Keep validation-heavy components as primitives |
+| Phase 2 | Context | Incomplete context split (7) | Define PrimitiveContext vs CompositeContext |
+| Phase 3 | Emitter | Emitter synchronization (8) | Update both emitters in same PR |
+| Phase 3 | Registry | Classification confusion (9) | Three explicit registries with clear resolution |
+| Phase 4 | Polish | Documentation lag (10) | Update docs with component changes |
+| All | Testing | Backwards compatibility (3) | Snapshot test everything, semver correctly |
 
 ---
 
-## GSD-Specific Gotchas Explained
+## Prevention Strategies Summary
 
-### "Context doesn't cross Task boundaries"
+### Strategy 1: Primitive Boundary Contract
 
-**What it means:**
-- Each Task runs in a fresh subagent with its own 200K token context
-- The orchestrator doesn't share its context with spawned Tasks
-- Tasks communicate through files (.planning/STATE.md, agent-history.json) not memory
+Define explicit criteria for what qualifies as a primitive:
 
-**Transpiler implications:**
-1. @ references are instructions for the Task, not content for the orchestrator
-2. Don't inline file contents - that bloats orchestrator context
-3. Each Agent output should be self-contained (include all needed references)
-4. Structured returns write to files, not return to orchestrator memory
-
-### "Subagents have 200k tokens purely for implementation"
-
-**What it means:**
-- Main context accumulates garbage (conversation history, failed attempts)
-- Subagents start fresh with only explicit context injections
-- Quality degrades beyond 50% context utilization
-
-**Transpiler implications:**
-1. Agent definitions should be concise (the Markdown is loaded into subagent)
-2. Large inline content hurts the subagent's working context
-3. Reference external files via @ rather than embedding content
-
-### Structured Return Pattern
-
-**What GSD expects:**
-```xml
-<execution_context>
-  @~/.claude/get-shit-done/workflows/execute-phase.md
-</execution_context>
-
-<step name="validate_inputs" priority="high">
-  1. Check that all required fields are present
-  2. Verify types match expected schema
-</step>
+```typescript
+/**
+ * PRIMITIVE CRITERIA
+ * A component MUST be a primitive if ANY of these apply:
+ *
+ * 1. Needs TransformContext.sourceFile for resolution
+ * 2. Emits IR nodes that require special emitter logic
+ * 3. Has transformer-only validation (beyond TypeScript)
+ * 4. Requires sibling coordination (If/Else pattern)
+ * 5. Produces runtime code (runtimeFn, useRuntimeVar)
+ *
+ * A component SHOULD be a composite if:
+ * - It only composes other primitives/composites
+ * - Its props can be validated by TypeScript alone
+ * - It produces predictable output regardless of context
+ */
 ```
 
-**Key conventions:**
-- `name` attribute uses snake_case
-- `priority` is optional, values: high | medium | low
-- Steps are ordered execution instructions
-- References use @ prefix
+### Strategy 2: Exhaustive Switch Enforcement
+
+```typescript
+// Add to all emitter switches
+switch (node.kind) {
+  case 'heading': return emitHeading(node);
+  case 'paragraph': return emitParagraph(node);
+  // ... all cases ...
+  default:
+    // TypeScript enforces this is unreachable
+    return assertNever(node);
+}
+```
+
+### Strategy 3: Backwards Compatibility Gate
+
+```bash
+# CI job that runs on every PR
+npm run test:snapshots
+if [ $? -ne 0 ]; then
+  echo "SNAPSHOT MISMATCH - Review backwards compatibility"
+  echo "If changes are intentional, update snapshots and bump major version"
+  exit 1
+fi
+```
+
+### Strategy 4: Dependency Visualization
+
+```bash
+# Add to package.json scripts
+"deps:check": "madge --circular src/parser/",
+"deps:graph": "madge --image deps.svg src/parser/"
+```
 
 ---
 
 ## Sources
 
-### TypeScript Type System
-- [TypeScript Type Erasure - FreeCodeCamp](https://www.freecodecamp.org/news/what-is-type-erasure-in-typescript/)
-- [TypeScript 3.8 - Type-Only Imports](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html)
-- [TypeScript JSX Documentation](https://www.typescriptlang.org/docs/handbook/jsx.html)
+### Monolith to Modular Refactoring
+- [Monolith Modularization Trade-offs - IEEE](https://ieeexplore.ieee.org/document/9425828/)
+- [Refactoring a monolith to microservices](https://microservices.io/refactoring/)
+- [From Monolithic to Modular - Eficode](https://www.eficode.com/blog/from-monolithic-to-modular)
 
-### Generic Type Inference in TSX
-- [Passing Generics to JSX Elements - Marius Schulz](https://mariusschulz.com/blog/passing-generics-to-jsx-elements-in-typescript)
-- [TypeScript Issue #16499 - Generic Inference Failures](https://github.com/Microsoft/TypeScript/issues/16499)
-- [TypeScript Issue #3960 - Generics in JSX](https://github.com/Microsoft/TypeScript/issues/3960)
+### TypeScript Type System
+- [TypeScript Discriminated Unions](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html)
+- [Discriminated Union Narrowing Issues - GitHub](https://github.com/microsoft/TypeScript/issues/55425)
+- [Advanced TypeScript for React - Discriminated Unions](https://www.developerway.com/posts/advanced-typescript-for-react-developers-discriminated-unions)
+
+### Backwards Compatibility
+- [API Backwards Compatibility Best Practices - Zuplo](https://zuplo.com/learning-center/api-versioning-backward-compatibility-best-practices)
+- [Breaking Changes Beyond API Compatibility - InfoQ](https://www.infoq.com/articles/breaking-changes-are-broken-semver/)
+- [AIP-180: Backwards compatibility - Google](https://google.aip.dev/180)
+
+### React/Compiler Migration
+- [React Compiler Migration Guide](https://stevekinney.com/courses/react-performance/react-compiler-migration-guide)
+- [Compile-Time vs Runtime Component Composition - Smashing Magazine](https://www.smashingmagazine.com/2025/03/web-components-vs-framework-components/)
 
 ### Circular Dependencies
-- [Taming Circular Dependencies in TypeScript - Medium](https://medium.com/inkitt-tech/taming-circular-dependencies-in-typescript-d63df1ec8c80)
-- [Fix Circular Dependencies Once and For All - Michel Weststrate](https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de)
-
-### GSD Framework
-- [GSD GitHub Repository](https://github.com/glittercowboy/get-shit-done)
-- [GSD Style Guide](https://github.com/glittercowboy/get-shit-done/blob/main/GSD-STYLE.md)
-
-### Context Engineering for Agentic Systems
-- [MCP Security Analysis - arxiv](https://arxiv.org/html/2512.08290v1)
-- [Prompt Injection in AI Coding Editors - arxiv](https://arxiv.org/html/2509.22040v1)
+- [How to Fix Circular Dependencies - Medium](https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de)
 
 ---
 
 ## Summary
 
-The v1.1 Agent framework addition faces three categories of challenges:
+The primitive/composite refactoring has five critical risks:
 
-1. **Type boundary challenges:** TypeScript types exist at compile time but Markdown has no type system. Accept this limitation and focus on compile-time validation.
+1. **Distributed Monolith (Pitfall 1):** Composites that still depend on compiler internals. Prevent by defining clear primitive boundary criteria.
 
-2. **Resolution complexity:** Agents and Commands have different dependency relationships than component composition. Type-only imports need separate handling.
+2. **Discriminated Union Breakage (Pitfall 2):** IR changes breaking exhaustive switches across codebase. Prevent by documenting switch locations and batching changes.
 
-3. **GSD format compliance:** The output must match GSD's specific XML block conventions, whitespace expectations, and @ reference patterns. Study actual GSD usage before implementation.
+3. **Silent Behavior Changes (Pitfall 3):** Backwards compatibility violations without errors. Prevent by comprehensive snapshot testing before refactoring.
 
-**Highest-risk pitfall:** Type information loss (Pitfall 1) because it's fundamental to the problem space and cannot be fully solved, only mitigated through documentation and compile-time validation.
+4. **Circular Dependencies (Pitfall 4):** Import cycles during incremental migration. Prevent by mapping dependencies and defining clean module boundaries.
 
-**Most likely pitfall:** Circular dependency errors (Pitfall 2) because the existing codebase already handles this for composition, making it easy to assume the same logic applies to Agent/Command relationships.
+5. **Type Safety Loss (Pitfall 5):** Moving validation-heavy components to composites loses custom error messages. Prevent by keeping such components as primitives.
+
+**Highest-risk pitfall:** Silent behavior changes (Pitfall 3) because users won't see errors - just different output that may break their Claude Code commands.
+
+**Most likely pitfall:** Distributed monolith (Pitfall 1) because the current architecture has many hidden dependencies between transformer modules, making it hard to cleanly separate primitives from composites.
+
+**First action before any refactoring:** Create comprehensive snapshot tests for every component's output (addresses Pitfall 3).
