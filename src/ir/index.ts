@@ -6,3 +6,12 @@
 
 export * from './nodes.js';
 export * from './runtime-nodes.js';
+export {
+  isPrimitive,
+  getPrimitives,
+  getComposites,
+  getComponentInfo,
+  PRIMITIVE_COMPONENTS,
+  type PrimitiveKind,
+  type ComponentInfo,
+} from './registry.js';
