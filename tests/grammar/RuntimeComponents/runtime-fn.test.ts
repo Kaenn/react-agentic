@@ -290,10 +290,11 @@ describe('V3 Runtime Components', () => {
         }
       `;
       const output = transformCommand(tsx);
-      // Should emit declarative table format
+      // Should emit declarative table format with bash execution
       expect(output).toContain('**Runtime Call**');
       expect(output).toContain('| Argument | Source |');
-      expect(output).toContain('**Output Variable**');
+      expect(output).toContain('```bash');
+      expect(output).toContain('node .claude/runtime/runtime.js');
     });
   });
 

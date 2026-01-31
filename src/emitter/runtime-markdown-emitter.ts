@@ -307,7 +307,7 @@ export class RuntimeMarkdownEmitter {
   }
 
   /**
-   * Emit RuntimeCallNode as declarative table
+   * Emit RuntimeCallNode as declarative table + bash execution
    *
    * Output:
    * **Runtime Call**: `functionName`
@@ -315,9 +315,10 @@ export class RuntimeMarkdownEmitter {
    * | Argument | Source |
    * |----------|--------|
    * | projectId | CTX.projectId |
-   * | shouldForce | CTX.flags.dryRun OR CTX.flags.force |
    *
-   * **Output Variable**: RESULT
+   * ```bash
+   * RESULT=$(node .claude/runtime/runtime.js functionName '{"projectId": ...}')
+   * ```
    */
   private emitRuntimeCall(node: RuntimeCallNode): string {
     const lines: string[] = [];
@@ -342,10 +343,62 @@ export class RuntimeMarkdownEmitter {
       lines.push('');
     }
 
-    // Output variable
-    lines.push(`**Output Variable**: ${node.outputVar}`);
+    // Build bash execution block
+    lines.push('```bash');
+    lines.push(`${node.outputVar}=$(node .claude/runtime/runtime.js ${node.fnName} '${this.buildJsonArgs(argEntries)}')`);
+    lines.push('```');
 
     return lines.join('\n');
+  }
+
+  /**
+   * Build JSON args string for bash command
+   * Shows literal values directly, variable refs as placeholders
+   */
+  private buildJsonArgs(argEntries: [string, RuntimeCallArgValue][]): string {
+    if (argEntries.length === 0) return '{}';
+
+    const parts: string[] = [];
+    for (const [name, value] of argEntries) {
+      parts.push(`"${name}": ${this.formatArgForJson(value)}`);
+    }
+    return `{${parts.join(', ')}}`;
+  }
+
+  /**
+   * Format a RuntimeCallArgValue for JSON in bash
+   */
+  private formatArgForJson(value: RuntimeCallArgValue): string {
+    switch (value.type) {
+      case 'literal':
+        if (value.value === null) return 'null';
+        if (typeof value.value === 'string') return `"${value.value}"`;
+        if (typeof value.value === 'boolean') return value.value ? 'true' : 'false';
+        return String(value.value);
+
+      case 'runtimeVarRef': {
+        const { varName, path } = value.ref;
+        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
+        return `"$(echo "$${varName}" | jq -r '${jqPath}')"`;
+      }
+
+      case 'expression':
+        // For expressions, use a placeholder that indicates manual resolution
+        return `"<${value.description}>"`;
+
+      case 'json': {
+        if (Array.isArray(value.value)) {
+          const items = value.value.map(v => this.formatArgForJson(v));
+          return `[${items.join(', ')}]`;
+        }
+        const entries = Object.entries(value.value as Record<string, RuntimeCallArgValue>)
+          .map(([k, v]) => `"${k}": ${this.formatArgForJson(v)}`);
+        return `{${entries.join(', ')}}`;
+      }
+
+      default:
+        return '""';
+    }
   }
 
   /**
