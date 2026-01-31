@@ -192,16 +192,16 @@ Plans:
 ### Phase 33: Documentation
 **Goal**: User-facing documentation for primitive/composite architecture
 **Depends on**: Phase 32
-**Requirements**: DOC-01, DOC-02, DOC-03
+**Requirements**: DOC-01, DOC-03 (DOC-02 deferred - no migration needed pre-production)
 **Success Criteria** (what must be TRUE):
-  1. docs/primitives-composites.md explains the boundary and why it exists
-  2. Migration guide covers transitioning from string templates to typed children
+  1. docs/primitives.md explains compiler-owned components and links to existing docs
+  2. docs/composites.md demonstrates user-definable patterns with 3 examples
   3. At least 3 example composites demonstrate common patterns
-  4. Examples include: conditional wrapper, repeated section, custom validation
-**Plans**: TBD
+  4. Examples include: conditional wrapper, repeated section, enhancement pattern
+**Plans**: 1 plan
 
 Plans:
-- [ ] 33-01-PLAN.md — TBD
+- [ ] 33-01-PLAN.md — Create primitives.md, composites.md, update docs index
 
 ## Progress
 
