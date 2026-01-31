@@ -89,7 +89,7 @@ Plans:
 - [x] **Phase 27: Baseline & Registry** - Snapshot tests and primitive classification
 - [x] **Phase 28: Content Types** - Type foundation for content constraints
 - [x] **Phase 29: Reference Printing** - Direct interpolation and Ref component
-- [ ] **Phase 30: Component Composition** - Children and props support
+- [x] **Phase 30: Component Composition** - Children and props support
 - [ ] **Phase 31: Content Validation** - Type-safe nesting constraints
 - [ ] **Phase 32: Composite Library** - Move components to user-definable layer
 - [ ] **Phase 33: Documentation** - User-facing docs and examples
@@ -153,8 +153,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 30-01-PLAN.md — Extend static transformer for props and children support
-- [ ] 30-02-PLAN.md — Add comprehensive test coverage for both transformer paths
+- [x] 30-01-PLAN.md — Extend static transformer for props and children support
+- [x] 30-02-PLAN.md — Add comprehensive test coverage for both transformer paths
 
 ### Phase 31: Content Validation
 **Goal**: Compile-time errors for invalid content nesting
@@ -216,7 +216,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 27 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 28 | v3.0 | 1/1 | Complete | 2026-01-31 |
 | 29 | v3.0 | 2/2 | Complete | 2026-01-31 |
-| 30 | v3.0 | 0/2 | Not started | - |
+| 30 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 31 | v3.0 | 0/1 | Not started | - |
 | 32 | v3.0 | 0/3 | Not started | - |
 | 33 | v3.0 | 0/1 | Not started | - |
