@@ -88,7 +88,7 @@ Plans:
 
 - [x] **Phase 27: Baseline & Registry** - Snapshot tests and primitive classification
 - [x] **Phase 28: Content Types** - Type foundation for content constraints
-- [ ] **Phase 29: Reference Printing** - Direct interpolation and Ref component
+- [x] **Phase 29: Reference Printing** - Direct interpolation and Ref component
 - [ ] **Phase 30: Component Composition** - Children and props support
 - [ ] **Phase 31: Content Validation** - Type-safe nesting constraints
 - [ ] **Phase 32: Composite Library** - Move components to user-definable layer
@@ -150,11 +150,11 @@ Plans:
   2. Props passed to custom components are available inside component body
   3. Same behavior in static transformer and runtime transformer paths
   4. Fragments return multiple elements without wrapper (no spurious divs)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 30-01-PLAN.md — TBD
-- [ ] 30-02-PLAN.md — TBD
+- [ ] 30-01-PLAN.md — Extend static transformer for props and children support
+- [ ] 30-02-PLAN.md — Add comprehensive test coverage for both transformer paths
 
 ### Phase 31: Content Validation
 **Goal**: Compile-time errors for invalid content nesting
