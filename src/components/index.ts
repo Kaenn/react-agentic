@@ -142,3 +142,13 @@ export {
   type AskUserProps,
   type AskUserOption,
 } from './ask-user.js';
+
+// ============================================================================
+// Reference Printing
+// ============================================================================
+
+export {
+  Ref,
+  REF_MARKER,
+  type RefProps,
+} from './Ref.js';

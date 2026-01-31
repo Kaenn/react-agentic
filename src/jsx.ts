@@ -36,6 +36,7 @@ export {
   // Runtime primitives
   useRuntimeVar,
   runtimeFn,
+  Ref,
 
   // Utilities
   useOutput,
@@ -59,6 +60,7 @@ export {
   BREAK_MARKER,
   RETURN_MARKER,
   ASK_USER_MARKER,
+  REF_MARKER,
 
   // Types
   type CommandProps,
@@ -96,6 +98,7 @@ export {
   type RuntimeCallProps,
   type RuntimeCallComponent,
   type RuntimeFnComponent,
+  type RefProps,
 } from './components/index.js';
 
 // ============================================================================
