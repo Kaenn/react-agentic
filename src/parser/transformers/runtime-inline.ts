@@ -261,7 +261,7 @@ function transformPropertyAccess(
     // Format path with dot notation, using bracket notation for numeric indices
     const pathStr = varPath.length === 0
       ? ''
-      : '.' + varPath.map(p => /^\d+$/.test(p) ? `[${p}]` : p).join('.');
+      : varPath.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
     const value = `$${runtimeVar.varName}${pathStr}`;
     return { kind: 'text', value };
   }
