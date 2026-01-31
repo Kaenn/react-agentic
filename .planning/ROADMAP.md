@@ -105,11 +105,11 @@ Plans:
   2. Running refactoring changes that alter output causes test failures
   3. Primitive registry lists all compiler-owned components explicitly
   4. `isPrimitive()` function replaces ad-hoc component checks
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 27-01-PLAN.md — TBD
-- [ ] 27-02-PLAN.md — TBD
+- [ ] 27-01-PLAN.md — Create snapshot tests for all component markdown output
+- [ ] 27-02-PLAN.md — Create primitive registry with classification functions
 
 ### Phase 28: Content Types
 **Goal**: Type foundation enabling content constraints across component boundaries
