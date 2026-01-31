@@ -16,6 +16,8 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Conditionals](./conditionals.md) | Legacy conditionals (see Control Flow) |
 | [Structured Components](./structured-components.md) | Table and List with array props |
 | [Semantic Components](./semantic-components.md) | ExecutionContext for file references |
+| [Primitives](./primitives.md) | Compiler-owned components (Table, If, SpawnAgent, etc.) |
+| [Composites](./composites.md) | User-definable convenience wrappers |
 | [Grammar Specification](./grammar.md) | Formal EBNF grammar, element reference, nesting rules |
 | [API Reference](./api-reference.md) | Low-level utility functions for tooling |
 
