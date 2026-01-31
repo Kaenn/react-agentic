@@ -20,6 +20,29 @@ import type { RuntimeBlockNode } from './runtime-nodes.js';
  * - Control flow (If/Else, Loop/Break, Return)
  * - Runtime features (useRuntimeVar, runtimeFn calls)
  * - User interaction (AskUser)
+ * - Status handling (OnStatus)
+ *
+ * Use this type when defining Command children props to allow the full
+ * command feature set.
+ *
+ * @example
+ * ```tsx
+ * import type { CommandContent } from 'react-agentic';
+ * import type { CommandContext } from 'react-agentic';
+ * import type { ReactNode } from 'react';
+ *
+ * interface MyCommandProps {
+ *   children?: CommandContent | CommandContent[] | ((ctx: CommandContext) => ReactNode);
+ * }
+ *
+ * // All command-level features are valid
+ * <MyCommand>
+ *   <SpawnAgent agent="test" model="sonnet" description="Task" />
+ *   <If condition={someVar}>
+ *     <p>Conditional content</p>
+ *   </If>
+ * </MyCommand>
+ * ```
  */
 export type CommandContent = BaseBlockNode | RuntimeBlockNode;
 
@@ -34,6 +57,28 @@ export type CommandContent = BaseBlockNode | RuntimeBlockNode;
  *
  * Separate type from CommandContent to allow future divergence
  * (e.g., agents may gain or lose features relative to commands).
+ *
+ * Use this type when defining Agent children props to allow the full
+ * agent feature set.
+ *
+ * @example
+ * ```tsx
+ * import type { AgentContent } from 'react-agentic';
+ * import type { AgentContext } from 'react-agentic';
+ * import type { ReactNode } from 'react';
+ *
+ * interface MyAgentProps {
+ *   children?: AgentContent | AgentContent[] | ((ctx: AgentContext) => ReactNode);
+ * }
+ *
+ * // All agent-level features are valid
+ * <MyAgent>
+ *   <If condition={someVar}>
+ *     <p>Conditional content</p>
+ *   </If>
+ *   <AskUser question="Continue?" options={["yes", "no"]} />
+ * </MyAgent>
+ * ```
  */
 export type AgentContent = BaseBlockNode | RuntimeBlockNode;
 
@@ -45,16 +90,62 @@ export type AgentContent = BaseBlockNode | RuntimeBlockNode;
  * - Execution context and semantic components
  * - XML blocks and grouping
  *
- * Excludes command/agent-level features:
- * - SpawnAgent (document-level only)
- * - OnStatus (document-level only)
- * - Control flow (If/Else, Loop/Break, Return - document-level only)
- * - Runtime features (useRuntimeVar, runtimeFn calls - document-level only)
- * - User interaction (AskUser - document-level only)
+ * **Excluded from SubComponentContent** (document-level only):
  *
- * This restriction enables component authors to type their children props
- * and get compile-time errors if users try to nest command-level features
- * inside presentation components.
+ * These 10 node types are command/agent-level features and will cause
+ * TypeScript compile-time errors if used in SubComponentContent:
+ *
+ * 1. **SpawnAgent** - Agent spawning (kind: 'spawnAgent')
+ * 2. **OnStatus** - Status-based conditionals (kind: 'onStatus')
+ * 3. **If** - Conditional blocks (kind: 'if')
+ * 4. **Else** - Else blocks (kind: 'else')
+ * 5. **Loop** - Iteration blocks (kind: 'loop')
+ * 6. **Break** - Loop control (kind: 'break')
+ * 7. **Return** - Early exit (kind: 'return')
+ * 8. **AskUser** - User prompts (kind: 'askUser')
+ * 9. **RuntimeVarDecl** - Runtime variable declarations (kind: 'runtimeVarDecl')
+ * 10. **RuntimeCall** - Runtime function calls (kind: 'runtimeCall')
+ *
+ * **Why these restrictions?**
+ *
+ * SubComponentContent is for presentation components (Card, Section, Panel)
+ * that structure markdown output. Document-level features like agent spawning
+ * and control flow are orchestration concerns that belong at the Command/Agent
+ * top level, not nested inside presentational wrappers.
+ *
+ * **TypeScript will automatically reject invalid assignments** when you type
+ * your component's children prop with SubComponentContent.
+ *
+ * @example
+ * ```tsx
+ * import type { SubComponentContent } from 'react-agentic';
+ * import type { ReactNode } from 'react';
+ *
+ * interface CardProps {
+ *   title: string;
+ *   children?: SubComponentContent | SubComponentContent[];
+ * }
+ *
+ * export function Card({ title, children }: CardProps): ReactNode {
+ *   return (
+ *     <XmlBlock name="card">
+ *       <h2>{title}</h2>
+ *       {children}
+ *     </XmlBlock>
+ *   );
+ * }
+ *
+ * // ✓ VALID - Table is allowed in SubComponentContent
+ * <Card title="Overview">
+ *   <Table headers={["Name"]} rows={[["Alice"]]} />
+ * </Card>
+ *
+ * // ✗ COMPILE ERROR - SpawnAgent not assignable to SubComponentContent
+ * <Card title="Invalid">
+ *   <SpawnAgent agent="test" model="sonnet" description="Task" />
+ *   // Error: Type 'SpawnAgentNode' is not assignable to type 'SubComponentContent'
+ * </Card>
+ * ```
  */
 export type SubComponentContent =
   | Extract<
