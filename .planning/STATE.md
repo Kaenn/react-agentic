@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 28 of 33 (Content Types)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-01-31 — Completed Phase 27 (Baseline & Registry)
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-01-31 — Completed 28-01-PLAN.md
 
-Progress: [====================] v2.1: Complete | [██                  ] v3.0: 14%
-Next: `/gsd:plan-phase 28`
+Progress: [====================] v2.1: Complete | [███                 ] v3.0: 28%
+Next: `/gsd:plan-phase 29`
 
 ## Milestone History
 
@@ -37,9 +37,9 @@ Next: `/gsd:plan-phase 28`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 100 (v1.0-v3.0)
+- Total plans completed: 101 (v1.0-v3.0)
 - Average duration: ~4m
-- Total execution time: ~5.2 hours
+- Total execution time: ~5.3 hours
 
 **By Milestone:**
 
@@ -49,7 +49,7 @@ Next: `/gsd:plan-phase 28`
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
-| v3.0 | 1 | 2 | (in progress) |
+| v3.0 | 2 | 3 | (in progress) |
 
 *Updated after each plan completion*
 
@@ -68,10 +68,19 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Registry exported for user introspection and metaprogramming
 - Classification based on component purpose: plumbing vs presentation
 
+**v3.0 Phase 28 (Complete):**
+- CommandContent type allows all primitives (SpawnAgent, control flow, runtime)
+- AgentContent type allows all primitives (separate from CommandContent for future divergence)
+- SubComponentContent type restricts to document-level primitives (excludes 10 command-level features)
+- Extract-based SubComponentContent pattern (explicit allow-list vs implicit deny-list)
+- Content types exported from react-agentic package root
+- 24 tests including 10 @ts-expect-error compile-time exclusion tests
+- Foundation for Phase 31 content validation and Phase 32 composite components
+
 ### Roadmap Evolution
 
 - v2.1 complete: 1 phase (26) with 4 plans
-- v3.0 in progress: 7 phases (27-33), Phase 27 complete
+- v3.0 in progress: 7 phases (27-33), Phases 27-28 complete
 
 ### Pending Todos
 
@@ -84,5 +93,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed Phase 27 (Baseline & Registry)
-Resume with: `/gsd:plan-phase 28`
+Stopped at: Completed Phase 28 (Content Types) - 28-01-PLAN.md
+Resume with: `/gsd:plan-phase 29`
