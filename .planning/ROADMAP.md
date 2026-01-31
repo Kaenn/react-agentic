@@ -86,7 +86,7 @@ Plans:
 
 **Milestone Goal:** Separate primitive components (compiler-owned) from composite components (user-definable TSX functions). Enable users to create custom components that compose primitives.
 
-- [ ] **Phase 27: Baseline & Registry** - Snapshot tests and primitive classification
+- [x] **Phase 27: Baseline & Registry** - Snapshot tests and primitive classification
 - [ ] **Phase 28: Content Types** - Type foundation for content constraints
 - [ ] **Phase 29: Reference Printing** - .ref property and Ref component
 - [ ] **Phase 30: Component Composition** - Children and props support
@@ -108,8 +108,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 27-01-PLAN.md — Create snapshot tests for all component markdown output
-- [ ] 27-02-PLAN.md — Create primitive registry with classification functions
+- [x] 27-01-PLAN.md — Create snapshot tests for all component markdown output
+- [x] 27-02-PLAN.md — Create primitive registry with classification functions
 
 ### Phase 28: Content Types
 **Goal**: Type foundation enabling content constraints across component boundaries
@@ -213,7 +213,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 8-19 | v1.1-v1.8 | 56/56 | Complete | 2026-01-26 |
 | 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
-| 27 | v3.0 | 0/2 | Not started | - |
+| 27 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 28 | v3.0 | 0/1 | Not started | - |
 | 29 | v3.0 | 0/2 | Not started | - |
 | 30 | v3.0 | 0/2 | Not started | - |

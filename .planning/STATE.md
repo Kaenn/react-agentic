@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.0 Primitive/Composite Architecture - Phase 27: Baseline & Registry
+**Current focus:** v3.0 Primitive/Composite Architecture - Phase 28: Content Types
 
 ## Current Position
 
-Phase: 27 of 33 (Baseline & Registry)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-31 — Completed 27-01-PLAN.md
+Phase: 28 of 33 (Content Types)
+Plan: 0 of 1 in current phase
+Status: Ready to plan
+Last activity: 2026-01-31 — Completed Phase 27 (Baseline & Registry)
 
-Progress: [====================] v2.1: Complete | [█                   ] v3.0: 8%
-Next: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
+Progress: [====================] v2.1: Complete | [██                  ] v3.0: 14%
+Next: `/gsd:plan-phase 28`
 
 ## Milestone History
 
@@ -37,9 +37,9 @@ Next: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 99 (v1.0-v2.1 + v3.0 ongoing)
+- Total plans completed: 100 (v1.0-v3.0)
 - Average duration: ~4m
-- Total execution time: ~5.0 hours
+- Total execution time: ~5.2 hours
 
 **By Milestone:**
 
@@ -49,6 +49,7 @@ Next: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
+| v3.0 | 1 | 2 | (in progress) |
 
 *Updated after each plan completion*
 
@@ -58,11 +59,11 @@ Next: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
 
 All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone archives.
 
-**v3.0 Phase 27:**
-- 64 snapshot tests capturing current component markdown output (27-01)
+**v3.0 Phase 27 (Complete):**
+- 64 snapshot tests capturing current component markdown output
 - External snapshots prevent accidental output changes during refactoring
 - Test baseline covers all primitive components with key nesting combinations
-- Registry tracks 22 primitive components across 3 layers (27-02 planned)
+- Registry with 22 primitive components across 3 layers (infrastructure, presentation, document)
 - Presentation primitives marked for Phase 32 composite migration
 - Registry exported for user introspection and metaprogramming
 - Classification based on component purpose: plumbing vs presentation
@@ -70,7 +71,7 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
 ### Roadmap Evolution
 
 - v2.1 complete: 1 phase (26) with 4 plans
-- v3.0 started: 7 phases (27-33) with ~12 estimated plans
+- v3.0 in progress: 7 phases (27-33), Phase 27 complete
 
 ### Pending Todos
 
@@ -82,6 +83,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-01-31T16:01:47Z
-Stopped at: Completed 27-01-PLAN.md execution
-Resume with: `/gsd:execute-phase 27 02` or `/gsd:plan-phase 28`
+Last session: 2026-01-31
+Stopped at: Completed Phase 27 (Baseline & Registry)
+Resume with: `/gsd:plan-phase 28`
