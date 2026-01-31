@@ -181,12 +181,13 @@ Plans:
   4. Step, Table, List, ExecutionContext implemented as composites
   5. All composites importable from `react-agentic/composites`
   6. Composite source code serves as reference for user-defined components
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 32-01-PLAN.md — TBD
-- [ ] 32-02-PLAN.md — TBD
-- [ ] 32-03-PLAN.md — TBD
+- [ ] 32-01-PLAN.md — Create composites directory infrastructure with package.json subpath exports
+- [ ] 32-02-PLAN.md — Create control flow composites (IfElseBlock, LoopWithBreak)
+- [ ] 32-03-PLAN.md — Create SpawnAgentWithRetry composite
+- [ ] 32-04-PLAN.md — Create presentation composites (StepSection, DataTable, BulletList, FileContext) and finalize
 
 ### Phase 33: Documentation
 **Goal**: User-facing documentation for primitive/composite architecture
@@ -218,7 +219,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 29 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 30 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 31 | v3.0 | 1/1 | Complete | 2026-01-31 |
-| 32 | v3.0 | 0/3 | Not started | - |
+| 32 | v3.0 | 0/4 | Not started | - |
 | 33 | v3.0 | 0/1 | Not started | - |
 
 ---
