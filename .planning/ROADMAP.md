@@ -165,10 +165,10 @@ Plans:
   2. TypeScript error when control flow used at wrong nesting level
   3. Error messages clearly state what is forbidden and why
   4. Valid nesting compiles without errors
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 31-01-PLAN.md — TBD
+- [ ] 31-01-PLAN.md — Enhance JSDoc, type Command/Agent children, add validation tests
 
 ### Phase 32: Composite Library
 **Goal**: Move current components to user-definable composite layer
