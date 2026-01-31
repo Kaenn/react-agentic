@@ -50,4 +50,8 @@ export interface TransformContext {
   componentProps?: Map<string, unknown>;
   /** Children blocks for {children} substitution during composition */
   componentChildren?: BlockNode[] | null;
+  /** Local component declarations for static path composition */
+  localComponents?: Map<string, { declaration: Node; propNames: string[]; jsx?: Node }>;
+  /** Component expansion stack for circular reference detection */
+  componentExpansionStack?: Set<string>;
 }

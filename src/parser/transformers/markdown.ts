@@ -5,11 +5,11 @@
  * and related helper functions for markdown content and XML blocks.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpression, BinaryExpression, PropertyAccessExpression, ArrowFunction, FunctionExpression, FunctionDeclaration } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpression, BinaryExpression, PropertyAccessExpression, ArrowFunction, FunctionExpression, FunctionDeclaration, SourceFile, Block as TsBlock } from 'ts-morph';
 import type { BlockNode, XmlBlockNode, GroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, resolveComponentImport } from '../utils/index.js';
-import { isValidXmlName } from './shared.js';
+import { isValidXmlName, isCustomComponent } from './shared.js';
 
 /**
  * Transform XmlBlock component to XmlBlockNode IR
@@ -190,10 +190,57 @@ export function transformMarkdown(
 }
 
 /**
- * Transform a custom component by resolving its import and inlining its JSX
+ * Extract local component declarations from source file
+ * Similar to runtime-component.ts extractLocalComponentDeclarations but for static path
+ */
+export function extractStaticLocalComponentDeclarations(
+  sourceFile: SourceFile,
+  ctx: TransformContext
+): void {
+  if (!ctx.localComponents) {
+    ctx.localComponents = new Map();
+  }
+  if (!ctx.componentExpansionStack) {
+    ctx.componentExpansionStack = new Set();
+  }
+
+  // Find variable declarations with PascalCase names that are arrow functions or function expressions
+  for (const varDecl of sourceFile.getVariableDeclarations()) {
+    const compName = varDecl.getName();
+    if (!isCustomComponent(compName)) continue;
+
+    const init = varDecl.getInitializer();
+    if (!init) continue;
+
+    if (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) {
+      ctx.localComponents.set(compName, {
+        declaration: varDecl,
+        propNames: extractPropNames(init),
+      });
+    }
+  }
+
+  // Also check function declarations
+  for (const funcDecl of sourceFile.getFunctions()) {
+    const compName = funcDecl.getName();
+    if (!compName || !isCustomComponent(compName)) continue;
+
+    ctx.localComponents.set(compName, {
+      declaration: funcDecl,
+      propNames: extractFunctionPropNames(funcDecl),
+    });
+  }
+}
+
+/**
+ * Transform a custom component by resolving its definition and inlining its JSX
  *
  * Custom components are user-defined TSX fragments that get inlined at
  * transpile time. Supports props (string, number, boolean), children, and fragments.
+ *
+ * Resolution order:
+ * 1. Check local components (defined in same file)
+ * 2. Fall back to imported components
  */
 export function transformCustomComponent(
   name: string,
@@ -209,8 +256,68 @@ export function transformCustomComponent(
     );
   }
 
+  // Initialize local components if needed
+  if (!ctx.localComponents) {
+    extractStaticLocalComponentDeclarations(ctx.sourceFile, ctx);
+  }
+  if (!ctx.componentExpansionStack) {
+    ctx.componentExpansionStack = new Set();
+  }
+
+  // Check for local component first
+  const localInfo = ctx.localComponents!.get(name);
+  if (localInfo) {
+    return transformLocalStaticComponent(name, node, localInfo, ctx);
+  }
+
+  // Fall back to imported component
+  return transformImportedComponent(name, node, ctx);
+}
+
+/**
+ * Transform a local (in-file) component
+ */
+function transformLocalStaticComponent(
+  name: string,
+  node: JsxElement | JsxSelfClosingElement,
+  info: { declaration: Node; propNames: string[]; jsx?: Node },
+  ctx: TransformContext
+): BlockNode | null {
+  // Circular reference detection
+  if (ctx.componentExpansionStack!.has(name)) {
+    throw ctx.createError(`Circular component reference detected: ${name}`, node);
+  }
+
+  ctx.componentExpansionStack!.add(name);
+
+  try {
+    // Get JSX from component (cache on first use)
+    let jsx = info.jsx as JsxElement | JsxSelfClosingElement | JsxFragment | undefined;
+    if (!jsx) {
+      const extracted = extractJsxFromStaticComponent(info.declaration);
+      if (!extracted) {
+        throw ctx.createError(`Component '${name}' does not return JSX`, node);
+      }
+      jsx = extracted;
+      info.jsx = extracted;
+    }
+
+    return transformComponentJsx(node, jsx, ctx);
+  } finally {
+    ctx.componentExpansionStack!.delete(name);
+  }
+}
+
+/**
+ * Transform an imported component
+ */
+function transformImportedComponent(
+  name: string,
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext
+): BlockNode | null {
   // Resolve the component import
-  const resolved = resolveComponentImport(name, ctx.sourceFile, ctx.visitedPaths);
+  const resolved = resolveComponentImport(name, ctx.sourceFile!, ctx.visitedPaths);
 
   // Update visited paths for nested resolution
   ctx.visitedPaths = resolved.visitedPaths;
@@ -219,6 +326,22 @@ export function transformCustomComponent(
   const previousSourceFile = ctx.sourceFile;
   ctx.sourceFile = resolved.sourceFile;
 
+  try {
+    return transformComponentJsx(node, resolved.jsx, ctx);
+  } finally {
+    ctx.sourceFile = previousSourceFile;
+  }
+}
+
+/**
+ * Transform component JSX with prop/children substitution
+ * Shared logic for both local and imported components
+ */
+function transformComponentJsx(
+  node: JsxElement | JsxSelfClosingElement,
+  jsx: JsxElement | JsxSelfClosingElement | JsxFragment,
+  ctx: TransformContext
+): BlockNode | null {
   // Import functions from dispatch/html to avoid circular dependency
   const { transformToBlock, transformBlockChildren } = require('./dispatch.js');
   const { transformFragmentChildren } = require('./html.js');
@@ -250,27 +373,122 @@ export function transformCustomComponent(
 
   let result: BlockNode | null = null;
 
-  // Transform the resolved JSX
-  if (Node.isJsxFragment(resolved.jsx)) {
-    // Fragment: transform children and wrap in GroupNode if multiple blocks
-    const blocks = transformFragmentChildren(resolved.jsx, ctx);
-    if (blocks.length === 0) {
-      result = null;
-    } else if (blocks.length === 1) {
-      result = blocks[0];
+  try {
+    // Transform the resolved JSX
+    if (Node.isJsxFragment(jsx)) {
+      // Fragment: transform children and wrap in GroupNode if multiple blocks
+      const blocks = transformFragmentChildren(jsx, ctx);
+      if (blocks.length === 0) {
+        result = null;
+      } else if (blocks.length === 1) {
+        result = blocks[0];
+      } else {
+        // Return all blocks wrapped in GroupNode (tight spacing in emitter)
+        result = { kind: 'group', children: blocks } as GroupNode;
+      }
     } else {
-      // Return all blocks wrapped in GroupNode (tight spacing in emitter)
-      result = { kind: 'group', children: blocks } as GroupNode;
+      // Single element or self-closing
+      result = transformToBlock(jsx, ctx);
     }
-  } else {
-    // Single element or self-closing
-    result = transformToBlock(resolved.jsx, ctx);
+  } finally {
+    // Restore context
+    ctx.componentProps = previousProps;
+    ctx.componentChildren = previousChildren;
   }
 
-  // Restore context
-  ctx.componentProps = previousProps;
-  ctx.componentChildren = previousChildren;
-  ctx.sourceFile = previousSourceFile;
+  return result;
+}
+
+/**
+ * Extract JSX from a static component's body
+ */
+function extractJsxFromStaticComponent(
+  decl: Node
+): JsxElement | JsxSelfClosingElement | JsxFragment | null {
+  // Variable declaration with arrow function or function expression
+  if (Node.isVariableDeclaration(decl)) {
+    const init = decl.getInitializer();
+    if (!init) return null;
+
+    if (Node.isArrowFunction(init)) {
+      return extractJsxFromArrowFunction(init);
+    }
+
+    if (Node.isFunctionExpression(init)) {
+      return extractJsxFromFunctionBody(init);
+    }
+  }
+
+  // Function declaration
+  if (Node.isFunctionDeclaration(decl)) {
+    return extractJsxFromFunctionBody(decl);
+  }
+
+  return null;
+}
+
+/**
+ * Extract JSX from arrow function
+ */
+function extractJsxFromArrowFunction(fn: ArrowFunction): JsxElement | JsxSelfClosingElement | JsxFragment | null {
+  const body = fn.getBody();
+
+  // Expression body: () => <div>...</div>
+  if (Node.isJsxElement(body) || Node.isJsxSelfClosingElement(body) || Node.isJsxFragment(body)) {
+    return body;
+  }
+
+  // Parenthesized expression: () => (<div>...</div>)
+  if (Node.isParenthesizedExpression(body)) {
+    let inner = body.getExpression();
+    while (Node.isParenthesizedExpression(inner)) {
+      inner = inner.getExpression();
+    }
+    if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner) || Node.isJsxFragment(inner)) {
+      return inner;
+    }
+  }
+
+  // Block body: () => { return <div>...</div> }
+  if (Node.isBlock(body)) {
+    return extractJsxFromBlock(body as TsBlock);
+  }
+
+  return null;
+}
+
+/**
+ * Extract JSX from function body (function expression or declaration)
+ */
+function extractJsxFromFunctionBody(fn: FunctionExpression | FunctionDeclaration): JsxElement | JsxSelfClosingElement | JsxFragment | null {
+  const body = fn.getBody();
+  if (!body || !Node.isBlock(body)) return null;
+  return extractJsxFromBlock(body);
+}
+
+/**
+ * Extract JSX from a block (looks for return statement)
+ */
+function extractJsxFromBlock(block: TsBlock): JsxElement | JsxSelfClosingElement | JsxFragment | null {
+  let result: JsxElement | JsxSelfClosingElement | JsxFragment | null = null;
+
+  block.forEachDescendant((childNode, traversal) => {
+    if (Node.isReturnStatement(childNode)) {
+      const expr = childNode.getExpression();
+      if (expr) {
+        // Unwrap parentheses
+        let inner = expr;
+        while (Node.isParenthesizedExpression(inner)) {
+          inner = inner.getExpression();
+        }
+
+        if (Node.isJsxElement(inner) || Node.isJsxSelfClosingElement(inner) || Node.isJsxFragment(inner)) {
+          result = inner;
+          traversal.stop();
+        }
+      }
+    }
+  });
 
   return result;
 }
