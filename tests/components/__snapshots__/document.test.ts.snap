@@ -1,0 +1,114 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Document Components > AgentDocumentNode > emits agent with all optional fields 1`] = `
+"---
+name: analyzer
+description: Analyzes data and provides insights
+tools: Read Bash Grep Glob
+color: magenta
+---
+
+# Data Analyzer
+
+Analyzes structured data and returns insights.
+
+<output>
+Return JSON with analysis results.
+</output>
+"
+`;
+
+exports[`Document Components > AgentDocumentNode > emits agent with basic frontmatter 1`] = `
+"---
+name: test-runner
+description: Executes test suites and reports results
+tools: Read Bash
+---
+
+# Test Runner Agent
+
+This agent runs tests and provides detailed reports.
+"
+`;
+
+exports[`Document Components > AgentDocumentNode > emits agent with typed input/output 1`] = `
+"---
+name: code-reviewer
+description: Reviews code for quality and security
+tools: Read Grep
+color: cyan
+---
+
+<role>
+You are a code review expert.
+</role>
+
+<process>
+1. Read the input files
+2. Check for issues
+3. Return structured output
+</process>
+"
+`;
+
+exports[`Document Components > AgentDocumentNode > emits agent without tools 1`] = `
+"---
+name: strategist
+description: Provides strategic recommendations
+---
+
+This agent provides high-level strategic guidance.
+"
+`;
+
+exports[`Document Components > DocumentNode > emits complete document with all features 1`] = `
+"---
+name: migrate
+description: Run database migrations
+allowedTools:
+  - Read
+  - Bash
+args:
+  - environment
+---
+
+# Database Migration
+
+Run migrations for the specified environment.
+
+\`\`\`bash
+npm run migrate -- --env=$ENV
+\`\`\`
+"
+`;
+
+exports[`Document Components > DocumentNode > emits document with frontmatter 1`] = `
+"---
+name: deploy
+description: Deploy application to production
+allowedTools:
+  - Read
+  - Write
+  - Bash
+---
+
+# Deploy Application
+
+This command deploys the application to production.
+"
+`;
+
+exports[`Document Components > DocumentNode > emits document with metadata (folder) 1`] = `
+"Command in gsd folder.
+"
+`;
+
+exports[`Document Components > DocumentNode > emits document with runtime functions 1`] = `
+"Command with runtime functions.
+"
+`;
+
+exports[`Document Components > DocumentNode > emits document with runtime variables 1`] = `
+"Runtime-enabled command.
+"
+`;
