@@ -91,7 +91,7 @@ Plans:
 - [x] **Phase 29: Reference Printing** - Direct interpolation and Ref component
 - [x] **Phase 30: Component Composition** - Children and props support
 - [x] **Phase 31: Content Validation** - Type-safe nesting constraints
-- [ ] **Phase 32: Composite Library** - Move components to user-definable layer
+- [x] **Phase 32: Composite Library** - Move components to user-definable layer
 - [ ] **Phase 33: Documentation** - User-facing docs and examples
 
 ## Phase Details
@@ -184,10 +184,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 32-01-PLAN.md — Create composites directory infrastructure with package.json subpath exports
-- [ ] 32-02-PLAN.md — Create control flow composites (IfElseBlock, LoopWithBreak)
-- [ ] 32-03-PLAN.md — Create SpawnAgentWithRetry composite
-- [ ] 32-04-PLAN.md — Create presentation composites (StepSection, DataTable, BulletList, FileContext) and finalize
+- [x] 32-01-PLAN.md — Create composites directory infrastructure with package.json subpath exports
+- [x] 32-02-PLAN.md — Create control flow composites (IfElseBlock, LoopWithBreak)
+- [x] 32-03-PLAN.md — Create SpawnAgentWithRetry composite
+- [x] 32-04-PLAN.md — Create presentation composites (StepSection, DataTable, BulletList, FileContext) and finalize
 
 ### Phase 33: Documentation
 **Goal**: User-facing documentation for primitive/composite architecture
@@ -219,7 +219,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 29 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 30 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 31 | v3.0 | 1/1 | Complete | 2026-01-31 |
-| 32 | v3.0 | 0/4 | Not started | - |
+| 32 | v3.0 | 4/4 | Complete | 2026-01-31 |
 | 33 | v3.0 | 0/1 | Not started | - |
 
 ---
