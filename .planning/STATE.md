@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 32 of 33 (Composite Library)
-Plan: 1 of 4 in current phase - COMPLETE
-Status: Plan 32-01 complete
-Last activity: 2026-01-31 - Completed 32-01-PLAN.md (Composites directory infrastructure)
+Plan: 2 of 4 in current phase - COMPLETE
+Status: Plan 32-02 complete
+Last activity: 2026-01-31 - Completed 32-02-PLAN.md (Control flow composites)
 
-Progress: [====================] v2.1: Complete | [██████████          ] v3.0: 78%
-Next: `/gsd:execute-phase 32` (plan 02)
+Progress: [====================] v2.1: Complete | [███████████         ] v3.0: 81%
+Next: `/gsd:execute-phase 32` (plan 03)
 
 ## Milestone History
 
@@ -109,6 +109,11 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
   - package.json ./composites subpath export configured
   - tsup.config.ts entry point added for build output
   - Types before import in exports field for TypeScript resolution
+- Plan 02: Control flow composites
+  - IfElseBlock: condition/then/otherwise unified API over If/Else primitives
+  - LoopWithBreak: Loop with breakWhen condition and breakMessage support
+  - Props interfaces exported (IfElseBlockProps, LoopWithBreakProps)
+  - 12 tests for export and type verification
 
 ### Roadmap Evolution
 
@@ -126,5 +131,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 32-01-PLAN.md (Composites directory infrastructure)
-Resume with: `/gsd:execute-phase 32` (continue with plan 02)
+Stopped at: Completed 32-02-PLAN.md (Control flow composites)
+Resume with: `/gsd:execute-phase 32` (continue with plan 03)
