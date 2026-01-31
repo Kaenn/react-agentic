@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.0 Primitive/Composite Architecture - Phase 30: Loop Counter Variable
+**Current focus:** v3.0 Primitive/Composite Architecture - Phase 30: Component Composition
 
 ## Current Position
 
-Phase: 29 of 33 (Reference Printing) - COMPLETE
-Plan: 2 of 2 in current phase - COMPLETE
-Status: Phase 29 complete
-Last activity: 2026-01-31 - Completed 29-02-PLAN.md (gap closure)
+Phase: 30 of 33 (Component Composition) - IN PROGRESS
+Plan: 1 of 2 in current phase - COMPLETE
+Status: Plan 30-01 complete
+Last activity: 2026-01-31 - Completed 30-01-PLAN.md (static transformer props/children/fragments)
 
-Progress: [====================] v2.1: Complete | [██████              ] v3.0: 61%
-Next: `/gsd:plan-phase 30`
+Progress: [====================] v2.1: Complete | [███████             ] v3.0: 65%
+Next: `/gsd:execute-phase 30` (plan 02)
 
 ## Milestone History
 
@@ -37,9 +37,9 @@ Next: `/gsd:plan-phase 30`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 102 (v1.0-v3.0)
+- Total plans completed: 103 (v1.0-v3.0)
 - Average duration: ~4m
-- Total execution time: ~5.4 hours
+- Total execution time: ~5.5 hours
 
 **By Milestone:**
 
@@ -49,7 +49,7 @@ Next: `/gsd:plan-phase 30`
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
-| v3.0 | 3 | 5 | (in progress) |
+| v3.0 | 4 | 6 | (in progress) |
 
 *Updated after each plan completion*
 
@@ -85,10 +85,17 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Ref component for explicit reference printing in JSX
 - 20 new tests (795 total)
 
+**v3.0 Phase 30 Plan 01 (Complete):**
+- Context-based prop substitution via componentProps field
+- Block-level children substitution via componentChildren field
+- GroupNode wrapping for multi-block fragment returns
+- Static transformer now supports props, children, and fragments
+- Parity with runtime path for external/imported components
+
 ### Roadmap Evolution
 
 - v2.1 complete: 1 phase (26) with 4 plans
-- v3.0 in progress: 7 phases (27-33), Phases 27-29 complete
+- v3.0 in progress: 7 phases (27-33), Phases 27-29 complete, Phase 30 plan 1/2 complete
 
 ### Pending Todos
 
@@ -101,5 +108,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed Phase 29 (Reference Printing) - 29-02-SUMMARY.md (gap closure)
-Resume with: `/gsd:plan-phase 30`
+Stopped at: Completed 30-01-PLAN.md (static transformer props/children/fragments)
+Resume with: `/gsd:execute-phase 30` (plan 02)
