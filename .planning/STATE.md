@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 29 of 33 (Reference Printing) - COMPLETE
-Plan: 1 of 1 in current phase - COMPLETE
+Plan: 2 of 2 in current phase - COMPLETE
 Status: Phase 29 complete
-Last activity: 2026-01-31 - Completed 29-01-PLAN.md
+Last activity: 2026-01-31 - Completed 29-02-PLAN.md (gap closure)
 
-Progress: [====================] v2.1: Complete | [█████               ] v3.0: 57%
+Progress: [====================] v2.1: Complete | [██████              ] v3.0: 61%
 Next: `/gsd:plan-phase 30`
 
 ## Milestone History
@@ -49,7 +49,7 @@ Next: `/gsd:plan-phase 30`
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
-| v3.0 | 3 | 4 | (in progress) |
+| v3.0 | 3 | 5 | (in progress) |
 
 *Updated after each plan completion*
 
@@ -80,9 +80,10 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
 **v3.0 Phase 29 (Complete):**
 - Shell variable syntax ($VAR.path) for RuntimeVar interpolation
 - Bracket notation for array indices ($VAR.items[0])
+- Fixed array access formatting bug (map+join → reduce) to avoid stray dots
 - RuntimeFn reference properties: .name, .call, .input, .output
 - Ref component for explicit reference printing in JSX
-- 14 new tests (789 total)
+- 20 new tests (795 total)
 
 ### Roadmap Evolution
 
@@ -100,5 +101,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed Phase 29 (Reference Printing) - 29-01-SUMMARY.md
+Stopped at: Completed Phase 29 (Reference Printing) - 29-02-SUMMARY.md (gap closure)
 Resume with: `/gsd:plan-phase 30`
