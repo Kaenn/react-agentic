@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'cli/index': 'src/cli/index.ts',
+    'composites/index': 'src/composites/index.ts',
   },
   format: ['esm'],
   dts: true,
