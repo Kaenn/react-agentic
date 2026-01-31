@@ -313,6 +313,7 @@ function transformElement(
  * - Pairing If/Else siblings (Else must immediately follow If)
  * - Dispatching each child to appropriate transformer
  * - Skipping null results (filtered nodes)
+ * - Children substitution for component composition
  */
 export function transformBlockChildren(
   jsxChildren: Node[],
@@ -331,6 +332,21 @@ export function transformBlockChildren(
         i++;
         continue;
       }
+    }
+
+    // Handle {children} or {props.children} expressions at block level
+    if (Node.isJsxExpression(child)) {
+      const expr = child.getExpression();
+      if (expr) {
+        const text = expr.getText();
+        // Check for {children} or {props.children} - return the pre-transformed blocks
+        if ((text === 'children' || text === 'props.children') && ctx.componentChildren) {
+          blocks.push(...ctx.componentChildren);
+          i++;
+          continue;
+        }
+      }
+      // Fall through to transformToBlock for other expressions
     }
 
     if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
