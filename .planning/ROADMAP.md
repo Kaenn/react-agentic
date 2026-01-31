@@ -139,7 +139,7 @@ Plans:
 
 Plans:
 - [x] 29-01-PLAN.md — RuntimeVar shell syntax, RuntimeFn properties, Ref component
-- [ ] 29-02-PLAN.md — Gap closure: Fix array access formatting, expand test coverage
+- [x] 29-02-PLAN.md — Gap closure: Fix array access formatting, expand test coverage
 
 ### Phase 30: Component Composition
 **Goal**: Full support for children and props in custom components
@@ -215,7 +215,7 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 28 | v3.0 | 1/1 | Complete | 2026-01-31 |
-| 29 | v3.0 | 1/2 | In progress | - |
+| 29 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 30 | v3.0 | 0/2 | Not started | - |
 | 31 | v3.0 | 0/1 | Not started | - |
 | 32 | v3.0 | 0/3 | Not started | - |
