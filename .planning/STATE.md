@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 32 of 33 (Composite Library)
-Plan: 2 of 4 in current phase - COMPLETE
-Status: Plan 32-02 complete
-Last activity: 2026-01-31 - Completed 32-02-PLAN.md (Control flow composites)
+Plan: 3 of 4 in current phase - COMPLETE
+Status: Plan 32-03 complete
+Last activity: 2026-01-31 - Completed 32-03-PLAN.md (SpawnAgentWithRetry composite)
 
-Progress: [====================] v2.1: Complete | [███████████         ] v3.0: 81%
-Next: `/gsd:execute-phase 32` (plan 03)
+Progress: [====================] v2.1: Complete | [████████████        ] v3.0: 84%
+Next: `/gsd:execute-phase 32` (plan 04)
 
 ## Milestone History
 
@@ -114,11 +114,17 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
   - LoopWithBreak: Loop with breakWhen condition and breakMessage support
   - Props interfaces exported (IfElseBlockProps, LoopWithBreakProps)
   - 12 tests for export and type verification
+- Plan 03: SpawnAgentWithRetry composite
+  - SpawnAgentWithRetry wraps SpawnAgent with Loop/If/Break retry pattern
+  - maxRetries prop controls iteration count (default: 3)
+  - retryWhen/breakWhen conditions for custom retry logic
+  - Generic TInput/TOutput type parameters preserved
+  - 5 tests for export and type verification
 
 ### Roadmap Evolution
 
 - v2.1 complete: 1 phase (26) with 4 plans
-- v3.0 in progress: 7 phases (27-33), Phases 27-31 complete, Phase 32 plan 01 complete
+- v3.0 in progress: 7 phases (27-33), Phases 27-31 complete, Phase 32 plans 01-03 complete
 
 ### Pending Todos
 
@@ -131,5 +137,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 32-02-PLAN.md (Control flow composites)
-Resume with: `/gsd:execute-phase 32` (continue with plan 03)
+Stopped at: Completed 32-03-PLAN.md (SpawnAgentWithRetry composite)
+Resume with: `/gsd:execute-phase 32` (continue with plan 04)
