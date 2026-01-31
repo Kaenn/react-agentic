@@ -8,7 +8,8 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { getElementName, extractText, extractMarkdownText, getAttributeValue, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings } from './runtime-utils.js';
+import { getElementName, extractText, extractMarkdownText, getAttributeValue, getAttributeExpression, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings } from './runtime-utils.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
 // Runtime transformers
@@ -648,6 +649,110 @@ function extractCodeContentWithProps(
 }
 
 // ============================================================================
+// Ref Component Transformation
+// ============================================================================
+
+/**
+ * Transform Ref component to inline text
+ *
+ * Renders RuntimeVar as shell variable syntax ($VAR.path)
+ * Renders RuntimeFn as function name or call syntax
+ *
+ * @example
+ * <Ref value={ctx.status} />  -> $CTX.status
+ * <Ref value={ctx} />         -> $CTX
+ * <Ref value={myFn} />        -> myFn
+ * <Ref value={myFn} call />   -> myFn()
+ */
+function transformRef(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Get the value expression
+  const valueExpr = getAttributeExpression(openingElement, 'value');
+  if (!valueExpr) {
+    throw ctx.createError('<Ref> requires value prop', node);
+  }
+
+  // Check for call prop (boolean shorthand)
+  const callAttr = openingElement.getAttribute('call');
+  const useCallSyntax = callAttr !== undefined;
+
+  // Try to parse as RuntimeVar reference first
+  const runtimeVarRef = parseRuntimeVarRef(valueExpr, ctx);
+  if (runtimeVarRef) {
+    // Format path with dot notation, using bracket notation for numeric indices
+    const pathStr = runtimeVarRef.path.length === 0
+      ? ''
+      : '.' + runtimeVarRef.path.map(p => /^\d+$/.test(p) ? `[${p}]` : p).join('.');
+    const value = `$${runtimeVarRef.varName}${pathStr}`;
+    return {
+      kind: 'raw',
+      content: value,
+    };
+  }
+
+  // Check if it's a RuntimeFn reference (identifier)
+  if (Node.isIdentifier(valueExpr)) {
+    const fnName = valueExpr.getText();
+    // Check if this identifier is in the runtimeFunctions registry
+    if (ctx.runtimeFunctions.has(fnName)) {
+      const fnInfo = ctx.runtimeFunctions.get(fnName)!;
+      const value = useCallSyntax ? `${fnInfo.fnName}()` : fnInfo.fnName;
+      return {
+        kind: 'raw',
+        content: value,
+      };
+    }
+    // Not a registered RuntimeFn - error
+    throw ctx.createError(
+      `<Ref> value '${fnName}' is not a RuntimeVar or RuntimeFn`,
+      node
+    );
+  }
+
+  // Check for RuntimeFn property access (myFn.name, myFn.call, myFn.input, myFn.output)
+  if (Node.isPropertyAccessExpression(valueExpr)) {
+    const objExpr = valueExpr.getExpression();
+    const propName = valueExpr.getName();
+
+    if (Node.isIdentifier(objExpr)) {
+      const fnName = objExpr.getText();
+      if (ctx.runtimeFunctions.has(fnName)) {
+        const fnInfo = ctx.runtimeFunctions.get(fnName)!;
+
+        // Handle RuntimeFn reference properties
+        switch (propName) {
+          case 'name':
+            return { kind: 'raw', content: fnInfo.fnName };
+          case 'call':
+            return { kind: 'raw', content: `${fnInfo.fnName}()` };
+          case 'input':
+            // Would need runtime function parameter extraction - not available at compile time
+            // Return empty string or placeholder
+            return { kind: 'raw', content: '' };
+          case 'output':
+            // Type extraction not available at compile time
+            return { kind: 'raw', content: 'unknown' };
+          default:
+            // Not a valid RuntimeFn property, might be RuntimeVar path
+            break;
+        }
+      }
+    }
+  }
+
+  throw ctx.createError(
+    '<Ref> value must be a RuntimeVar or RuntimeFn reference',
+    node
+  );
+}
+
+// ============================================================================
 // Main Dispatch
 // ============================================================================
 
@@ -807,6 +912,11 @@ function transformRuntimeElement(
   // SpawnAgent (with output capture)
   if (name === 'SpawnAgent') {
     return transformRuntimeSpawnAgent(node, ctx);
+  }
+
+  // Ref component (reference printing)
+  if (name === 'Ref') {
+    return transformRef(node, ctx);
   }
 
   // ============================================================
