@@ -12,6 +12,7 @@
 - **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
 - **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-26)
 - **v2.0 TSX Syntax Improvements** - Phases 20-25 (shipped 2026-01-27)
+- **v2.1 Parser Refactoring** - Phase 26 (in progress)
 
 ## Phases
 
@@ -42,121 +43,21 @@ See: .planning/ROADMAP.md history or milestone archives
 
 </details>
 
-### v2.0 TSX Syntax Improvements (SHIPPED 2026-01-27)
+<details>
+<summary>v2.0 TSX Syntax Improvements (Phases 20-25) - SHIPPED 2026-01-27</summary>
 
-**Milestone Goal:** Improve TSX authoring ergonomics with better module organization, semantic components for common patterns, structured props for tables/lists, and render props pattern for context access.
+See: .planning/milestones/v2.0-ROADMAP.md
 
-- [x] **Phase 20: Module Restructure** - Split jsx.ts into primitives/ and workflow/ directories (complete 2026-01-26)
-- [x] **Phase 21: Structured Props** - Table and List components with array-based props (complete 2026-01-26)
-- [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
-- [x] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component (complete 2026-01-27)
-- [x] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests (complete 2026-01-27)
-- [x] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features (complete 2026-01-27)
+- Phase 20: Module Restructure (2/2 plans)
+- Phase 21: Structured Props (2/2 plans)
+- Phase 22: Semantic Components (4/4 plans)
+- Phase 23: Context Access Patterns (3/3 plans)
+- Phase 24: Parser/Emitter Integration (3/3 plans)
+- Phase 25: TSX Test Modernization (3/3 plans)
 
-## Phase Details
+</details>
 
-### Phase 20: Module Restructure
-**Goal**: Split jsx.ts (1044 lines) into organized primitives/ and workflow/ directories with clean re-exports
-**Depends on**: Phase 19 (v1.8 complete)
-**Requirements**: ORG-01, ORG-02, ORG-03
-**Success Criteria** (what must be TRUE):
-  1. jsx.ts split into `primitives/` and `workflow/` directories
-  2. Central `index.ts` re-exports all components from both directories
-  3. `workflow/sections/` subdirectory exists for semantic XML wrapper components
-  4. All existing imports continue to work (no breaking changes)
-  5. Build passes with no TypeScript errors
-**Plans**: 2 plans
-
-Plans:
-- [x] 20-01-PLAN.md - Create primitives/ and workflow/ directories with all component files
-- [x] 20-02-PLAN.md - Rewrite jsx.ts with re-exports and verify build/tests pass
-
-### Phase 21: Structured Props
-**Goal**: Add Table and List components that accept structured array props instead of manual JSX children
-**Depends on**: Phase 20
-**Requirements**: PROP-01, PROP-02
-**Success Criteria** (what must be TRUE):
-  1. `<Table headers={["A", "B"]} rows={[["1", "2"], ["3", "4"]]} />` emits markdown table
-  2. `<List items={["item1", "item2"]} />` emits markdown bullet list
-  3. Components accept optional props for styling (ordered list vs bullet, etc.)
-  4. TypeScript enforces prop types at compile time
-**Plans**: 2 plans
-
-Plans:
-- [x] 21-01-PLAN.md - Table and List IR nodes and JSX types
-- [x] 21-02-PLAN.md - Table and List transformer and emitter implementation
-
-### Phase 22: Semantic Components
-**Goal**: Add semantic section components that emit XML-wrapped content for common Claude Code patterns
-**Depends on**: Phase 21
-**Requirements**: SEM-01, SEM-02, SEM-03, SEM-04, SEM-05, SEM-06, SEM-07
-**Success Criteria** (what must be TRUE):
-  1. `<ExecutionContext paths={["@file1", "@file2"]} />` emits `<execution_context>` with @ imports
-  2. `<SuccessCriteria items={["crit1", "crit2"]} />` emits `<success_criteria>` with checkbox list
-  3. `<OfferNext routes={[{name: "x", description: "y", path: "z"}]} />` emits typed navigation section
-  4. `<DeviationRules>`, `<CommitRules>`, `<WaveExecution>`, `<CheckpointHandling>` emit named XML sections with children
-  5. All semantic components work inside Command and Agent bodies
-**Plans**: 4 plans
-
-Plans:
-- [x] 22-01-PLAN.md - ExecutionContext, SuccessCriteria, XmlSection components and IR nodes
-- [x] 22-02-PLAN.md - OfferNext component with typed routes and XML wrapper components
-- [x] 22-03-PLAN.md - Transformer implementation for all semantic components
-- [x] 22-04-PLAN.md - Emitter implementation and end-to-end verification
-
-### Phase 23: Context Access Patterns
-**Goal**: Enable render props pattern for context access and explicit generics on workflow components
-**Depends on**: Phase 22
-**Requirements**: CTX-01, CTX-02, CTX-03, CTX-04
-**Success Criteria** (what must be TRUE):
-  1. `<Command>{(ctx) => ...}</Command>` render props pattern works with typed context
-  2. `<Agent>{(ctx) => ...}</Agent>` render props pattern works with typed context
-  3. `<Bash<string>>`, `<Loop<T>>`, `<If<T>>` accept explicit generic type parameters
-  4. `<Step name="Setup" number={1}>` component emits numbered workflow section
-  5. Context types include relevant command/agent metadata
-**Plans**: 3 plans
-
-Plans:
-- [x] 23-01-PLAN.md — Command and Agent render props support (CTX-01, CTX-02)
-- [x] 23-02-PLAN.md — Explicit generics on workflow components (CTX-03)
-- [x] 23-03-PLAN.md — Step component for numbered sections (CTX-04)
-
-### Phase 24: Parser/Emitter Integration
-**Goal**: Wire all new components through transformer and emitter with comprehensive tests
-**Depends on**: Phase 23
-**Requirements**: PAR-01, PAR-02, PAR-03
-**Success Criteria** (what must be TRUE):
-  1. Transformer recognizes all new components and converts to IR nodes
-  2. Emitter generates correct markdown for all new IR nodes
-  3. Unit tests cover each new component with expected input -> output
-  4. Integration test demonstrates all new components in a single command
-  5. Documentation updated for all new components
-**Plans**: 3 plans
-
-Plans:
-- [x] 24-01-PLAN.md — Unit verification tests for Table, List, and semantic components
-- [x] 24-02-PLAN.md — Control flow tests (Loop, OnStatus, Step) and v2.0 integration test
-- [x] 24-03-PLAN.md — Documentation updates for all v2.0 components
-
-### Phase 25: TSX Test Modernization
-**Goal**: Update all TSX test files in src/app/ to use new v2.0 syntax features (Table, List, ExecutionContext, SuccessCriteria, OfferNext, XML sections, render props, Step component)
-**Depends on**: Phase 24
-**Requirements**: TEST-01
-**Success Criteria** (what must be TRUE):
-  1. All test files in src/app/ demonstrate working examples of v2.0 features
-  2. Table and List components used where appropriate (replaces manual markdown)
-  3. ExecutionContext and SuccessCriteria used for semantic sections
-  4. Render props pattern demonstrated in at least one Command and Agent
-  5. All files build successfully with `npm run build`
-  6. Tests serve as working documentation for v2.0 features
-**Plans**: 3 plans
-
-Plans:
-- [x] 25-01-PLAN.md — Update scenario files with Table and List components
-- [x] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
-- [x] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
-
-### v2.1 Parser Refactoring
+### v2.1 Parser Refactoring (IN PROGRESS)
 
 **Milestone Goal:** Refactor the large parser files (parser.ts: 1255 lines, transformer.ts: 3956 lines) into smaller, maintainable submodules for improved code organization and readability.
 
@@ -178,39 +79,24 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 26-01-PLAN.md — Create utils/ directory with project, jsx-traversal, text-extraction, spread-resolution, component-resolution, type-resolution, variable-extraction modules
-- [ ] 26-02-PLAN.md — Create transformers/ directory foundation (types, shared utilities, dispatch stub)
-- [ ] 26-03-PLAN.md — Extract document, html, inline, semantic, control transformers
-- [ ] 26-04-PLAN.md — Extract remaining transformers, implement dispatch, update coordinator, verify tests
+- [x] 26-01-PLAN.md — Create utils/ directory with project, jsx-traversal, text-extraction, spread-resolution, component-resolution, type-resolution, variable-extraction modules
+- [x] 26-02-PLAN.md — Create transformers/ directory foundation (types, shared utilities, dispatch stub)
+- [x] 26-03-PLAN.md — Extract document, html, inline, semantic, control transformers
+- [x] 26-04-PLAN.md — Extract remaining transformers, implement dispatch, update coordinator, verify tests
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26
+Phases execute in numeric order: 26 -> ...
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. IR Extensions | v1.1 | 1/1 | Complete | 2026-01-21 |
-| 9. Agent Transpilation | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
-| 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
-| 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
-| 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
-| 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
-| 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-26 |
-| 20. Module Restructure | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 21. Structured Props | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
-| 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 25. TSX Test Modernization | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 26. Parser Refactoring | v2.1 | 0/4 | Not Started | - |
+| 1-7 | v1.0 | 17/17 | Complete | 2026-01-21 |
+| 8-19 | v1.1-v1.8 | 56/56 | Complete | 2026-01-26 |
+| 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
+| 26 | v2.1 | 4/4 | In Progress | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*v2.0 TSX Syntax Improvements started: 2026-01-26*
-*v2.1 Parser Refactoring planned: 2026-01-27*
+*v2.0 TSX Syntax Improvements shipped: 2026-01-27*
+*v2.1 Parser Refactoring in progress: 2026-01-27*
