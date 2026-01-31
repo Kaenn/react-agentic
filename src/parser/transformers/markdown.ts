@@ -5,8 +5,8 @@
  * and related helper functions for markdown content and XML blocks.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpression, BinaryExpression, PropertyAccessExpression } from 'ts-morph';
-import type { BlockNode, XmlBlockNode } from '../../ir/index.js';
+import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpression, BinaryExpression, PropertyAccessExpression, ArrowFunction, FunctionExpression, FunctionDeclaration } from 'ts-morph';
+import type { BlockNode, XmlBlockNode, GroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, resolveComponentImport } from '../utils/index.js';
 import { isValidXmlName } from './shared.js';
@@ -193,21 +193,13 @@ export function transformMarkdown(
  * Transform a custom component by resolving its import and inlining its JSX
  *
  * Custom components are user-defined TSX fragments that get inlined at
- * transpile time. Component props are NOT supported in v1 - only parameterless
- * composition.
+ * transpile time. Supports props (string, number, boolean), children, and fragments.
  */
 export function transformCustomComponent(
   name: string,
   node: JsxElement | JsxSelfClosingElement,
   ctx: TransformContext
 ): BlockNode | null {
-  // Validate no props on the component (v1 limitation)
-  const openingElement = Node.isJsxElement(node) ? node.getOpeningElement() : node;
-  const attributes = openingElement.getAttributes();
-  if (attributes.length > 0) {
-    throw ctx.createError(`Component props not supported: <${name}> has ${attributes.length} prop(s)`, node);
-  }
-
   // Require source file for component resolution
   if (!ctx.sourceFile) {
     throw ctx.createError(
@@ -227,27 +219,143 @@ export function transformCustomComponent(
   const previousSourceFile = ctx.sourceFile;
   ctx.sourceFile = resolved.sourceFile;
 
-  // Import transformToBlock from dispatch to avoid circular dependency
-  const { transformToBlock } = require('./dispatch.js');
+  // Import functions from dispatch/html to avoid circular dependency
+  const { transformToBlock, transformBlockChildren } = require('./dispatch.js');
   const { transformFragmentChildren } = require('./html.js');
+
+  // Extract props from usage site
+  const props = extractPropsFromUsage(node);
+
+  // Extract children from usage site (if JsxElement with children)
+  let childrenBlocks: BlockNode[] | null = null;
+  if (Node.isJsxElement(node)) {
+    const jsxChildren = node.getJsxChildren();
+    // Check if there's any meaningful content
+    const hasContent = jsxChildren.some(child => {
+      if (Node.isJsxText(child)) {
+        return child.getText().trim().length > 0;
+      }
+      return true;
+    });
+    if (hasContent) {
+      childrenBlocks = transformBlockChildren(jsxChildren, ctx);
+    }
+  }
+
+  // Save and set context for prop/children substitution
+  const previousProps = ctx.componentProps;
+  const previousChildren = ctx.componentChildren;
+  ctx.componentProps = props;
+  ctx.componentChildren = childrenBlocks;
 
   let result: BlockNode | null = null;
 
   // Transform the resolved JSX
   if (Node.isJsxFragment(resolved.jsx)) {
-    // Fragment: transform children and return first block
-    // (multiple root blocks from a component isn't fully supported - take first)
+    // Fragment: transform children and wrap in GroupNode if multiple blocks
     const blocks = transformFragmentChildren(resolved.jsx, ctx);
-    result = blocks[0] ?? null;
+    if (blocks.length === 0) {
+      result = null;
+    } else if (blocks.length === 1) {
+      result = blocks[0];
+    } else {
+      // Return all blocks wrapped in GroupNode (tight spacing in emitter)
+      result = { kind: 'group', children: blocks } as GroupNode;
+    }
   } else {
     // Single element or self-closing
     result = transformToBlock(resolved.jsx, ctx);
   }
 
-  // Restore sourceFile
+  // Restore context
+  ctx.componentProps = previousProps;
+  ctx.componentChildren = previousChildren;
   ctx.sourceFile = previousSourceFile;
 
   return result;
+}
+
+/**
+ * Extract props from component usage site
+ *
+ * Handles:
+ * - prop="value" -> { prop: "value" }
+ * - prop={123} -> { prop: 123 }
+ * - prop={true} -> { prop: true }
+ * - prop (no value) -> { prop: true }
+ */
+function extractPropsFromUsage(
+  node: JsxElement | JsxSelfClosingElement
+): Map<string, unknown> {
+  const props = new Map<string, unknown>();
+  const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+  for (const attr of opening.getAttributes()) {
+    if (!Node.isJsxAttribute(attr)) continue;
+
+    const name = attr.getNameNode().getText();
+    const init = attr.getInitializer();
+
+    if (!init) {
+      // Boolean shorthand: <Component enabled />
+      props.set(name, true);
+    } else if (Node.isStringLiteral(init)) {
+      props.set(name, init.getLiteralValue());
+    } else if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (expr) {
+        if (Node.isNumericLiteral(expr)) {
+          props.set(name, Number(expr.getLiteralValue()));
+        } else if (expr.getText() === 'true') {
+          props.set(name, true);
+        } else if (expr.getText() === 'false') {
+          props.set(name, false);
+        } else if (Node.isStringLiteral(expr)) {
+          props.set(name, expr.getLiteralValue());
+        }
+      }
+    }
+  }
+
+  return props;
+}
+
+/**
+ * Extract prop names from arrow function or function expression parameters
+ */
+function extractPropNames(fn: ArrowFunction | FunctionExpression): string[] {
+  const params = fn.getParameters();
+  if (params.length === 0) return [];
+
+  const firstParam = params[0];
+  const bindingName = firstParam.getNameNode();
+
+  // Destructured: ({ title, count, children }) => ...
+  if (Node.isObjectBindingPattern(bindingName)) {
+    return bindingName.getElements().map(el => el.getName());
+  }
+
+  // Simple: (props) => ...
+  return [firstParam.getName()];
+}
+
+/**
+ * Extract prop names from function declaration parameters
+ */
+function extractFunctionPropNames(fn: FunctionDeclaration): string[] {
+  const params = fn.getParameters();
+  if (params.length === 0) return [];
+
+  const firstParam = params[0];
+  const bindingName = firstParam.getNameNode();
+
+  // Destructured: function Foo({ title }) { ... }
+  if (Node.isObjectBindingPattern(bindingName)) {
+    return bindingName.getElements().map(el => el.getName());
+  }
+
+  // Simple: function Foo(props) { ... }
+  return [firstParam.getName()];
 }
 
 /**

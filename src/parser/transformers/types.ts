@@ -46,4 +46,8 @@ export interface TransformContext {
    * When provided, document transformers use this instead of the dispatch.js import.
    */
   transformBlockChildren?: TransformBlockChildrenFn;
+  /** Props for current component substitution during composition */
+  componentProps?: Map<string, unknown>;
+  /** Children blocks for {children} substitution during composition */
+  componentChildren?: BlockNode[] | null;
 }
