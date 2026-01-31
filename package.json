@@ -15,8 +15,12 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./composites": {
+      "types": "./dist/composites/index.d.ts",
+      "import": "./dist/composites/index.js"
     }
   },
   "repository": {
