@@ -77,12 +77,27 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - Transformer and emitter support for all new components — v2.0
 - Unit tests covering each new component — v2.0
 
+**v2.1 Parser Refactoring:**
+- Split parser.ts (1255 lines) into utils/ directory with focused modules — v2.1
+- Split transformer.ts (3956 lines) into transformers/ directory with focused modules — v2.1
+- Central index.ts re-exports all public APIs (no breaking changes) — v2.1
+
 ### Active
 
-**v2.1 Parser Refactoring (in progress):**
-- [ ] Split parser.ts (1255 lines) into utils/ directory with focused modules
-- [ ] Split transformer.ts (3956 lines) into transformers/ directory with focused modules
-- [ ] Central index.ts re-exports all public APIs (no breaking changes)
+**v3.0 Primitive/Composite Architecture:**
+- [ ] Define clear primitive vs composite component boundary
+- [ ] Variable reference printing: `.ref` property on useRuntimeVar return value
+- [ ] `<Ref>` component for explicit variable reference printing
+- [ ] runtimeFn reference printing: `.ref` property for function call emission
+- [ ] MarkdownContentNode abstraction for document-level content (full feature set)
+- [ ] MarkdownContentNode abstraction for sub-component content (subset, no SpawnAgent etc.)
+- [ ] Export both content types for user component typing
+- [ ] Move If/Else to composite layer (user-definable pattern)
+- [ ] Move Loop/Break to composite layer
+- [ ] Move SpawnAgent to composite layer
+- [ ] Move Step, Table, List, ExecutionContext, etc. to composite layer
+- [ ] Composite components use only primitives internally
+- [ ] Sub-components can use full markdown expressiveness (not just string templates)
 
 ### Out of Scope
 
@@ -93,9 +108,19 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - Config file support — future
 - Incremental compilation — future
 
+## Current Milestone: v3.0 Primitive/Composite Architecture
+
+**Goal:** Separate compiler-required primitives from user-definable composites, enabling customizable workflow patterns and full markdown expressiveness in sub-components.
+
+**Target features:**
+- Variable/function reference printing (`.ref` property, `<Ref>` component)
+- Two MarkdownContentNode types (document-level vs sub-component)
+- Move workflow components (If, Loop, SpawnAgent, etc.) to composite layer
+- Sub-components with full markdown children support
+
 ## Context
 
-**Current State:** Shipped v2.0 with 45,543 LOC TypeScript.
+**Current State:** Shipped v2.1 with parser refactoring complete.
 
 **Tech stack:**
 - TypeScript 5.9.3 with NodeNext module resolution
@@ -150,4 +175,4 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | Step number as string | Support sub-steps like "1.1" | Good — flexible numbering |
 
 ---
-*Last updated: 2026-01-31 after v2.0 milestone*
+*Last updated: 2026-01-31 after v3.0 milestone started*

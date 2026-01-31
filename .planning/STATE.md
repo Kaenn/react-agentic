@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v2.1 Parser Refactoring - Phase 26 (Parser Refactoring) IN PROGRESS
+**Current focus:** v3.0 Primitive/Composite Architecture - Defining requirements
 
 ## Current Position
 
-Phase: 26 (Parser Refactoring)
-Plan: 4 of 4 in current phase (complete)
-Status: Ready for v2.1 completion or next milestone
-Last activity: 2026-01-31 — v2.0 milestone complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-31 — Milestone v3.0 started
 
-Progress: [####################] v2.0 COMPLETE | v2.1: Phase 26 plans complete
-Next: Complete v2.1 milestone or start next milestone
+Progress: [                    ] v3.0: Defining requirements
+Next: Complete requirements and roadmap
 
 ## Milestone History
 
@@ -32,13 +32,14 @@ Next: Complete v2.1 milestone or start next milestone
   See: .planning/milestones/v1.8-ROADMAP.md
 - v2.0 TSX Syntax Improvements: Shipped 2026-01-27 (6 phases, 17 plans)
   See: .planning/milestones/v2.0-ROADMAP.md
+- v2.1 Parser Refactoring: Shipped 2026-01-31 (1 phase, 4 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 90 (v1.0-v2.0)
+- Total plans completed: 94 (v1.0-v2.1)
 - Average duration: ~3m
-- Total execution time: ~4.5 hours
+- Total execution time: ~4.7 hours
 
 **By Milestone:**
 
@@ -47,6 +48,7 @@ Next: Complete v2.1 milestone or start next milestone
 | v1.0 MVP | 7 | 17 | 2 days |
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
+| v2.1 | 1 | 4 | 1 day |
 
 *Updated after each plan completion*
 
@@ -54,12 +56,12 @@ Next: Complete v2.1 milestone or start next milestone
 
 ### Decisions
 
-All v1.0-v2.0 decisions logged in PROJECT.md Key Decisions table and milestone archives.
+All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone archives.
 
 ### Roadmap Evolution
 
-- v2.0 complete: 6 phases (20-25) delivered with 17 total plans
-- Phase 26 (v2.1) in progress: Parser refactoring underway
+- v2.1 complete: 1 phase (26) with 4 plans
+- v3.0 started: Primitive/Composite Architecture
 
 ### Pending Todos
 
@@ -67,10 +69,10 @@ None.
 
 ### Blockers/Concerns
 
-Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - unrelated to v2.0/v2.1.
+Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - unrelated to v3.0.
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v2.0 milestone completion
-Resume with: Complete v2.1 milestone (/gsd:complete-milestone v2.1) or start next milestone (/gsd:new-milestone)
+Stopped at: v3.0 milestone initialization
+Resume with: Complete requirements and roadmap definition
