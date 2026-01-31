@@ -1,0 +1,129 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Control Flow Components > Break > emits Break with message 1`] = `
+"**Break loop:** Target found, exiting loop.
+"
+`;
+
+exports[`Control Flow Components > Break > emits Loop containing Break 1`] = `
+"**Loop up to 20 times:**
+
+Searching...
+
+**If found:**
+
+**Break loop:** Item found.
+"
+`;
+
+exports[`Control Flow Components > Break > emits standalone Break without message 1`] = `
+"**Break loop**
+"
+`;
+
+exports[`Control Flow Components > If + Else > emits If-Else pair 1`] = `
+"**If ready:**
+
+System is ready.
+
+**Otherwise:**
+
+System is not ready.
+"
+`;
+
+exports[`Control Flow Components > If + SpawnAgent nesting > emits If containing SpawnAgent 1`] = `
+"**If needs_review:**
+
+Starting code review...
+
+\`\`\`
+Task(
+  prompt="Please review the following code changes for security issues.",
+  subagent_type="code-reviewer",
+  model="claude-opus-4",
+  description="Review the code changes"
+)
+\`\`\`
+
+Store the agent's result in \`$REVIEW_RESULT\`.
+"
+`;
+
+exports[`Control Flow Components > If > emits If with equality condition 1`] = `
+"**If status === "complete":**
+
+Status is complete.
+"
+`;
+
+exports[`Control Flow Components > If > emits If with literal true condition 1`] = `
+"**If true:**
+
+Always executes.
+"
+`;
+
+exports[`Control Flow Components > If > emits If with nested content 1`] = `
+"**If result.success:**
+
+## Success
+
+Operation completed.
+
+1. Step 1
+2. Step 2
+"
+`;
+
+exports[`Control Flow Components > If > emits If with runtime variable reference condition 1`] = `
+"**If ctx.error:**
+
+Error occurred.
+"
+`;
+
+exports[`Control Flow Components > Loop > emits Loop with counter variable 1`] = `
+"**Loop up to 5 times (counter: $i):**
+
+Counter iteration.
+"
+`;
+
+exports[`Control Flow Components > Loop > emits Loop with nested If 1`] = `
+"**Loop up to 10 times:**
+
+Processing item...
+
+**If item.valid:**
+
+Valid item found.
+"
+`;
+
+exports[`Control Flow Components > Loop > emits basic Loop with max iterations 1`] = `
+"**Loop up to 3 times:**
+
+Iteration content.
+"
+`;
+
+exports[`Control Flow Components > Return > emits Return with BLOCKED status 1`] = `
+"**End command (BLOCKED)**: Authentication required.
+"
+`;
+
+exports[`Control Flow Components > Return > emits Return with SUCCESS status 1`] = `
+"**End command (SUCCESS)**
+"
+`;
+
+exports[`Control Flow Components > Return > emits Return with status and message 1`] = `
+"**End command (ERROR)**: Configuration file not found.
+"
+`;
+
+exports[`Control Flow Components > Return > emits basic Return without status 1`] = `
+"**End command**
+"
+`;
