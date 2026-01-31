@@ -688,7 +688,7 @@ function transformRef(
     // Format path with dot notation, using bracket notation for numeric indices
     const pathStr = runtimeVarRef.path.length === 0
       ? ''
-      : '.' + runtimeVarRef.path.map(p => /^\d+$/.test(p) ? `[${p}]` : p).join('.');
+      : runtimeVarRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
     const value = `$${runtimeVarRef.varName}${pathStr}`;
     return {
       kind: 'raw',
