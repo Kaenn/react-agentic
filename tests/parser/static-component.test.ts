@@ -325,4 +325,104 @@ describe('Static Component Composition', () => {
       expect(result).toContain('## Second');
     });
   });
+
+  describe('static/runtime parity', () => {
+    /**
+     * These tests verify that component composition produces the expected
+     * markdown output. Both static (V1) and runtime (V3) paths should
+     * produce equivalent results for these patterns.
+     */
+
+    it('produces correct output for simple component', () => {
+      const tsx = `
+        const Greeting = () => <h2>Hello World</h2>;
+        export default (
+          <Command name="test" description="Test">
+            {() => <Greeting />}
+          </Command>
+        );
+      `;
+      const result = build(tsx);
+      // Expected: "## Hello World" (heading level 2)
+      expect(result).toContain('## Hello World');
+    });
+
+    it('produces correct output for component with props', () => {
+      const tsx = `
+        const Greeting = ({ name }) => <p>Hello {name}!</p>;
+        export default (
+          <Command name="test" description="Test">
+            {() => <Greeting name="Alice" />}
+          </Command>
+        );
+      `;
+      const result = build(tsx);
+      // Expected: "Hello Alice!" (paragraph with substituted prop)
+      expect(result).toContain('Hello Alice!');
+    });
+
+    it('produces correct output for component with children', () => {
+      const tsx = `
+        const Card = ({ children }) => (
+          <div name="card">{children}</div>
+        );
+        export default (
+          <Command name="test" description="Test">
+            {() => <Card><p>Content</p></Card>}
+          </Command>
+        );
+      `;
+      const result = build(tsx);
+      // Expected: XML block with children substituted
+      expect(result).toContain('<card>');
+      expect(result).toContain('Content');
+      expect(result).toContain('</card>');
+    });
+
+    it('produces correct output for fragment component', () => {
+      const tsx = `
+        const Header = () => (
+          <>
+            <h1>Title</h1>
+            <h2>Subtitle</h2>
+          </>
+        );
+        export default (
+          <Command name="test" description="Test">
+            {() => <Header />}
+          </Command>
+        );
+      `;
+      const result = build(tsx);
+      // Expected: Both blocks from fragment, not just first
+      expect(result).toContain('# Title');
+      expect(result).toContain('## Subtitle');
+    });
+
+    it('produces correct output for nested component with props and children', () => {
+      const tsx = `
+        const Section = ({ title, children }) => (
+          <div name="section">
+            <h2>{title}</h2>
+            {children}
+          </div>
+        );
+        export default (
+          <Command name="test" description="Test">
+            {() => (
+              <Section title="My Section">
+                <p>Section content here</p>
+              </Section>
+            )}
+          </Command>
+        );
+      `;
+      const result = build(tsx);
+      // Expected: XML block with title heading and children content
+      expect(result).toContain('<section>');
+      expect(result).toContain('## My Section');
+      expect(result).toContain('Section content here');
+      expect(result).toContain('</section>');
+    });
+  });
 });
