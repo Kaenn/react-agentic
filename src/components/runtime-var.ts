@@ -2,12 +2,12 @@
  * Runtime Variable System for Hybrid Runtime
  *
  * RuntimeVar is a branded type that tracks JSON variable paths at compile time.
- * The proxy pattern captures property access for jq expression generation.
+ * The proxy pattern captures property access for shell variable syntax generation.
  *
  * Usage:
  * const ctx = useRuntimeVar<MyType>('CTX');
- * // ctx.error becomes $(echo "$CTX" | jq -r '.error')
- * // ctx.user.name becomes $(echo "$CTX" | jq -r '.user.name')
+ * // ctx.error becomes $CTX.error
+ * // ctx.user.name becomes $CTX.user.name
  */
 
 // ============================================================================
@@ -39,7 +39,7 @@ interface RuntimeVarMeta<T> {
  * - ReactNode (for JSX interpolation like `{ctx.message}`)
  *
  * The brand ensures type safety while allowing ergonomic usage in JSX.
- * At runtime, the proxy's toString() returns the jq expression.
+ * At compile time, the proxy is transformed to shell variable syntax.
  */
 export type RuntimeVar<T> = string & RuntimeVarMeta<T>;
 
@@ -118,7 +118,7 @@ function createRuntimeVarProxy<T>(varName: string, path: string[]): RuntimeVarPr
  * that will be populated at runtime by a RuntimeFn call.
  *
  * The returned proxy tracks property access paths, which the transformer
- * converts to jq expressions for shell execution.
+ * converts to shell variable syntax for markdown output.
  *
  * @param name - Shell variable name (should be UPPER_SNAKE_CASE)
  * @returns RuntimeVarProxy that tracks property access
@@ -133,10 +133,10 @@ function createRuntimeVarProxy<T>(varName: string, path: string[]): RuntimeVarPr
  *
  * // In JSX:
  * <If condition={ctx.error}>...</If>
- * // Emits: **If $(echo "$CTX" | jq -r '.error'):**
+ * // Emits: **If $CTX.error:**
  *
  * <p>Count: {ctx.data.count}</p>
- * // Emits: Count: $(echo "$CTX" | jq -r '.data.count')
+ * // Emits: Count: $CTX.data.count
  */
 export function useRuntimeVar<T>(name: string): RuntimeVarProxy<T> {
   return createRuntimeVarProxy<T>(name, []);
