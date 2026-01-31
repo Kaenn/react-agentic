@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.0 Primitive/Composite Architecture - Phase 29: Reference Printing
+**Current focus:** v3.0 Primitive/Composite Architecture - Phase 30: Loop Counter Variable
 
 ## Current Position
 
-Phase: 29 of 33 (Reference Printing)
-Plan: 1 of 1 in current phase
-Status: Plan ready for execution
-Last activity: 2026-01-31 — Created 29-01-PLAN.md
+Phase: 29 of 33 (Reference Printing) - COMPLETE
+Plan: 1 of 1 in current phase - COMPLETE
+Status: Phase 29 complete
+Last activity: 2026-01-31 - Completed 29-01-PLAN.md
 
-Progress: [====================] v2.1: Complete | [████                ] v3.0: 42%
-Next: `/gsd:execute-phase 29`
+Progress: [====================] v2.1: Complete | [█████               ] v3.0: 57%
+Next: `/gsd:plan-phase 30`
 
 ## Milestone History
 
@@ -37,9 +37,9 @@ Next: `/gsd:execute-phase 29`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 101 (v1.0-v3.0)
+- Total plans completed: 102 (v1.0-v3.0)
 - Average duration: ~4m
-- Total execution time: ~5.3 hours
+- Total execution time: ~5.4 hours
 
 **By Milestone:**
 
@@ -49,7 +49,7 @@ Next: `/gsd:execute-phase 29`
 | v1.1-v1.8 | 12 | 39 | 5 days |
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
-| v3.0 | 2 | 3 | (in progress) |
+| v3.0 | 3 | 4 | (in progress) |
 
 *Updated after each plan completion*
 
@@ -77,10 +77,17 @@ All v1.0-v2.1 decisions logged in PROJECT.md Key Decisions table and milestone a
 - 24 tests including 10 @ts-expect-error compile-time exclusion tests
 - Foundation for Phase 31 content validation and Phase 32 composite components
 
+**v3.0 Phase 29 (Complete):**
+- Shell variable syntax ($VAR.path) for RuntimeVar interpolation
+- Bracket notation for array indices ($VAR.items[0])
+- RuntimeFn reference properties: .name, .call, .input, .output
+- Ref component for explicit reference printing in JSX
+- 14 new tests (789 total)
+
 ### Roadmap Evolution
 
 - v2.1 complete: 1 phase (26) with 4 plans
-- v3.0 in progress: 7 phases (27-33), Phases 27-28 complete
+- v3.0 in progress: 7 phases (27-33), Phases 27-29 complete
 
 ### Pending Todos
 
@@ -93,5 +100,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Created plan for Phase 29 (Reference Printing) - 29-01-PLAN.md
-Resume with: `/gsd:execute-phase 29`
+Stopped at: Completed Phase 29 (Reference Printing) - 29-01-SUMMARY.md
+Resume with: `/gsd:plan-phase 30`
