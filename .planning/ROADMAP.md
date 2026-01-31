@@ -13,7 +13,7 @@
 - **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-26)
 - **v2.0 TSX Syntax Improvements** - Phases 20-25 (shipped 2026-01-27)
 - **v2.1 Parser Refactoring** - Phase 26 (shipped 2026-01-31)
-- **v3.0 Primitive/Composite Architecture** - Phases 27-33 (in progress)
+- **v3.0 Primitive/Composite Architecture** - Phases 27-33 (shipped 2026-01-31)
 
 ## Phases
 
@@ -82,7 +82,8 @@ Plans:
 
 </details>
 
-### v3.0 Primitive/Composite Architecture (IN PROGRESS)
+<details>
+<summary>v3.0 Primitive/Composite Architecture (Phases 27-33) - SHIPPED 2026-01-31</summary>
 
 **Milestone Goal:** Separate primitive components (compiler-owned) from composite components (user-definable TSX functions). Enable users to create custom components that compose primitives.
 
@@ -92,7 +93,9 @@ Plans:
 - [x] **Phase 30: Component Composition** - Children and props support
 - [x] **Phase 31: Content Validation** - Type-safe nesting constraints
 - [x] **Phase 32: Composite Library** - Move components to user-definable layer
-- [ ] **Phase 33: Documentation** - User-facing docs and examples
+- [x] **Phase 33: Documentation** - User-facing docs and examples
+
+</details>
 
 ## Phase Details
 
@@ -201,7 +204,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 33-01-PLAN.md — Create primitives.md, composites.md, update docs index
+- [x] 33-01-PLAN.md — Create primitives.md, composites.md, update docs index
 
 ## Progress
 
@@ -220,10 +223,10 @@ Phases execute in numeric order: 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33
 | 30 | v3.0 | 2/2 | Complete | 2026-01-31 |
 | 31 | v3.0 | 1/1 | Complete | 2026-01-31 |
 | 32 | v3.0 | 4/4 | Complete | 2026-01-31 |
-| 33 | v3.0 | 0/1 | Not started | - |
+| 33 | v3.0 | 1/1 | Complete | 2026-01-31 |
 
 ---
 *Roadmap created: 2026-01-21*
 *v2.0 TSX Syntax Improvements shipped: 2026-01-27*
 *v2.1 Parser Refactoring shipped: 2026-01-31*
-*v3.0 Primitive/Composite Architecture started: 2026-01-31*
+*v3.0 Primitive/Composite Architecture shipped: 2026-01-31*

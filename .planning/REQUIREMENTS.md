@@ -9,46 +9,46 @@ Requirements for v3.0 Primitive/Composite Architecture. Each maps to roadmap pha
 
 ### Foundation
 
-- [ ] **FOUND-01**: Baseline snapshot tests capture current behavior before refactoring
-- [ ] **FOUND-02**: Primitive registry explicitly lists compiler-owned components in code
-- [ ] **FOUND-03**: MarkdownContent type defined for document-level content (full feature set)
-- [ ] **FOUND-04**: SubComponentContent type defined for sub-component content (subset, no SpawnAgent etc.)
-- [ ] **FOUND-05**: Both content types exported for user component typing
+- [x] **FOUND-01**: Baseline snapshot tests capture current behavior before refactoring
+- [x] **FOUND-02**: Primitive registry explicitly lists compiler-owned components in code
+- [x] **FOUND-03**: MarkdownContent type defined for document-level content (full feature set)
+- [x] **FOUND-04**: SubComponentContent type defined for sub-component content (subset, no SpawnAgent etc.)
+- [x] **FOUND-05**: Both content types exported for user component typing
 
 ### Reference Printing
 
-- [ ] **REF-01**: RuntimeVar interpolation `{ctx}` emits `$CTX` shell variable syntax in markdown
-- [ ] **REF-02**: RuntimeVar interpolation `{ctx.data.status}` emits `$CTX.data.status` (dot notation for paths)
-- [ ] **REF-03**: RuntimeFn has `.name`, `.call`, `.input`, `.output` properties for reference metadata
-- [ ] **REF-04**: `<Ref>` component for explicit variable/function reference rendering in markdown context
+- [x] **REF-01**: RuntimeVar interpolation `{ctx}` emits `$CTX` shell variable syntax in markdown
+- [x] **REF-02**: RuntimeVar interpolation `{ctx.data.status}` emits `$CTX.data.status` (dot notation for paths)
+- [x] **REF-03**: RuntimeFn has `.name`, `.call`, `.input`, `.output` properties for reference metadata
+- [x] **REF-04**: `<Ref>` component for explicit variable/function reference rendering in markdown context
 
 ### Component Composition
 
-- [ ] **COMP-01**: Custom components accept `children` prop with typed content
-- [ ] **COMP-02**: Props passed to custom components available inside component
-- [ ] **COMP-03**: Prop passing unified across static and runtime transformer paths
-- [ ] **COMP-04**: Fragment composition (multiple elements from composite without wrapper)
+- [x] **COMP-01**: Custom components accept `children` prop with typed content
+- [x] **COMP-02**: Props passed to custom components available inside component
+- [x] **COMP-03**: Prop passing unified across static and runtime transformer paths
+- [x] **COMP-04**: Fragment composition (multiple elements from composite without wrapper)
 
 ### Content Validation
 
-- [ ] **VALID-01**: TypeScript compile-time errors for invalid content nesting
-- [ ] **VALID-02**: SubComponentContent forbids: SpawnAgent, OnStatus, control flow at wrong level
-- [ ] **VALID-03**: Clear error messages when content constraints violated
+- [x] **VALID-01**: TypeScript compile-time errors for invalid content nesting
+- [x] **VALID-02**: SubComponentContent forbids: SpawnAgent, OnStatus, control flow at wrong level
+- [x] **VALID-03**: Clear error messages when content constraints violated
 
 ### Composite Library
 
-- [ ] **LIB-01**: If/Else moved to composite layer (user-definable pattern)
-- [ ] **LIB-02**: Loop/Break moved to composite layer
-- [ ] **LIB-03**: SpawnAgent moved to composite layer
-- [ ] **LIB-04**: Step, Table, List, ExecutionContext moved to composite layer
-- [ ] **LIB-05**: Composites exported from `react-agentic/composites`
-- [ ] **LIB-06**: Composite source serves as reference implementation
+- [x] **LIB-01**: If/Else moved to composite layer (user-definable pattern)
+- [x] **LIB-02**: Loop/Break moved to composite layer
+- [x] **LIB-03**: SpawnAgent moved to composite layer
+- [x] **LIB-04**: Step, Table, List, ExecutionContext moved to composite layer
+- [x] **LIB-05**: Composites exported from `react-agentic/composites`
+- [x] **LIB-06**: Composite source serves as reference implementation
 
 ### Documentation
 
-- [ ] **DOC-01**: Primitive vs composite boundary documented
-- [ ] **DOC-02**: Migration guide for existing components using string templates
-- [ ] **DOC-03**: Examples of user-defined composites
+- [x] **DOC-01**: Primitive vs composite boundary documented
+- [ ] **DOC-02**: Migration guide for existing components using string templates *(deferred — no migration needed pre-production)*
+- [x] **DOC-03**: Examples of user-defined composites
 
 ## Future Requirements
 
@@ -82,19 +82,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 27 | Pending |
-| FOUND-02 | Phase 27 | Pending |
-| FOUND-03 | Phase 28 | Pending |
-| FOUND-04 | Phase 28 | Pending |
-| FOUND-05 | Phase 28 | Pending |
-| REF-01 | Phase 29 | Pending |
-| REF-02 | Phase 29 | Pending |
-| REF-03 | Phase 29 | Pending |
-| REF-04 | Phase 29 | Pending |
-| COMP-01 | Phase 30 | Pending |
-| COMP-02 | Phase 30 | Pending |
-| COMP-03 | Phase 30 | Pending |
-| COMP-04 | Phase 30 | Pending |
+| FOUND-01 | Phase 27 | Complete |
+| FOUND-02 | Phase 27 | Complete |
+| FOUND-03 | Phase 28 | Complete |
+| FOUND-04 | Phase 28 | Complete |
+| FOUND-05 | Phase 28 | Complete |
+| REF-01 | Phase 29 | Complete |
+| REF-02 | Phase 29 | Complete |
+| REF-03 | Phase 29 | Complete |
+| REF-04 | Phase 29 | Complete |
+| COMP-01 | Phase 30 | Complete |
+| COMP-02 | Phase 30 | Complete |
+| COMP-03 | Phase 30 | Complete |
+| COMP-04 | Phase 30 | Complete |
 | VALID-01 | Phase 31 | Complete |
 | VALID-02 | Phase 31 | Complete |
 | VALID-03 | Phase 31 | Complete |
@@ -104,15 +104,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIB-04 | Phase 32 | Complete |
 | LIB-05 | Phase 32 | Complete |
 | LIB-06 | Phase 32 | Complete |
-| DOC-01 | Phase 33 | Pending |
-| DOC-02 | Phase 33 | Pending |
-| DOC-03 | Phase 33 | Pending |
+| DOC-01 | Phase 33 | Complete |
+| DOC-02 | Phase 33 | Deferred |
+| DOC-03 | Phase 33 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 25 total
-- Mapped to phases: 25
-- Unmapped: 0
+- Complete: 24
+- Deferred: 1 (DOC-02 — no migration needed pre-production)
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after roadmap creation*
+*v3.0 milestone shipped: 2026-01-31*
