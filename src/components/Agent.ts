@@ -8,6 +8,7 @@
 import type { ReactNode } from 'react';
 import type { CommandContext } from './Command.js';
 import type { RuntimeVarProxy, OrRuntimeVar, AllowRuntimeVars } from './runtime-var.js';
+import type { AgentContent } from '../ir/content-types.js';
 
 // ============================================================================
 // Types
@@ -61,9 +62,14 @@ export interface AgentProps<TInput = unknown, TOutput = unknown> {
   model?: string;
   /**
    * Agent body content - either regular JSX or render props function
+   *
+   * Agents allow the full feature set including control flow, runtime features,
+   * and user interaction. Type children with AgentContent for enhanced type
+   * documentation, or use ReactNode for flexibility.
+   *
    * Render props: (ctx: AgentContext) => ReactNode
    */
-  children?: ReactNode | ((ctx: AgentContext) => ReactNode);
+  children?: AgentContent | AgentContent[] | ((ctx: AgentContext) => ReactNode) | ReactNode;
   // TInput and TOutput are compile-time only - used for cross-file type validation
 }
 

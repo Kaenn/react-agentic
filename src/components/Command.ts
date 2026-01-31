@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from 'react';
+import type { CommandContent } from '../ir/content-types.js';
 
 // ============================================================================
 // Types
@@ -63,9 +64,14 @@ export interface CommandProps {
   arguments?: CommandArgument[];
   /**
    * Command body content - either regular JSX or render props function
+   *
+   * Commands allow the full feature set including SpawnAgent, control flow,
+   * runtime features, and user interaction. Type children with CommandContent
+   * for enhanced type documentation, or use ReactNode for flexibility.
+   *
    * Render props: (ctx: CommandContext) => ReactNode
    */
-  children?: ReactNode | ((ctx: CommandContext) => ReactNode);
+  children?: CommandContent | CommandContent[] | ((ctx: CommandContext) => ReactNode) | ReactNode;
 }
 
 // ============================================================================
