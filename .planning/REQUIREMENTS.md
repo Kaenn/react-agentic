@@ -82,37 +82,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | TBD | Pending |
-| FOUND-02 | TBD | Pending |
-| FOUND-03 | TBD | Pending |
-| FOUND-04 | TBD | Pending |
-| FOUND-05 | TBD | Pending |
-| REF-01 | TBD | Pending |
-| REF-02 | TBD | Pending |
-| REF-03 | TBD | Pending |
-| REF-04 | TBD | Pending |
-| COMP-01 | TBD | Pending |
-| COMP-02 | TBD | Pending |
-| COMP-03 | TBD | Pending |
-| COMP-04 | TBD | Pending |
-| VALID-01 | TBD | Pending |
-| VALID-02 | TBD | Pending |
-| VALID-03 | TBD | Pending |
-| LIB-01 | TBD | Pending |
-| LIB-02 | TBD | Pending |
-| LIB-03 | TBD | Pending |
-| LIB-04 | TBD | Pending |
-| LIB-05 | TBD | Pending |
-| LIB-06 | TBD | Pending |
-| DOC-01 | TBD | Pending |
-| DOC-02 | TBD | Pending |
-| DOC-03 | TBD | Pending |
+| FOUND-01 | Phase 27 | Pending |
+| FOUND-02 | Phase 27 | Pending |
+| FOUND-03 | Phase 28 | Pending |
+| FOUND-04 | Phase 28 | Pending |
+| FOUND-05 | Phase 28 | Pending |
+| REF-01 | Phase 29 | Pending |
+| REF-02 | Phase 29 | Pending |
+| REF-03 | Phase 29 | Pending |
+| REF-04 | Phase 29 | Pending |
+| COMP-01 | Phase 30 | Pending |
+| COMP-02 | Phase 30 | Pending |
+| COMP-03 | Phase 30 | Pending |
+| COMP-04 | Phase 30 | Pending |
+| VALID-01 | Phase 31 | Pending |
+| VALID-02 | Phase 31 | Pending |
+| VALID-03 | Phase 31 | Pending |
+| LIB-01 | Phase 32 | Pending |
+| LIB-02 | Phase 32 | Pending |
+| LIB-03 | Phase 32 | Pending |
+| LIB-04 | Phase 32 | Pending |
+| LIB-05 | Phase 32 | Pending |
+| LIB-06 | Phase 32 | Pending |
+| DOC-01 | Phase 33 | Pending |
+| DOC-02 | Phase 33 | Pending |
+| DOC-03 | Phase 33 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 after roadmap creation*
