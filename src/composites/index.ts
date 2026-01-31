@@ -8,5 +8,9 @@
  * Import: import { IfElseBlock, LoopWithBreak } from 'react-agentic/composites'
  */
 
-// Composites will be exported here as they are created
-export {};
+// Control flow composites
+export { IfElseBlock, type IfElseBlockProps } from './IfElseBlock.js';
+export { LoopWithBreak, type LoopWithBreakProps } from './LoopWithBreak.js';
+
+// Agent composites
+export { SpawnAgentWithRetry, type SpawnAgentWithRetryProps } from './SpawnAgentWithRetry.js';
