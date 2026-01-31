@@ -15,3 +15,8 @@ export {
   type PrimitiveKind,
   type ComponentInfo,
 } from './registry.js';
+export type {
+  CommandContent,
+  AgentContent,
+  SubComponentContent,
+} from './content-types.js';
