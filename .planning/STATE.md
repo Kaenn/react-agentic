@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 36 - Meta-Prompting Components
-Plan: —
-Status: Ready for planning
-Last activity: 2026-02-01 — Phase 35 complete (verified)
+Plan: 02 of 3 complete
+Status: In progress
+Last activity: 2026-02-01 — Completed 36-02-PLAN.md
 
 Progress: [██████████----------] 2/4 phases (v3.1)
 
-Next: `/gsd:plan-phase 36`
+Next: Execute 36-03-PLAN.md
 
 ## Milestone History
 
@@ -84,6 +84,12 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Emits as "On any other status:" prose pattern (matches OnStatus format)
 - Supports both sibling and standalone modes (sibling inherits output, standalone requires explicit output prop)
 
+**v3.1 Key Decisions (Phase 36 Plan 02):**
+- Semantic wrappers (MetaPrompt, GatherContext) return children via fragment
+- ComposeContext wraps XmlBlock primitive for structured output
+- InlineField wraps Markdown primitive for **Name:** value pattern
+- Preamble uses native blockquote element
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.0 complete. v3.1 Phases 34-35 complete, phases 36-37 remaining.
@@ -98,6 +104,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01
-Stopped at: Phase 35 complete, verified
-Resume with: `/gsd:plan-phase 36` to plan Meta-Prompting Components
+Last session: 2026-02-01 15:44:18Z
+Stopped at: Completed 36-02-PLAN.md
+Resume with: Execute 36-03-PLAN.md
