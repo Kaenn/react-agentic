@@ -161,6 +161,12 @@ export interface SpawnAgentProps<TInput = unknown> {
    * Enable "load from file" pattern for spawning.
    */
   loadFromFile?: boolean | string;
+  /**
+   * Enable agent self-reading pattern.
+   * When true, prepends "First, read {agentsDir}/{agent}.md for your role and instructions."
+   * Requires agent prop to be a string or AgentRef (not inline agent).
+   */
+  readAgentFile?: boolean;
   /** Prompt content - supports multi-line and {variable} placeholders */
   prompt?: string;
   /** Variable name containing the prompt (for runtime concatenation) */
@@ -183,6 +189,8 @@ export interface V3SpawnAgentProps<TInput = unknown> {
   description: OrRuntimeVar<string>;
   /** Enable "load from file" pattern - accepts RuntimeVar */
   loadFromFile?: OrRuntimeVar<string | boolean>;
+  /** Enable agent self-reading pattern (prepends read instruction) */
+  readAgentFile?: OrRuntimeVar<boolean>;
   /** Prompt content - supports RuntimeVar interpolation */
   prompt?: OrRuntimeVar<string>;
   /** Typed input - accepts RuntimeVar values */

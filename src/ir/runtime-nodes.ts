@@ -315,6 +315,8 @@ export interface SpawnAgentNode {
   outputVar?: string;
   /** Load agent from file path */
   loadFromFile?: string;
+  /** Enable agent self-reading instruction prepend */
+  readAgentFile?: boolean;
 }
 
 /**
