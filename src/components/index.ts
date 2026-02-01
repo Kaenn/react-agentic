@@ -168,3 +168,12 @@ export {
   type StatusReturnProps,
   type StructuredReturnsProps,
 } from './contract.js';
+
+// ============================================================================
+// Meta-Prompting Components
+// ============================================================================
+
+export {
+  ReadFile,
+  type ReadFileProps,
+} from './meta-prompting.js';
