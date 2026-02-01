@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.1 Meta-Prompting — Phase 36 (Meta-Prompting Components)
+**Current focus:** v3.1 Meta-Prompting — Phase 36 complete
 
 ## Current Position
 
 Phase: 36 - Meta-Prompting Components
-Plan: 02 of 3 complete
-Status: In progress
-Last activity: 2026-02-01 — Completed 36-02-PLAN.md
+Plan: 03 of 3 complete
+Status: Phase complete
+Last activity: 2026-02-01 — Completed 36-03-PLAN.md
 
-Progress: [██████████----------] 2/4 phases (v3.1)
+Progress: [███████████████-----] 3/4 phases (v3.1)
 
-Next: Execute 36-03-PLAN.md
+Next: Phase 37 or milestone complete
 
 ## Milestone History
 
@@ -40,7 +40,7 @@ Next: Execute 36-03-PLAN.md
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 112 (v1.0-v3.1 in progress)
+- Total plans completed: 113 (v1.0-v3.1 in progress)
 - Average duration: ~5m
 - Total execution time: ~7.5 hours
 
@@ -53,7 +53,7 @@ Next: Execute 36-03-PLAN.md
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
 | v3.0 | 7 | 13 | 11 days |
-| v3.1 | 2 | 5 | 1 day (in progress) |
+| v3.1 | 3 | 8 | 1 day (in progress) |
 
 *Updated after each milestone completion*
 
@@ -95,9 +95,12 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - InlineField wraps Markdown primitive for **Name:** value pattern
 - Preamble uses native blockquote element
 
+**v3.1 Key Decisions (Phase 36 Plan 03):**
+- V1 transformer needs ReadFile dispatch for Agent documents (not just V3 dispatch.ts)
+
 ### Roadmap Evolution
 
-All milestones v1.0-v3.0 complete. v3.1 Phases 34-35 complete, phases 36-37 remaining.
+All milestones v1.0-v3.0 complete. v3.1 Phases 34-36 complete, phase 37 remaining.
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 15:44:18Z
-Stopped at: Completed 36-02-PLAN.md
-Resume with: Execute 36-03-PLAN.md
+Last session: 2026-02-01 09:52:00Z
+Stopped at: Completed 36-03-PLAN.md
+Resume with: Phase 37 or milestone wrap-up
