@@ -6,7 +6,7 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, ObjectLiteralExpression, TemplateExpression } from 'ts-morph';
-import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileEntry, PromptTemplateNode, BlockNode, BaseBlockNode } from '../../ir/index.js';
+import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileNode, ReadFileEntry, PromptTemplateNode, BlockNode, BaseBlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue } from '../utils/index.js';
 import { transformBlockChildren } from './dispatch.js';
@@ -183,6 +183,43 @@ export function transformReadFiles(
   return {
     kind: 'readFiles',
     files,
+  };
+}
+
+/**
+ * Transform <ReadFile> to ReadFileNode
+ *
+ * <ReadFile path="..." as="..." optional />
+ * becomes:
+ * { kind: 'readFile', path: '...', varName: '...', required: false }
+ */
+export function transformReadFile(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext
+): ReadFileNode {
+  const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+  // Get path prop (required)
+  const path = getAttributeValue(opening, 'path');
+  if (!path) {
+    throw ctx.createError('ReadFile requires path prop', node);
+  }
+
+  // Get as prop (required) - variable name
+  const varName = getAttributeValue(opening, 'as');
+  if (!varName) {
+    throw ctx.createError('ReadFile requires as prop', node);
+  }
+
+  // Get optional prop (default: false = required)
+  const optionalAttr = opening.getAttribute('optional');
+  const required = !optionalAttr; // Present optional prop means not required
+
+  return {
+    kind: 'readFile',
+    path,
+    varName,
+    required,
   };
 }
 

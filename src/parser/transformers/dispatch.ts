@@ -19,7 +19,7 @@ import { transformIf, transformElse, transformLoop, transformOnStatus, transform
 import { transformSpawnAgent } from './spawner.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
 import { transformReadState, transformWriteState } from './state.js';
-import { transformStep, transformBash, transformReadFiles, transformPromptTemplate } from './primitives.js';
+import { transformStep, transformBash, transformReadFiles, transformReadFile, transformPromptTemplate } from './primitives.js';
 import { transformMarkdown, transformXmlBlock, transformCustomComponent } from './markdown.js';
 import { transformInlineChildren } from './inline.js';
 import {
@@ -300,6 +300,11 @@ function transformElement(
   // Bash code block primitive
   if (name === 'Bash') {
     return transformBash(node, ctx);
+  }
+
+  // ReadFile - single file reading
+  if (name === 'ReadFile') {
+    return transformReadFile(node, ctx);
   }
 
   // ReadFiles - batch file reading
