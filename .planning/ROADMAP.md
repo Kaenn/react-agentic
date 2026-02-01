@@ -125,12 +125,12 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 35-01-PLAN.md — OnStatusDefault component (IR, transformer, emitter, tests)
+- [x] 35-01-PLAN.md — OnStatusDefault component (IR, transformer, emitter, tests)
 
 **Success Criteria:**
-1. OnStatusDefault component can follow OnStatus blocks for catch-all handling
-2. OnStatusDefault with explicit output prop works standalone
-3. OnStatusDefault emits as "**On any other status:**" header
+1. OnStatusDefault component can follow OnStatus blocks for catch-all handling ✓
+2. OnStatusDefault with explicit output prop works standalone ✓
+3. OnStatusDefault emits as "**On any other status:**" header ✓
 
 ---
 
@@ -181,11 +181,11 @@ All phases complete through v3.0. v3.1 in progress.
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
 | 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
-| 35 | v3.1 | 0/? | Pending | — |
+| 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
 | 36 | v3.1 | 0/? | Pending | — |
 | 37 | v3.1 | 0/? | Pending | — |
 
-**Total:** 111 plans completed across 34 phases
+**Total:** 112 plans completed across 35 phases
 
 ---
 *Roadmap created: 2026-01-21*
