@@ -780,6 +780,29 @@ interface ReadFileEntry {
 }
 ```
 
+#### ReadFile
+
+Single file read to shell variable.
+
+```tsx
+<ReadFile path=".planning/STATE.md" as="STATE_CONTENT" />
+<ReadFile path="${PHASE_DIR}/*-CONTEXT.md" as="CONTEXT" optional />
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `path` | `string` | Yes | File path (may include shell variables) |
+| `as` | `string` | Yes | Shell variable name for content |
+| `optional` | `boolean` | No | Suppress error if file missing |
+
+**Output:**
+```markdown
+\`\`\`bash
+STATE_CONTENT=$(cat .planning/STATE.md)
+CONTEXT=$(cat "${PHASE_DIR}/*-CONTEXT.md" 2>/dev/null)
+\`\`\`
+```
+
 #### PromptTemplate
 
 Wrap content in markdown code fence.

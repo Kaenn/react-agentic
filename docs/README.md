@@ -18,6 +18,7 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Semantic Components](./semantic-components.md) | ExecutionContext for file references |
 | [Primitives](./primitives.md) | Compiler-owned components (Table, If, SpawnAgent, etc.) |
 | [Composites](./composites.md) | User-definable convenience wrappers |
+| [Meta-Prompting](./meta-prompting.md) | Context composition with ReadFile, GatherContext, ComposeContext |
 | [Grammar Specification](./grammar.md) | Formal EBNF grammar, element reference, nesting rules |
 | [API Reference](./api-reference.md) | Low-level utility functions for tooling |
 
