@@ -145,17 +145,17 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 36-01-PLAN.md — ReadFile primitive (IR, transformer, emitter)
-- [ ] 36-02-PLAN.md — Meta-prompting composites (5 components)
-- [ ] 36-03-PLAN.md — Tests and documentation
+- [x] 36-01-PLAN.md — ReadFile primitive (IR, transformer, emitter)
+- [x] 36-02-PLAN.md — Meta-prompting composites (5 components)
+- [x] 36-03-PLAN.md — Tests and documentation
 
 **Success Criteria:**
-1. Command can wrap context composition logic with `<MetaPrompt>` component
-2. Command can group file reads with `<GatherContext>` wrapper
-3. Command can read files into named variables with `<ReadFile path="..." as="...">` component
-4. Command can structure content into XML blocks with `<ComposeContext>` containing `<XmlBlock>` children
-5. Command can render simple key-value fields inline with `<InlineField name="..." value={...}>` component
-6. Command can render intro text with `<Preamble>` component
+1. Command can wrap context composition logic with `<MetaPrompt>` component ✓
+2. Command can group file reads with `<GatherContext>` wrapper ✓
+3. Command can read files into named variables with `<ReadFile path="..." as="...">` component ✓
+4. Command can structure content into XML blocks with `<ComposeContext>` containing `<XmlBlock>` children ✓
+5. Command can render simple key-value fields inline with `<InlineField name="..." value={...}>` component ✓
+6. Command can render intro text with `<Preamble>` component ✓
 
 ---
 
@@ -189,10 +189,10 @@ All phases complete through v3.0. v3.1 in progress.
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
 | 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
 | 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
-| 36 | v3.1 | 0/3 | Pending | — |
+| 36 | v3.1 | 3/3 | Complete | 2026-02-01 |
 | 37 | v3.1 | 0/? | Pending | — |
 
-**Total:** 112 plans completed across 35 phases
+**Total:** 115 plans completed across 36 phases
 
 ---
 *Roadmap created: 2026-01-21*
