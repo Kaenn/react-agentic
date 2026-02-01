@@ -1,0 +1,97 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`v3.1 Integration Tests > Agent Contract Components > should compile agent with all contract components > agent-full-contract 1`] = `
+"---
+name: researcher
+description: Research agent
+tools: Read WebSearch
+---
+
+<role>
+You are a research specialist who gathers information on topics.
+</role>
+
+<upstream_input>
+- topic: The subject to research - depth: Level of detail required
+</upstream_input>
+
+<downstream_consumer>
+- report-writer: Uses findings to generate reports
+</downstream_consumer>
+
+<methodology>
+1. Understand the topic 2. Search for relevant sources 3. Synthesize findings
+</methodology>
+
+<structured_returns>
+
+## SUCCESS
+
+Return findings in markdown format.
+
+## NOT_FOUND
+
+Explain what was searched and why nothing was found.
+
+## ERROR
+
+Describe the error encountered.
+
+</structured_returns>
+"
+`;
+
+exports[`v3.1 Integration Tests > ReadFile + SpawnAgent Integration > should compile command with ReadFile and SpawnAgent readAgentFile > readfile-spawnagent-integration 1`] = `
+"---
+name: plan-phase
+description: Plan a project phase
+---
+
+\`\`\`
+Task(
+  prompt="First, read /Users/glenninizan/.claude/agents/gsd-planner.md for your role and instructions.\\n\\nPlan the phase using the provided context.",
+  subagent_type="gsd-planner",
+  model="opus",
+  description="Create phase plan"
+)
+\`\`\`
+
+<next_steps>
+Review the generated plan before execution.
+</next_steps>
+"
+`;
+
+exports[`v3.1 Integration Tests > SpawnAgent Self-Reading > should emit self-reading instruction when readAgentFile=true > spawnagent-readAgentFile-basic 1`] = `
+"---
+name: test
+description: Test command
+---
+
+\`\`\`
+Task(
+  prompt="First, read /Users/glenninizan/.claude/agents/gsd-phase-researcher.md for your role and instructions.\\n\\nResearch context here",
+  subagent_type="gsd-phase-researcher",
+  model="sonnet",
+  description="Research phase"
+)
+\`\`\`
+"
+`;
+
+exports[`v3.1 Integration Tests > SpawnAgent Self-Reading > should emit self-reading instruction with custom agentsDir config > spawnagent-readAgentFile-custom-path 1`] = `
+"---
+name: test
+description: Test command
+---
+
+\`\`\`
+Task(
+  prompt="First, read /custom/agents/path/custom-agent.md for your role and instructions.\\n\\nCustom prompt",
+  subagent_type="custom-agent",
+  model="sonnet",
+  description="Custom agent task"
+)
+\`\`\`
+"
+`;
