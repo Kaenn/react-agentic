@@ -22,3 +22,17 @@ export { StepSection, type StepSectionProps } from './StepSection.js';
 export { DataTable, type DataTableProps } from './DataTable.js';
 export { BulletList, type BulletListProps } from './BulletList.js';
 export { FileContext, type FileContextProps } from './FileContext.js';
+
+// Meta-prompting composites
+export {
+  MetaPrompt,
+  type MetaPromptProps,
+  GatherContext,
+  type GatherContextProps,
+  ComposeContext,
+  type ComposeContextProps,
+  InlineField,
+  type InlineFieldProps,
+  Preamble,
+  type PreambleProps,
+} from './meta-prompting/index.js';
