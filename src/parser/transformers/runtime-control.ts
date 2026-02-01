@@ -176,6 +176,17 @@ export function parseConditionExpression(
     return { type: 'ref', ref };
   }
 
+  // Check if this is a prop identifier that can be resolved via componentPropExpressions
+  // This handles composites like: <If condition={condition}/> where condition is a prop
+  if (Node.isIdentifier(node) && ctx.componentPropExpressions) {
+    const propName = node.getText();
+    const originalExpr = ctx.componentPropExpressions.get(propName);
+    if (originalExpr) {
+      // Recursively parse the original expression
+      return parseConditionExpression(originalExpr, ctx);
+    }
+  }
+
   // Unknown expression - throw error
   throw ctx.createError(
     `Cannot parse condition expression: ${node.getText()}. ` +

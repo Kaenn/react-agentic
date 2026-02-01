@@ -24,13 +24,14 @@ import {
   JsxSelfClosingElement,
   JsxFragment,
   ImportDeclaration,
+  Expression,
 } from 'ts-morph';
 import type { BlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext, LocalComponentInfo } from './runtime-types.js';
 import { getElementName, extractJsonValue, isCustomComponent } from './runtime-utils.js';
 
 // Import will be resolved after this module is loaded (circular import handling)
-import { transformToRuntimeBlock as dispatchTransform } from './runtime-dispatch.js';
+import { transformToRuntimeBlock as dispatchTransform, transformFragmentChildrenForComponent } from './runtime-dispatch.js';
 
 // ============================================================================
 // Component Extraction
@@ -329,6 +330,16 @@ function extractJsxFromBlock(block: Node): JsxElement | JsxSelfClosingElement | 
 // ============================================================================
 
 /**
+ * Result of extracting props from component usage
+ */
+interface ExtractedProps {
+  /** Evaluated prop values (JSON-serializable) */
+  values: Map<string, unknown>;
+  /** Original AST expression nodes (for resolving identifiers in conditions) */
+  expressions: Map<string, Expression>;
+}
+
+/**
  * Extract props from component usage site
  *
  * Handles:
@@ -337,11 +348,15 @@ function extractJsxFromBlock(block: Node): JsxElement | JsxSelfClosingElement | 
  * - prop={true} -> { prop: true }
  * - prop={{ key: "value" }} -> { prop: { key: "value" } }
  * - prop (no value) -> { prop: true }
+ *
+ * Also stores original AST expressions for resolving prop identifiers
+ * when composites use control flow (e.g., <If condition={condition}/>)
  */
 function extractPropsFromUsage(
   node: JsxElement | JsxSelfClosingElement
-): Map<string, unknown> {
-  const props = new Map<string, unknown>();
+): ExtractedProps {
+  const values = new Map<string, unknown>();
+  const expressions = new Map<string, Expression>();
   const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
 
   for (const attr of opening.getAttributes()) {
@@ -352,18 +367,20 @@ function extractPropsFromUsage(
 
     if (!init) {
       // Boolean shorthand: <Component enabled />
-      props.set(name, true);
+      values.set(name, true);
     } else if (Node.isStringLiteral(init)) {
-      props.set(name, init.getLiteralValue());
+      values.set(name, init.getLiteralValue());
     } else if (Node.isJsxExpression(init)) {
       const expr = init.getExpression();
       if (expr) {
-        props.set(name, extractJsonValue(expr));
+        values.set(name, extractJsonValue(expr));
+        // Store the original expression for condition resolution
+        expressions.set(name, expr);
       }
     }
   }
 
-  return props;
+  return { values, expressions };
 }
 
 // ============================================================================
@@ -395,6 +412,7 @@ export function transformLocalComponent(
   // Save current context values
   const prevProps = ctx.componentProps;
   const prevChildren = ctx.componentChildren;
+  const prevPropExpressions = ctx.componentPropExpressions;
 
   try {
     // Get JSX from component (cache on first use)
@@ -408,15 +426,16 @@ export function transformLocalComponent(
       info.jsx = extracted;
     }
 
-    // Extract props from usage site
-    const props = extractPropsFromUsage(node);
+    // Extract props from usage site (values + expressions)
+    const { values: props, expressions: propExpressions } = extractPropsFromUsage(node);
 
     // Extract children from usage site (for children prop support)
     const childrenBlocks = extractChildrenFromUsage(node, ctx, transformRuntimeBlockChildren);
 
-    // Set component props and children in context for substitution
+    // Set component props, children, and expressions in context for substitution
     ctx.componentProps = props;
     ctx.componentChildren = childrenBlocks;
+    ctx.componentPropExpressions = propExpressions;
 
     // Transform the component's JSX with prop substitution
     return transformComponentJsx(jsx, props, childrenBlocks, info.propNames, ctx, transformRuntimeBlockChildren);
@@ -424,6 +443,7 @@ export function transformLocalComponent(
     // Restore previous context values
     ctx.componentProps = prevProps;
     ctx.componentChildren = prevChildren;
+    ctx.componentPropExpressions = prevPropExpressions;
     ctx.componentExpansionStack.delete(name);
   }
 }
@@ -464,6 +484,9 @@ function extractChildrenFromUsage(
  * - Substitutes {propName} with actual values
  * - Substitutes {props.propName} with actual values
  * - Substitutes {children} with the children blocks
+ *
+ * For fragments, uses transformRuntimeBlockChildren to handle If/Else sibling pairs.
+ * This is critical for composites like IfElseBlock that contain If/Else pairs.
  */
 function transformComponentJsx(
   jsx: JsxElement | JsxSelfClosingElement | JsxFragment,
@@ -473,19 +496,10 @@ function transformComponentJsx(
   ctx: RuntimeTransformContext,
   transformRuntimeBlockChildren: (parent: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
 ): BlockNode | BlockNode[] | null {
-  // For fragments, transform all children and return as array
+  // For fragments, use If/Else-aware processing via dispatch's transformFragmentChildren
+  // This handles If/Else sibling pairs correctly when composites contain control flow
   if (Node.isJsxFragment(jsx)) {
-    const blocks: BlockNode[] = [];
-    for (const child of jsx.getJsxChildren()) {
-      const block = transformComponentChild(child, props, childrenBlocks, propNames, ctx);
-      if (block) {
-        if (Array.isArray(block)) {
-          blocks.push(...block);
-        } else {
-          blocks.push(block);
-        }
-      }
-    }
+    const blocks = transformFragmentChildrenForComponent(jsx, ctx);
     return blocks.length > 0 ? blocks : null;
   }
 

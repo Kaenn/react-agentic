@@ -18,6 +18,68 @@ import { parseRuntimeVarRef } from './runtime-var.js';
 import { getAttributeValue, getAttributeExpression, extractJsonValue } from './runtime-utils.js';
 
 // ============================================================================
+// String or RuntimeVar Extraction
+// ============================================================================
+
+/**
+ * Extract a string value or RuntimeVar reference from a JSX attribute
+ *
+ * Tries static string extraction first, then checks for RuntimeVar reference.
+ * This enables props like `model={ctx.models.researcher}` to work.
+ *
+ * @param openingElement - The JSX opening or self-closing element
+ * @param attrName - The attribute name to extract
+ * @param ctx - Transform context
+ * @returns String value, RuntimeVarRefNode, or undefined if not found
+ */
+function extractStringOrRuntimeVar(
+  openingElement: import('ts-morph').JsxOpeningElement | import('ts-morph').JsxSelfClosingElement,
+  attrName: string,
+  ctx: RuntimeTransformContext
+): string | RuntimeVarRefNode | undefined {
+  // First, check for template expressions with RuntimeVar interpolation
+  // We need to do this BEFORE calling getAttributeValue to avoid getting
+  // the raw template string with ${...} placeholders unresolved
+  const expr = getAttributeExpression(openingElement, attrName);
+  if (expr) {
+    // Handle template expressions with RuntimeVar interpolation
+    if (Node.isTemplateExpression(expr)) {
+      const parts: string[] = [];
+      parts.push(expr.getHead().getLiteralText());
+      for (const span of expr.getTemplateSpans()) {
+        const spanExpr = span.getExpression();
+        const spanRef = parseRuntimeVarRef(spanExpr, ctx);
+        if (spanRef) {
+          const pathStr = spanRef.path.length === 0
+            ? ''
+            : spanRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+          parts.push(`$${spanRef.varName}${pathStr}`);
+        } else {
+          // Non-RuntimeVar interpolation - preserve as-is
+          parts.push(`\${${spanExpr.getText()}}`);
+        }
+        parts.push(span.getLiteral().getLiteralText());
+      }
+      return parts.join('');
+    }
+
+    // Try direct RuntimeVar reference
+    const ref = parseRuntimeVarRef(expr, ctx);
+    if (ref) {
+      return ref;
+    }
+  }
+
+  // Try static string (includes NoSubstitutionTemplateLiteral via getAttributeValue)
+  const staticValue = getAttributeValue(openingElement, attrName);
+  if (staticValue !== undefined) {
+    return staticValue;
+  }
+
+  return undefined;
+}
+
+// ============================================================================
 // Input Parsing
 // ============================================================================
 
@@ -153,20 +215,20 @@ export function transformRuntimeSpawnAgent(
     ? node.getOpeningElement()
     : node;
 
-  // Extract agent prop (required)
-  const agent = getAttributeValue(openingElement, 'agent');
+  // Extract agent prop (required) - supports static string or RuntimeVar
+  const agent = extractStringOrRuntimeVar(openingElement, 'agent', ctx);
   if (!agent) {
     throw ctx.createError('SpawnAgent requires agent prop', openingElement);
   }
 
-  // Extract model prop (required)
-  const model = getAttributeValue(openingElement, 'model');
+  // Extract model prop (required) - supports static string or RuntimeVar
+  const model = extractStringOrRuntimeVar(openingElement, 'model', ctx);
   if (!model) {
     throw ctx.createError('SpawnAgent requires model prop', openingElement);
   }
 
-  // Extract description prop (required)
-  const description = getAttributeValue(openingElement, 'description');
+  // Extract description prop (required) - supports static string or RuntimeVar
+  const description = extractStringOrRuntimeVar(openingElement, 'description', ctx);
   if (!description) {
     throw ctx.createError('SpawnAgent requires description prop', openingElement);
   }

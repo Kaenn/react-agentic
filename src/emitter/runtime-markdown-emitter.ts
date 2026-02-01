@@ -396,6 +396,15 @@ export class RuntimeMarkdownEmitter {
         return `{${entries.join(', ')}}`;
       }
 
+      case 'conditional': {
+        // Generate jq conditional expression
+        const { varName, path } = value.condition;
+        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
+        const trueVal = this.formatLiteralForJson(value.whenTrue);
+        const falseVal = this.formatLiteralForJson(value.whenFalse);
+        return `"$(echo "$${varName}" | jq -r 'if ${jqPath} then ${trueVal} else ${falseVal} end')"`;
+      }
+
       default:
         return '""';
     }
@@ -432,8 +441,48 @@ export class RuntimeMarkdownEmitter {
         return `{ ${entries.join(', ')} }`;
       }
 
+      case 'conditional': {
+        const { varName, path } = value.condition;
+        const condPath = path.length === 0 ? varName : `${varName}.${path.join('.')}`;
+        const trueDisplay = this.formatArgValue(value.whenTrue);
+        const falseDisplay = this.formatArgValue(value.whenFalse);
+        return `if $${condPath} then ${trueDisplay} else ${falseDisplay}`;
+      }
+
       default:
         return String(value);
+    }
+  }
+
+  /**
+   * Format a RuntimeCallArgValue as a jq-compatible literal for conditionals
+   */
+  private formatLiteralForJson(value: RuntimeCallArgValue): string {
+    switch (value.type) {
+      case 'literal':
+        if (value.value === null) return 'null';
+        if (typeof value.value === 'string') return `"${value.value}"`;
+        if (typeof value.value === 'boolean') return value.value ? 'true' : 'false';
+        return String(value.value);
+
+      case 'runtimeVarRef': {
+        const { varName, path } = value.ref;
+        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
+        // Return as jq expression that will be evaluated
+        return `($ENV.${varName} | fromjson | ${jqPath})`;
+      }
+
+      case 'conditional': {
+        // Recursively handle nested conditionals
+        const jqPath = value.condition.path.length === 0 ? '.' : '.' + value.condition.path.join('.');
+        const trueVal = this.formatLiteralForJson(value.whenTrue);
+        const falseVal = this.formatLiteralForJson(value.whenFalse);
+        return `(if ${jqPath} then ${trueVal} else ${falseVal} end)`;
+      }
+
+      default:
+        // For complex types (expressions), use string representation
+        return `"<complex>"`;
     }
   }
 
@@ -542,6 +591,20 @@ export class RuntimeMarkdownEmitter {
   }
 
   /**
+   * Format a string or RuntimeVarRefNode for Task() output
+   *
+   * For static strings: returns escaped string in quotes
+   * For RuntimeVarRefNode: returns jq expression (no quotes, will be interpolated)
+   */
+  private formatSpawnAgentProp(value: string | RuntimeVarRefNode): string {
+    if (typeof value === 'string') {
+      return `"${value.replace(/"/g, '\\"')}"`;
+    }
+    // RuntimeVarRefNode - use jq expression
+    return toJqExpression(value);
+  }
+
+  /**
    * Emit SpawnAgentNode as Task() syntax
    */
   private emitSpawnAgent(node: SpawnAgentNode): string {
@@ -558,7 +621,7 @@ export class RuntimeMarkdownEmitter {
     }
 
     // Handle loadFromFile
-    let subagentType = node.agent;
+    let subagentType: string | RuntimeVarRefNode = node.agent;
     let promptOutput: string;
 
     if (node.loadFromFile) {
@@ -569,12 +632,17 @@ export class RuntimeMarkdownEmitter {
       promptOutput = `"${escapeQuotes(promptContent)}"`;
     }
 
+    // Format props - handle both static strings and RuntimeVar refs
+    const formattedAgent = this.formatSpawnAgentProp(subagentType);
+    const formattedModel = this.formatSpawnAgentProp(node.model);
+    const formattedDescription = this.formatSpawnAgentProp(node.description);
+
     const taskBlock = `\`\`\`
 Task(
   prompt=${promptOutput},
-  subagent_type="${escapeQuotes(subagentType)}",
-  model="${escapeQuotes(node.model)}",
-  description="${escapeQuotes(node.description)}"
+  subagent_type=${formattedAgent},
+  model=${formattedModel},
+  description=${formattedDescription}
 )
 \`\`\``;
 

@@ -174,7 +174,7 @@ describe('V3 Runtime Components', () => {
       expect(output).toContain('CTX.data.nested.value');
     });
 
-    it('emits ternary expression as description', () => {
+    it('emits ternary expression as jq conditional', () => {
       const tsx = `
         async function process(args: { mode: string }): Promise<{ done: boolean }> {
           return { done: true };
@@ -193,10 +193,12 @@ describe('V3 Runtime Components', () => {
         }
       `;
       const output = transformCommand(tsx);
-      // Should contain a human-readable description of the ternary
-      expect(output).toContain('If');
+      // Should contain a jq conditional expression
+      expect(output).toContain('if $CTX.flags.gaps then');
       expect(output).toContain('gap_closure');
       expect(output).toContain('standard');
+      // Bash command should use jq expression
+      expect(output).toContain("jq -r 'if .flags.gaps then");
     });
 
     it('emits comparison expression as description', () => {

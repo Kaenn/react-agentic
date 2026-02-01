@@ -61,7 +61,8 @@ export type RuntimeCallArgValue =
   | { type: 'literal'; value: string | number | boolean | null }
   | { type: 'runtimeVarRef'; ref: RuntimeVarRefNode }
   | { type: 'expression'; source: string; description: string }
-  | { type: 'json'; value: Record<string, RuntimeCallArgValue> | RuntimeCallArgValue[] };
+  | { type: 'json'; value: Record<string, RuntimeCallArgValue> | RuntimeCallArgValue[] }
+  | { type: 'conditional'; condition: RuntimeVarRefNode; whenTrue: RuntimeCallArgValue; whenFalse: RuntimeCallArgValue };
 
 /**
  * Runtime function call
@@ -300,12 +301,12 @@ export interface AskUserNode {
  */
 export interface SpawnAgentNode {
   kind: 'spawnAgent';
-  /** Agent name/reference */
-  agent: string;
-  /** Model to use */
-  model: string;
-  /** Human-readable description */
-  description: string;
+  /** Agent name/reference (static string or RuntimeVar) */
+  agent: string | RuntimeVarRefNode;
+  /** Model to use (static string or RuntimeVar) */
+  model: string | RuntimeVarRefNode;
+  /** Human-readable description (static string or RuntimeVar) */
+  description: string | RuntimeVarRefNode;
   /** Prompt content or variable */
   prompt?: string;
   /** Input object (alternative to prompt) */

@@ -8,7 +8,7 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { getElementName, extractText, extractMarkdownText, getAttributeValue, getAttributeExpression, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings } from './runtime-utils.js';
+import { getElementName, extractText, extractMarkdownText, getAttributeValue, getAttributeExpression, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings, getArrayWithRuntimeVars } from './runtime-utils.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import type { XmlBlockNode } from '../../ir/nodes.js';
 
@@ -24,7 +24,7 @@ import { transformRuntimeInlineChildren } from './runtime-inline.js';
 
 // Shared element transformers
 import { transformList, transformBlockquote, transformCodeBlock } from './html.js';
-import { transformTable, transformXmlSection, transformXmlWrapper } from './semantic.js';
+import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
 import type { TransformContext } from './types.js';
 import type { GroupNode } from '../../ir/nodes.js';
@@ -38,6 +38,17 @@ import type { GroupNode } from '../../ir/nodes.js';
  * Handles If/Else sibling pairing via dedicated helper
  */
 function transformFragmentChildren(
+  fragment: JsxFragment,
+  ctx: RuntimeTransformContext
+): BlockNode[] {
+  return transformChildArray(fragment.getJsxChildren(), ctx);
+}
+
+/**
+ * Export for component inlining - processes fragment children with If/Else pairing
+ * Used by runtime-component.ts when expanding composites that contain If/Else pairs
+ */
+export function transformFragmentChildrenForComponent(
   fragment: JsxFragment,
   ctx: RuntimeTransformContext
 ): BlockNode[] {
@@ -95,6 +106,16 @@ function transformChildArray(
         if (block) blocks.push(block);
       }
     } else if (Node.isJsxExpression(child)) {
+      // Handle {children} or {props.children} substitution for component inlining
+      const expr = child.getExpression();
+      if (expr) {
+        const exprText = expr.getText();
+        if ((exprText === 'children' || exprText === 'props.children') && ctx.componentChildren) {
+          blocks.push(...ctx.componentChildren);
+          i++;
+          continue;
+        }
+      }
       const block = transformToRuntimeBlock(child, ctx);
       if (block) blocks.push(block);
     }
@@ -474,6 +495,71 @@ function transformRuntimeXmlBlock(
 }
 
 // ============================================================================
+// Runtime List Transformer
+// ============================================================================
+
+/**
+ * Transform List component with RuntimeVar template support
+ *
+ * Unlike the V1 transformPropList, this version handles template literals
+ * containing RuntimeVar references in the items array.
+ *
+ * @example
+ * <List items={[
+ *   `cat ${ctx.phaseDir}/*-PLAN.md - review plans`,
+ *   `/example:plan-phase-v3 ${ctx.phaseId} --research`,
+ * ]} />
+ *
+ * Output:
+ * - cat $CTX.phaseDir/*-PLAN.md - review plans
+ * - /example:plan-phase-v3 $CTX.phaseId --research
+ */
+function transformRuntimeList(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Use RuntimeVar-aware array extraction
+  const items = getArrayWithRuntimeVars(openingElement, 'items', ctx) ?? [];
+
+  // Check for ordered prop
+  const orderedAttr = openingElement.getAttribute('ordered');
+  const ordered = orderedAttr !== undefined;
+
+  // Parse start attribute (numeric)
+  let start: number | undefined = undefined;
+  const startAttr = openingElement.getAttribute('start');
+  if (startAttr && Node.isJsxAttribute(startAttr)) {
+    const init = startAttr.getInitializer();
+    if (init && Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (expr && Node.isNumericLiteral(expr)) {
+        start = expr.getLiteralValue();
+      }
+    }
+  }
+
+  // Convert items to ListItemNode[]
+  const listItems = items.map(item => ({
+    kind: 'listItem' as const,
+    children: [{
+      kind: 'paragraph' as const,
+      children: [{ kind: 'text' as const, value: String(item) }]
+    }]
+  }));
+
+  return {
+    kind: 'list',
+    ordered,
+    items: listItems,
+    start,
+  } as BlockNode;
+}
+
+// ============================================================================
 // Runtime Indent Transformer
 // ============================================================================
 
@@ -610,15 +696,35 @@ function extractCodeContentWithProps(
               }
             }
 
-            // Not a prop reference - preserve as ${...}
+            // Check for RuntimeVar reference
+            const runtimeRef = parseRuntimeVarRef(spanExpr, ctx);
+            if (runtimeRef) {
+              const pathStr = runtimeRef.path.length === 0
+                ? ''
+                : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+              templateParts.push(`$${runtimeRef.varName}${pathStr}`);
+              templateParts.push(span.getLiteral().getLiteralText());
+              continue;
+            }
+
+            // Not a prop or RuntimeVar reference - preserve as ${...}
             templateParts.push(`\${${spanText}}`);
             templateParts.push(span.getLiteral().getLiteralText());
           }
 
           parts.push(templateParts.join(''));
         } else {
-          // Other expression - render as is
-          parts.push(expr.getText());
+          // Check if it's a RuntimeVar reference
+          const runtimeRef = parseRuntimeVarRef(expr, ctx);
+          if (runtimeRef) {
+            const pathStr = runtimeRef.path.length === 0
+              ? ''
+              : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+            parts.push(`$${runtimeRef.varName}${pathStr}`);
+          } else {
+            // Other expression - render as is
+            parts.push(expr.getText());
+          }
         }
       }
     }
@@ -999,6 +1105,11 @@ function transformRuntimeElement(
     return transformTable(node, sharedCtx) as BlockNode;
   }
 
+  // List component (prop-based) - use V3 transformer for RuntimeVar support
+  if (name === 'List') {
+    return transformRuntimeList(node, ctx);
+  }
+
   // XmlSection
   if (name === 'XmlSection') {
     return transformXmlSection(node, sharedCtx) as BlockNode;
@@ -1086,6 +1197,19 @@ export function transformRuntimeBlockChildren(
         const block = transformToRuntimeBlock(child, ctx);
         if (block) blocks.push(block);
       }
+    } else if (Node.isJsxExpression(child)) {
+      // Handle {children} or {props.children} substitution for component inlining
+      const expr = child.getExpression();
+      if (expr) {
+        const exprText = expr.getText();
+        if ((exprText === 'children' || exprText === 'props.children') && ctx.componentChildren) {
+          blocks.push(...ctx.componentChildren);
+          i++;
+          continue;
+        }
+      }
+      const block = transformToRuntimeBlock(child, ctx);
+      if (block) blocks.push(block);
     } else {
       const block = transformToRuntimeBlock(child, ctx);
       if (block) blocks.push(block);
