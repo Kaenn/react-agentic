@@ -255,8 +255,7 @@ export class MarkdownEmitter {
       case 'onStatus':
         return this.emitOnStatus(node);
       case 'onStatusDefault':
-        // Placeholder - will be implemented in Task 3
-        return '**On any other status:**';
+        return this.emitOnStatusDefault(node);
       case 'readState':
         return this.emitReadState(node);
       case 'writeState':
@@ -678,6 +677,28 @@ export class MarkdownEmitter {
 
     // Emit status header
     parts.push(`**On ${node.status}:**`);
+
+    // Emit block content with blank line after header
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Emit OnStatusDefault node as prose pattern
+   *
+   * Output format:
+   * **On any other status:**
+   *
+   * {content}
+   */
+  private emitOnStatusDefault(node: OnStatusDefaultNode): string {
+    const parts: string[] = [];
+
+    // Emit default status header
+    parts.push('**On any other status:**');
 
     // Emit block content with blank line after header
     for (const child of node.children) {

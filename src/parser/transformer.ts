@@ -42,6 +42,8 @@ import type {
   ElseNode,
   LoopNode,
   OnStatusNode,
+  OnStatusDefaultNode,
+  OutputReference,
   SkillDocumentNode,
   SkillFrontmatterNode,
   SkillFileNode,
@@ -127,7 +129,7 @@ function isInlineElement(tagName: string): boolean {
  * Special component names that are NOT custom user components
  */
 const SPECIAL_COMPONENTS = new Set([
-  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus',
+  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus', 'OnStatusDefault',
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
@@ -523,6 +525,19 @@ export class Transformer {
     // OnStatus component - status-based conditional block
     if (name === 'OnStatus') {
       return this.transformOnStatus(node);
+    }
+
+    // OnStatusDefault component - standalone is an error (must follow OnStatus as sibling OR have output prop)
+    if (name === 'OnStatusDefault') {
+      // Allow with explicit output prop
+      const openingElement = Node.isJsxElement(node)
+        ? node.getOpeningElement()
+        : node;
+      const hasOutputProp = openingElement.getAttribute('output');
+      if (!hasOutputProp) {
+        throw this.createError('<OnStatusDefault> must follow <OnStatus> as sibling or provide output prop', node);
+      }
+      return this.transformOnStatusDefault(node);
     }
 
     // ReadState component - read state from registry
@@ -2900,6 +2915,62 @@ export class Transformer {
     };
   }
 
+  /**
+   * Transform OnStatusDefault component to OnStatusDefaultNode
+   * Handles catch-all for agent output statuses
+   *
+   * @param node - JSX element
+   * @param outputRef - Output reference from preceding OnStatus (sibling detection) or explicit prop
+   */
+  private transformOnStatusDefault(
+    node: JsxElement | JsxSelfClosingElement,
+    outputRef?: OutputReference
+  ): OnStatusDefaultNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Check for explicit output prop
+    const outputAttr = openingElement.getAttribute('output');
+    let resolvedOutputRef: OutputReference | undefined = outputRef;
+
+    if (outputAttr && Node.isJsxAttribute(outputAttr)) {
+      const outputInit = outputAttr.getInitializer();
+      if (outputInit && Node.isJsxExpression(outputInit)) {
+        const outputExpr = outputInit.getExpression();
+        if (outputExpr && Node.isIdentifier(outputExpr)) {
+          const outputIdentifier = outputExpr.getText();
+          const agentName = this.outputs.get(outputIdentifier);
+          if (agentName) {
+            resolvedOutputRef = {
+              kind: 'outputReference',
+              agent: agentName,
+            };
+          }
+        }
+      }
+    }
+
+    // Validate we have an output reference
+    if (!resolvedOutputRef) {
+      throw this.createError(
+        'OnStatusDefault must follow OnStatus blocks or provide output prop',
+        openingElement
+      );
+    }
+
+    // Transform children as block content
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'onStatusDefault',
+      outputRef: resolvedOutputRef,
+      children: children as BaseBlockNode[],
+    };
+  }
+
   // ============================================================================
   // MCP Configuration Transformation
   // ============================================================================
@@ -2958,6 +3029,32 @@ export class Transformer {
               const elseNode = this.transformElse(sibling);
               blocks.push(elseNode);
               i = nextIndex; // Skip past Else in outer loop
+            }
+            break;
+          }
+        } else if (childName === 'OnStatus') {
+          // Transform OnStatus
+          const onStatusNode = this.transformOnStatus(child);
+          blocks.push(onStatusNode);
+
+          // Check for OnStatusDefault sibling
+          let nextIndex = i + 1;
+          while (nextIndex < jsxChildren.length) {
+            const sibling = jsxChildren[nextIndex];
+            // Skip whitespace-only text
+            if (Node.isJsxText(sibling)) {
+              const text = extractText(sibling);
+              if (!text) {
+                nextIndex++;
+                continue;
+              }
+            }
+            // Check if next non-whitespace is OnStatusDefault
+            if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))
+                && getElementName(sibling) === 'OnStatusDefault') {
+              const onStatusDefaultNode = this.transformOnStatusDefault(sibling, onStatusNode.outputRef);
+              blocks.push(onStatusDefaultNode);
+              i = nextIndex; // Skip past OnStatusDefault in outer loop
             }
             break;
           }
