@@ -142,6 +142,13 @@ Plans:
 
 **Requirements:** META-01, META-02, META-03, META-04, META-05, META-06
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 36-01-PLAN.md — ReadFile primitive (IR, transformer, emitter)
+- [ ] 36-02-PLAN.md — Meta-prompting composites (5 components)
+- [ ] 36-03-PLAN.md — Tests and documentation
+
 **Success Criteria:**
 1. Command can wrap context composition logic with `<MetaPrompt>` component
 2. Command can group file reads with `<GatherContext>` wrapper
@@ -182,7 +189,7 @@ All phases complete through v3.0. v3.1 in progress.
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
 | 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
 | 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
-| 36 | v3.1 | 0/? | Pending | — |
+| 36 | v3.1 | 0/3 | Pending | — |
 | 37 | v3.1 | 0/? | Pending | — |
 
 **Total:** 112 plans completed across 35 phases
