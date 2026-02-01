@@ -167,6 +167,12 @@ Plans:
 
 **Requirements:** SPWN-01
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 37-01-PLAN.md — readAgentFile prop (types, transformer, emitter, config)
+- [ ] 37-02-PLAN.md — v3.1 integration tests
+
 **Success Criteria:**
 1. SpawnAgent accepts `readAgentFile` prop that emits instruction for agent to read its own definition
 2. Full scenario (command with Uses, Init, MetaPrompt, SpawnAgent, HandleReturn) compiles correctly
@@ -190,7 +196,7 @@ All phases complete through v3.0. v3.1 in progress.
 | 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
 | 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
 | 36 | v3.1 | 3/3 | Complete | 2026-02-01 |
-| 37 | v3.1 | 0/? | Pending | — |
+| 37 | v3.1 | 0/2 | Pending | — |
 
 **Total:** 115 plans completed across 36 phases
 
