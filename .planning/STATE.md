@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 Phase: 34 - Agent Contract Components
 Plan: 02 of 4
 Status: In progress
-Last activity: 2026-02-01 — Completed 34-02-PLAN.md (Parser Transformers)
+Last activity: 2026-02-01 — Completed 34-01-PLAN.md (IR Nodes & Component Stubs)
 
-Progress: [█████---------------] 1/4 phases (25%)
+Progress: [█████---------------] 2/4 plans (50%)
 
 Next: Execute 34-03 (Emitter Implementation)
 
@@ -69,9 +69,11 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Context-based prop/children substitution in static transformer
 - Composites directory with separate package.json subpath export
 
-**v3.1 Key Decisions:**
+**v3.1 Key Decisions (Phase 34):**
 - StatusReturn component name (avoid conflict with control flow Return)
-- Support both ReturnStatus and StatusReturn for compatibility
+- ReturnStatusNode IR kind='returnStatus' (avoid conflict with control flow ReturnNode)
+- Emitter stub cases throw descriptive errors for phase 34-03 implementation
+- Support both ReturnStatus and StatusReturn JSX element names for compatibility
 
 ### Roadmap Evolution
 
@@ -87,6 +89,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01
-Stopped at: Completed 34-02 Parser Transformers
-Resume with: Execute 34-03 Emitter Implementation
+Last session: 2026-02-01 06:12 UTC
+Stopped at: Completed 34-01-PLAN.md execution (IR Nodes & Component Stubs)
+Resume with: Execute 34-03 (Emitter Implementation) or verify 34-02 completion
