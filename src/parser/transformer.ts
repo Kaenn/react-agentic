@@ -65,6 +65,12 @@ import type {
   ReadFilesNode,
   ReadFileEntry,
   PromptTemplateNode,
+  RoleNode,
+  UpstreamInputNode,
+  DownstreamConsumerNode,
+  MethodologyNode,
+  StructuredReturnsNode,
+  ReturnStatusNode,
 } from '../ir/index.js';
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
@@ -578,6 +584,27 @@ export class Transformer {
     // PromptTemplate - wrap content in markdown code fence
     if (name === 'PromptTemplate') {
       return this.transformPromptTemplate(node);
+    }
+
+    // Contract components (inside Agent)
+    if (name === 'Role') {
+      return this.transformRole(node);
+    }
+    if (name === 'UpstreamInput') {
+      return this.transformUpstreamInput(node);
+    }
+    if (name === 'DownstreamConsumer') {
+      return this.transformDownstreamConsumer(node);
+    }
+    if (name === 'Methodology') {
+      return this.transformMethodology(node);
+    }
+    if (name === 'StructuredReturns') {
+      return this.transformStructuredReturns(node);
+    }
+    if (name === 'ReturnStatus' || name === 'StatusReturn') {
+      // ReturnStatus/StatusReturn outside StructuredReturns - this is an error
+      throw this.createError(`${name} component can only be used inside StructuredReturns`, node);
     }
 
     // Markdown passthrough
@@ -1812,6 +1839,115 @@ export class Transformer {
     const content = parts.join('').trim();
 
     return { kind: 'raw', content };
+  }
+
+  /**
+   * Contract Component Transformers
+   * Added for Phase 34 - Agent Contract Components
+   */
+  private transformRole(node: JsxElement | JsxSelfClosingElement): RoleNode {
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'role',
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformUpstreamInput(node: JsxElement | JsxSelfClosingElement): UpstreamInputNode {
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'upstreamInput',
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformDownstreamConsumer(node: JsxElement | JsxSelfClosingElement): DownstreamConsumerNode {
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'downstreamConsumer',
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformMethodology(node: JsxElement | JsxSelfClosingElement): MethodologyNode {
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'methodology',
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformReturnStatus(node: JsxElement | JsxSelfClosingElement): ReturnStatusNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const status = getAttributeValue(opening, 'status');
+    if (!status) {
+      throw this.createError('Return requires status prop', node);
+    }
+
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'returnStatus',
+      status,
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformStructuredReturns(node: JsxElement | JsxSelfClosingElement): StructuredReturnsNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      throw this.createError('StructuredReturns must have at least one child', node);
+    }
+
+    const returns: ReturnStatusNode[] = [];
+
+    for (const child of node.getJsxChildren()) {
+      // Skip whitespace-only text
+      if (Node.isJsxText(child)) {
+        const text = child.getText().trim();
+        if (!text) continue;
+        // Non-empty text inside StructuredReturns is an error
+        throw this.createError(
+          'StructuredReturns can only contain StatusReturn components, not text',
+          child
+        );
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = getElementName(child);
+        if (childName === 'ReturnStatus' || childName === 'StatusReturn') {
+          returns.push(this.transformReturnStatus(child));
+        } else {
+          throw this.createError(
+            `StructuredReturns can only contain StatusReturn components, not <${childName}>`,
+            child
+          );
+        }
+      }
+    }
+
+    if (returns.length === 0) {
+      throw this.createError('StructuredReturns must have at least one StatusReturn child', node);
+    }
+
+    return {
+      kind: 'structuredReturns',
+      returns,
+    };
   }
 
   /**

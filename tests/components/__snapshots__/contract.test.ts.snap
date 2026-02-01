@@ -1,0 +1,193 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DownstreamConsumer component > renders as <downstream_consumer> XML block 1`] = `
+"---
+name: test
+description: test
+---
+
+<downstream_consumer>
+Your output is consumed by the executor phase.
+</downstream_consumer>
+"
+`;
+
+exports[`Full agent with contract components > allows interleaving with regular content 1`] = `
+"---
+name: test
+description: test
+---
+
+<role>
+You are a test agent.
+</role>
+
+<objective>
+Create and execute tests.
+</objective>
+
+<methodology>
+Follow TDD practices.
+</methodology>
+
+Some additional notes about this agent.
+"
+`;
+
+exports[`Full agent with contract components > renders complete agent contract 1`] = `
+"---
+name: test
+description: test
+---
+
+<role>
+You are a GSD planner. You create executable phase plans with task breakdown and dependency analysis.
+</role>
+
+<upstream_input>
+The orchestrator passes a planning_context block containing: - project_state: STATE.md content - roadmap: ROADMAP.md content - phase_context: Optional CONTEXT.md
+</upstream_input>
+
+<downstream_consumer>
+Your PLAN.md files are consumed by execute-phase which expects: - Frontmatter with wave, depends_on - Tasks with files, action, verify, done - Verification criteria
+</downstream_consumer>
+
+<methodology>
+1. Read project state and roadmap 2. Break phase into 2-3 task plans 3. Build dependency graph 4. Assign execution waves 5. Write PLAN.md files
+</methodology>
+
+<structured_returns>
+
+## PLANNING_COMPLETE
+
+Plans created, ready for execution
+
+## CHECKPOINT_REACHED
+
+Need user input to continue
+
+## PLANNING_BLOCKED
+
+Cannot proceed without more context
+
+</structured_returns>
+"
+`;
+
+exports[`Full agent with contract components > works with minimal contract (just Role) 1`] = `
+"---
+name: test
+description: test
+---
+
+<role>
+You handle simple tasks.
+</role>
+"
+`;
+
+exports[`Full agent with contract components > works with no contract components (fully optional) 1`] = `
+"---
+name: test
+description: test
+---
+
+Just regular content, no contract components.
+
+<process>
+Do the work.
+</process>
+"
+`;
+
+exports[`Methodology component > renders as <methodology> XML block 1`] = `
+"---
+name: test
+description: test
+---
+
+<methodology>
+1. Read the input 2. Process the data 3. Return structured output
+</methodology>
+"
+`;
+
+exports[`Role component > renders as <role> XML block 1`] = `
+"---
+name: test
+description: test
+---
+
+<role>
+You are a test agent. You do testing.
+</role>
+"
+`;
+
+exports[`Role component > supports markdown content 1`] = `
+"---
+name: test
+description: test
+---
+
+<role>
+You are a **planner**. Your responsibilities: - Create plans - Track progress - Report status
+</role>
+"
+`;
+
+exports[`StructuredReturns component > renders with ## headings for each status 1`] = `
+"---
+name: test
+description: test
+---
+
+<structured_returns>
+
+## SUCCESS
+
+All tasks completed successfully
+
+## BLOCKED
+
+Cannot proceed due to missing context
+
+## ERROR
+
+An error occurred during execution
+
+</structured_returns>
+"
+`;
+
+exports[`StructuredReturns component > supports rich content in StatusReturn descriptions 1`] = `
+"---
+name: test
+description: test
+---
+
+<structured_returns>
+
+## SUCCESS
+
+All tests passed. **Includes:** - Unit tests - Integration tests
+
+## FAILED
+
+Some tests failed. See report.
+
+</structured_returns>
+"
+`;
+
+exports[`UpstreamInput component > renders as <upstream_input> XML block 1`] = `
+"---
+name: test
+description: test
+---
+
+<upstream_input>
+The orchestrator provides context via planning_context block.
+</upstream_input>
+"
+`;
