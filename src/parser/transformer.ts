@@ -65,6 +65,7 @@ import type {
   StepNode,
   StepVariant,
   ReadFilesNode,
+  ReadFileNode,
   ReadFileEntry,
   PromptTemplateNode,
   RoleNode,
@@ -589,6 +590,11 @@ export class Transformer {
     // Bash code block primitive
     if (name === 'Bash') {
       return this.transformBash(node);
+    }
+
+    // ReadFile - single file reading
+    if (name === 'ReadFile') {
+      return this.transformReadFile(node);
     }
 
     // ReadFiles - batch file reading
@@ -1512,6 +1518,40 @@ export class Transformer {
       kind: 'codeBlock',
       language: 'bash',
       content,
+    };
+  }
+
+  /**
+   * Transform <ReadFile> to ReadFileNode
+   *
+   * <ReadFile path="..." as="..." optional />
+   * becomes:
+   * { kind: 'readFile', path: '...', varName: '...', required: false }
+   */
+  private transformReadFile(node: JsxElement | JsxSelfClosingElement): ReadFileNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    // Get path prop (required)
+    const path = getAttributeValue(opening, 'path');
+    if (!path) {
+      throw this.createError('ReadFile requires path prop', node);
+    }
+
+    // Get as prop (required) - variable name
+    const varName = getAttributeValue(opening, 'as');
+    if (!varName) {
+      throw this.createError('ReadFile requires as prop', node);
+    }
+
+    // Get optional prop (default: false = required)
+    const optionalAttr = opening.getAttribute('optional');
+    const required = !optionalAttr; // Present optional prop means not required
+
+    return {
+      kind: 'readFile',
+      path,
+      varName,
+      required,
     };
   }
 
