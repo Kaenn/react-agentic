@@ -33,6 +33,7 @@ import type {
   ParagraphNode,
   ReadStateNode,
   ReadFilesNode,
+  ReadFileNode,
   PromptTemplateNode,
   RoleNode,
   SkillDocumentNode,
@@ -262,6 +263,8 @@ export class MarkdownEmitter {
         return this.emitWriteState(node);
       case 'readFiles':
         return this.emitReadFiles(node);
+      case 'readFile':
+        return this.emitReadFile(node);
       case 'promptTemplate':
         return this.emitPromptTemplate(node);
       case 'step':
@@ -778,6 +781,23 @@ export class MarkdownEmitter {
     }
 
     return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
+  }
+
+  /**
+   * Emit single file read as bash code block
+   * Pattern follows GSD: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
+   */
+  private emitReadFile(node: ReadFileNode): string {
+    // Quote path if it contains variables ($) or spaces
+    const quotedPath = /[$\s]/.test(node.path) ? `"${node.path}"` : node.path;
+
+    if (node.required) {
+      // Required file - fail loudly if missing
+      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath})\n\`\`\``;
+    } else {
+      // Optional file - suppress errors with 2>/dev/null
+      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath} 2>/dev/null)\n\`\`\``;
+    }
   }
 
   /**

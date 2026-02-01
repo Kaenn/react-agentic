@@ -294,6 +294,7 @@ export class RuntimeMarkdownEmitter {
       case 'readState':
       case 'writeState':
       case 'readFiles':
+      case 'readFile':
       case 'promptTemplate':
       case 'step':
       case 'successCriteria':
