@@ -272,6 +272,32 @@ export function transformRuntimeSpawnAgent(
   // Extract optional loadFromFile prop
   const loadFromFile = getAttributeValue(openingElement, 'loadFromFile');
 
+  // Extract optional readAgentFile prop
+  const readAgentFileProp = openingElement.getAttribute('readAgentFile');
+  let readAgentFile = false;
+  if (readAgentFileProp && Node.isJsxAttribute(readAgentFileProp)) {
+    const init = readAgentFileProp.getInitializer();
+    if (!init) {
+      // Shorthand: readAgentFile (no value = true)
+      readAgentFile = true;
+    } else if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (expr && expr.getText() === 'true') {
+        readAgentFile = true;
+      } else if (expr && expr.getText() === 'false') {
+        readAgentFile = false;
+      }
+    }
+
+    // Validate: readAgentFile requires agent prop to be a string
+    if (readAgentFile && typeof agent !== 'string') {
+      throw ctx.createError(
+        'readAgentFile requires agent prop to be a static string (RuntimeVar not supported)',
+        openingElement
+      );
+    }
+  }
+
   return {
     kind: 'spawnAgent',
     agent,
@@ -281,5 +307,6 @@ export function transformRuntimeSpawnAgent(
     input,
     outputVar,
     loadFromFile,
+    ...(readAgentFile && { readAgentFile }),
   };
 }
