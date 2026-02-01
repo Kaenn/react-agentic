@@ -97,6 +97,14 @@ Components for agent contracts, command orchestration, and meta-prompting contex
 
 **Requirements:** AGNT-01, AGNT-02, AGNT-03, AGNT-04, AGNT-05
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 34-01-PLAN.md — IR node types and component stubs
+- [ ] 34-02-PLAN.md — Parser transformers for contract components
+- [ ] 34-03-PLAN.md — Emitter and validation logic
+- [ ] 34-04-PLAN.md — Snapshot tests
+
 **Success Criteria:**
 1. Agent can declare identity and responsibilities with `<Role>` component
 2. Agent can document expected input context with `<UpstreamInput>` component
@@ -169,7 +177,7 @@ All phases complete through v3.0. v3.1 in progress.
 | 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
-| 34 | v3.1 | 0/? | Pending | — |
+| 34 | v3.1 | 0/4 | Ready | — |
 | 35 | v3.1 | 0/? | Pending | — |
 | 36 | v3.1 | 0/? | Pending | — |
 | 37 | v3.1 | 0/? | Pending | — |
