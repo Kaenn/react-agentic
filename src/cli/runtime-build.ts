@@ -78,6 +78,8 @@ export interface RuntimeBuildOptions {
   runtimeOut: string;
   /** Dry run - don't write files */
   dryRun?: boolean;
+  /** Full config (for accessing agentsDir, etc.) */
+  config?: Partial<import('./config.js').ReactAgenticConfig>;
 }
 
 // ============================================================================
@@ -265,7 +267,7 @@ export async function buildRuntimeFile(
   } else {
     // Transform Command element
     document = transformRuntimeCommand(rootElement, ctx);
-    markdown = emitDocument(document);
+    markdown = emitDocument(document, options.config);
   }
 
   // Phase 5: Extract runtime info (bundling happens at the end for all files)

@@ -187,6 +187,13 @@ function conditionToProse(condition: Condition): string {
  * Emitter for V3 documents
  */
 export class RuntimeMarkdownEmitter {
+  /** Build configuration (for agentsDir, etc.) */
+  private config?: Partial<import('../cli/config.js').ReactAgenticConfig>;
+
+  constructor(config?: Partial<import('../cli/config.js').ReactAgenticConfig>) {
+    this.config = config;
+  }
+
   /**
    * Emit a complete V3 document
    */
@@ -634,6 +641,28 @@ export class RuntimeMarkdownEmitter {
       promptContent = '';
     }
 
+    // Handle readAgentFile - prepends self-reading instruction
+    if (node.readAgentFile) {
+      const agentName = typeof node.agent === 'string'
+        ? node.agent
+        : node.agent.varName; // RuntimeVarRefNode case
+
+      // Construct path using agentsDir (expand ~ to home)
+      const agentsDir = this.config?.agentsDir || '~/.claude/agents/';
+      const os = require('os');
+      const expandedDir = agentsDir.startsWith('~')
+        ? agentsDir.replace('~', os.homedir())
+        : agentsDir;
+
+      // Ensure path ends with / for clean joining
+      const normalizedDir = expandedDir.endsWith('/') ? expandedDir : expandedDir + '/';
+      const agentFilePath = `${normalizedDir}${agentName}.md`;
+
+      // Prepend self-reading instruction
+      const instruction = `First, read ${agentFilePath} for your role and instructions.\\n\\n`;
+      promptContent = instruction + promptContent;
+    }
+
     // Handle loadFromFile
     let subagentType: string | RuntimeVarRefNode = node.agent;
     let promptOutput: string;
@@ -857,7 +886,10 @@ Task(
 /**
  * Emit a V3 document to markdown
  */
-export function emitDocument(doc: DocumentNode): string {
-  const emitter = new RuntimeMarkdownEmitter();
+export function emitDocument(
+  doc: DocumentNode,
+  config?: Partial<import('../cli/config.js').ReactAgenticConfig>
+): string {
+  const emitter = new RuntimeMarkdownEmitter(config);
   return emitter.emit(doc);
 }

@@ -34,6 +34,7 @@ interface BuildOptions {
   minify: boolean;
   dryRun?: boolean;
   watch?: boolean;
+  config?: Partial<import('../config.js').ReactAgenticConfig>;
 }
 
 /**
@@ -61,6 +62,7 @@ async function processFile(
     commandsOut: options.out,
     runtimeOut: options.runtimeOut,
     dryRun: options.dryRun,
+    config: options.config,
   });
 
   // Log warnings
@@ -258,6 +260,7 @@ export const buildCommand = new Command('build')
       minify: config.minify,
       dryRun: cliOptions.dryRun,
       watch: cliOptions.watch,
+      config,
     };
 
     // Disallow --dry-run with --watch (validate early before expensive operations)
