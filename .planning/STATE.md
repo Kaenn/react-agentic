@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 34 - Agent Contract Components
-Plan: 02 of 4
+Plan: 03 of 4
 Status: In progress
-Last activity: 2026-02-01 — Completed 34-01-PLAN.md (IR Nodes & Component Stubs)
+Last activity: 2026-02-01 — Completed 34-03-PLAN.md (Emitter and Validation Logic)
 
-Progress: [█████---------------] 2/4 plans (50%)
+Progress: [███████████████-----] 3/4 plans (75%)
 
-Next: Execute 34-03 (Emitter Implementation)
+Next: Execute 34-04 (Integration Testing and Documentation)
 
 ## Milestone History
 
@@ -40,9 +40,9 @@ Next: Execute 34-03 (Emitter Implementation)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 108 (v1.0-v3.1 in progress)
+- Total plans completed: 109 (v1.0-v3.1 in progress)
 - Average duration: ~4m
-- Total execution time: ~7.2 hours
+- Total execution time: ~7.25 hours
 
 **By Milestone:**
 
@@ -74,6 +74,10 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - ReturnStatusNode IR kind='returnStatus' (avoid conflict with control flow ReturnNode)
 - Emitter stub cases throw descriptive errors for phase 34-03 implementation
 - Support both ReturnStatus and StatusReturn JSX element names for compatibility
+- Contract components emit as snake_case XML blocks (role, upstream_input, etc.)
+- StructuredReturns emits with ## headings per status
+- Contract component validation allows interleaving while enforcing relative ordering
+- Deferred status type exhaustiveness validation to future enhancement
 
 ### Roadmap Evolution
 
@@ -89,6 +93,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 06:12 UTC
-Stopped at: Completed 34-01-PLAN.md execution (IR Nodes & Component Stubs)
-Resume with: Execute 34-03 (Emitter Implementation) or verify 34-02 completion
+Last session: 2026-02-01 06:18 UTC
+Stopped at: Completed 34-03-PLAN.md execution (Emitter and Validation Logic)
+Resume with: Execute 34-04 (Integration Testing and Documentation)
