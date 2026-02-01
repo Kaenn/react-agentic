@@ -29,6 +29,7 @@ import type {
   MethodologyNode,
   OfferNextNode,
   OnStatusNode,
+  OnStatusDefaultNode,
   ParagraphNode,
   ReadStateNode,
   ReadFilesNode,
@@ -253,6 +254,9 @@ export class MarkdownEmitter {
         return this.emitAssignGroup(node);
       case 'onStatus':
         return this.emitOnStatus(node);
+      case 'onStatusDefault':
+        // Placeholder - will be implemented in Task 3
+        return '**On any other status:**';
       case 'readState':
         return this.emitReadState(node);
       case 'writeState':

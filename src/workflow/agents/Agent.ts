@@ -175,6 +175,16 @@ export interface OnStatusProps {
 }
 
 /**
+ * Props for the OnStatusDefault component
+ */
+export interface OnStatusDefaultProps {
+  /** Optional output reference (inherited from preceding OnStatus if not provided) */
+  output?: { agent: string };
+  /** Block content for default status handling */
+  children?: ReactNode;
+}
+
+/**
  * Agent component - creates a Claude Code agent with frontmatter
  *
  * This is a compile-time component transformed by react-agentic.
@@ -274,5 +284,28 @@ export function SpawnAgent<TInput = unknown>(_props: SpawnAgentProps<TInput> | V
  * </OnStatus>
  */
 export function OnStatus(_props: OnStatusProps): null {
+  return null;
+}
+
+/**
+ * OnStatusDefault component - catch-all for unhandled agent statuses
+ *
+ * This is a compile-time component transformed by react-agentic.
+ * Must follow OnStatus blocks or provide explicit output prop.
+ *
+ * @example
+ * const output = useOutput<BuildOutput>("build-agent");
+ *
+ * <OnStatus output={output} status="SUCCESS">
+ *   <p>Build succeeded</p>
+ * </OnStatus>
+ * <OnStatus output={output} status="FAILED">
+ *   <p>Build failed</p>
+ * </OnStatus>
+ * <OnStatusDefault>
+ *   <p>Unexpected status from build agent</p>
+ * </OnStatusDefault>
+ */
+export function OnStatusDefault(_props: OnStatusDefaultProps): null {
   return null;
 }

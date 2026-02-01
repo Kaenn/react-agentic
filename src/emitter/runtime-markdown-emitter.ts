@@ -290,6 +290,7 @@ export class RuntimeMarkdownEmitter {
       case 'assign':
       case 'assignGroup':
       case 'onStatus':
+      case 'onStatusDefault':
       case 'readState':
       case 'writeState':
       case 'readFiles':

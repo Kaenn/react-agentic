@@ -275,6 +275,18 @@ export interface OnStatusNode {
 }
 
 /**
+ * OnStatusDefault block - catch-all for unhandled agent statuses
+ * Emits as **On any other status:** prose pattern
+ */
+export interface OnStatusDefaultNode {
+  kind: 'onStatusDefault';
+  /** Output reference from useOutput (inherited from preceding OnStatus) */
+  outputRef: OutputReference;
+  /** Block content for default case */
+  children: BaseBlockNode[];
+}
+
+/**
  * Role - agent identity and responsibilities
  * Renders as <role> XML block
  */
@@ -436,6 +448,7 @@ export type BaseBlockNode =
   | AssignNode
   | AssignGroupNode
   | OnStatusNode
+  | OnStatusDefaultNode
   | ReadStateNode
   | WriteStateNode
   | ReadFilesNode
