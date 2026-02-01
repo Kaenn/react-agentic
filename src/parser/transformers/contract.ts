@@ -115,7 +115,7 @@ export function transformMethodology(
 // ============================================================================
 
 /**
- * Transform Return component to ReturnStatusNode
+ * Transform ReturnStatus component to ReturnStatusNode
  * Only valid inside StructuredReturns
  */
 export function transformReturn(
@@ -142,14 +142,14 @@ export function transformReturn(
 
 /**
  * Transform StructuredReturns component to StructuredReturnsNode
- * Contains Return children only
+ * Contains ReturnStatus children only
  */
 export function transformStructuredReturns(
   node: JsxElement | JsxSelfClosingElement,
   ctx: TransformContext
 ): StructuredReturnsNode {
   if (Node.isJsxSelfClosingElement(node)) {
-    throw ctx.createError('StructuredReturns must have Return children', node);
+    throw ctx.createError('StructuredReturns must have ReturnStatus children', node);
   }
 
   const returns: ReturnStatusNode[] = [];
@@ -161,18 +161,18 @@ export function transformStructuredReturns(
       if (!text) continue;
       // Non-empty text inside StructuredReturns is an error
       throw ctx.createError(
-        'StructuredReturns can only contain Return components, not text',
+        'StructuredReturns can only contain ReturnStatus components, not text',
         child
       );
     }
 
     if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
       const childName = getElementName(child);
-      if (childName === 'Return') {
+      if (childName === 'ReturnStatus' || childName === 'StatusReturn') {
         returns.push(transformReturn(child, ctx));
       } else {
         throw ctx.createError(
-          `StructuredReturns can only contain Return components, not <${childName}>`,
+          `StructuredReturns can only contain ReturnStatus/StatusReturn components, not <${childName}>`,
           child
         );
       }
@@ -180,7 +180,7 @@ export function transformStructuredReturns(
   }
 
   if (returns.length === 0) {
-    throw ctx.createError('StructuredReturns must have at least one Return child', node);
+    throw ctx.createError('StructuredReturns must have at least one ReturnStatus child', node);
   }
 
   return {
@@ -203,6 +203,7 @@ export function isContractComponent(name: string): boolean {
     'DownstreamConsumer',
     'Methodology',
     'StructuredReturns',
-    'Return',
+    'ReturnStatus',
+    'StatusReturn',
   ].includes(name);
 }

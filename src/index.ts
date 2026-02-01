@@ -28,6 +28,14 @@ export {
   Return,
   AskUser,
 
+  // Agent contract components
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  StatusReturn,
+  StructuredReturns,
+
   // Runtime primitives
   useRuntimeVar,
   runtimeFn,
@@ -98,6 +106,9 @@ export {
   type RuntimeCallComponent,
   type RuntimeFnComponent,
   type RefProps,
+  type ContractComponentProps,
+  type StatusReturnProps,
+  type StructuredReturnsProps,
 } from './components/index.js';
 
 // ============================================================================

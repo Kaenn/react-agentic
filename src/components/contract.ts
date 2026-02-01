@@ -25,9 +25,9 @@ export interface ContractComponentProps {
 }
 
 /**
- * Props for Return component
+ * Props for StatusReturn component
  */
-export interface ReturnProps {
+export interface StatusReturnProps {
   /** Status value (e.g., "SUCCESS", "BLOCKED", "PARTIAL") */
   status: string;
   /** Description of what this status means */
@@ -116,21 +116,21 @@ export function Methodology(_props: ContractComponentProps): null {
 }
 
 /**
- * Return - Individual return status with description
+ * StatusReturn - Individual return status with description
  *
  * Only valid inside StructuredReturns. Renders as ## heading in agent markdown.
  *
  * @example
  * ```tsx
- * <Return status="SUCCESS">All tests passed</Return>
+ * <StatusReturn status="SUCCESS">All tests passed</StatusReturn>
  * ```
  */
-export function Return(_props: ReturnProps): null {
+export function StatusReturn(_props: StatusReturnProps): null {
   return null;
 }
 
 /**
- * StructuredReturns - Container for Return children defining agent statuses
+ * StructuredReturns - Container for StatusReturn children defining agent statuses
  *
  * Renders as <structured_returns> XML block containing ## headings for each status.
  * Must document all statuses from agent's status type.
@@ -138,9 +138,9 @@ export function Return(_props: ReturnProps): null {
  * @example
  * ```tsx
  * <StructuredReturns>
- *   <Return status="SUCCESS">All tests passed</Return>
- *   <Return status="FAILED">Some tests failed</Return>
- *   <Return status="BLOCKED">Cannot run tests</Return>
+ *   <StatusReturn status="SUCCESS">All tests passed</StatusReturn>
+ *   <StatusReturn status="FAILED">Some tests failed</StatusReturn>
+ *   <StatusReturn status="BLOCKED">Cannot run tests</StatusReturn>
  * </StructuredReturns>
  * ```
  */

@@ -152,3 +152,19 @@ export {
   REF_MARKER,
   type RefProps,
 } from './Ref.js';
+
+// ============================================================================
+// Agent Contract Components
+// ============================================================================
+
+export {
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  StatusReturn,
+  StructuredReturns,
+  type ContractComponentProps,
+  type StatusReturnProps,
+  type StructuredReturnsProps,
+} from './contract.js';

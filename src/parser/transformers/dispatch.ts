@@ -315,10 +315,10 @@ function transformElement(
   if (name === 'StructuredReturns') {
     return transformStructuredReturns(node, ctx);
   }
-  if (name === 'Return') {
-    // Return outside StructuredReturns - this is handled by StructuredReturns transformer
-    // If we get here, it means Return was used outside StructuredReturns
-    throw ctx.createError('Return component can only be used inside StructuredReturns', node);
+  if (name === 'ReturnStatus' || name === 'StatusReturn') {
+    // ReturnStatus/StatusReturn outside StructuredReturns - this is handled by StructuredReturns transformer
+    // If we get here, it means the component was used outside StructuredReturns
+    throw ctx.createError(`${name} component can only be used inside StructuredReturns`, node);
   }
 
   // Markdown passthrough
