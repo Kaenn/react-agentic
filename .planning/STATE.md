@@ -9,14 +9,14 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 36 - Meta-Prompting Components
-Plan: 03 of 3 complete
-Status: Phase complete
-Last activity: 2026-02-01 — Completed 36-03-PLAN.md
+Phase: 37 - SpawnAgent Enhancement Integration
+Plan: 01 of 3 complete
+Status: In progress
+Last activity: 2026-02-01 — Completed 37-01-PLAN.md
 
-Progress: [███████████████-----] 3/4 phases (v3.1)
+Progress: [████████████████----] 4/4 phases (v3.1) - Plan 1/3 of Phase 37
 
-Next: Phase 37 or milestone complete
+Next: Phase 37 Plans 02-03
 
 ## Milestone History
 
@@ -98,6 +98,11 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 **v3.1 Key Decisions (Phase 36 Plan 03):**
 - V1 transformer needs ReadFile dispatch for Agent documents (not just V3 dispatch.ts)
 
+**v3.1 Key Decisions (Phase 37 Plan 01):**
+- readAgentFile requires agent prop to be specified (can't self-read without agent name)
+- agentsDir defaults to ~/.claude/agents/ with tilde expansion support
+- Config passed through build pipeline to emitter for runtime access
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.0 complete. v3.1 Phases 34-36 complete, phase 37 remaining.
@@ -112,6 +117,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 09:52:00Z
-Stopped at: Completed 36-03-PLAN.md
-Resume with: Phase 37 or milestone wrap-up
+Last session: 2026-02-01 10:57:43Z
+Stopped at: Completed 37-01-PLAN.md
+Resume file: None
