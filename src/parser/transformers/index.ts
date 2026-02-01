@@ -188,6 +188,20 @@ export {
 } from './markdown.js';
 
 // ============================================================================
+// Contract Component Transformers
+// ============================================================================
+
+export {
+  transformRole,
+  transformUpstreamInput,
+  transformDownstreamConsumer,
+  transformMethodology,
+  transformStructuredReturns,
+  transformReturn,
+  isContractComponent,
+} from './contract.js';
+
+// ============================================================================
 // Runtime Transformers
 // ============================================================================
 
