@@ -22,6 +22,8 @@ import type {
   ElseNode,
   LoopNode,
   OnStatusNode,
+  OnStatusDefaultNode,
+  OutputReference,
   BlockNode,
 } from '../../ir/index.js';
 import {
@@ -162,6 +164,64 @@ export function transformOnStatus(
       agent: agentName,
     },
     status: status as OnStatusNode['status'],
+    children: children as BaseBlockNode[],
+  };
+}
+
+/**
+ * Transform OnStatusDefault component to OnStatusDefaultNode
+ * Handles catch-all for agent output statuses
+ *
+ * @param node - JSX element
+ * @param ctx - Transform context
+ * @param outputRef - Output reference from preceding OnStatus (sibling detection) or explicit prop
+ */
+export function transformOnStatusDefault(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext,
+  outputRef?: OutputReference
+): OnStatusDefaultNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Check for explicit output prop
+  const outputAttr = openingElement.getAttribute('output');
+  let resolvedOutputRef: OutputReference | undefined = outputRef;
+
+  if (outputAttr && Node.isJsxAttribute(outputAttr)) {
+    const outputInit = outputAttr.getInitializer();
+    if (outputInit && Node.isJsxExpression(outputInit)) {
+      const outputExpr = outputInit.getExpression();
+      if (outputExpr && Node.isIdentifier(outputExpr)) {
+        const outputIdentifier = outputExpr.getText();
+        const agentName = ctx.outputs.get(outputIdentifier);
+        if (agentName) {
+          resolvedOutputRef = {
+            kind: 'outputReference',
+            agent: agentName,
+          };
+        }
+      }
+    }
+  }
+
+  // Validate we have an output reference
+  if (!resolvedOutputRef) {
+    throw ctx.createError(
+      'OnStatusDefault must follow OnStatus blocks or provide output prop',
+      openingElement
+    );
+  }
+
+  // Transform children as block content
+  const children = Node.isJsxElement(node)
+    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    : [];
+
+  return {
+    kind: 'onStatusDefault',
+    outputRef: resolvedOutputRef,
     children: children as BaseBlockNode[],
   };
 }

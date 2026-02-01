@@ -15,7 +15,7 @@ import { isCustomComponent, extractTemplateContent } from './shared.js';
 // Import all transform functions from modules
 import { transformList, transformBlockquote, transformCodeBlock, transformDiv } from './html.js';
 import { transformTable, transformPropList, transformExecutionContext, transformSuccessCriteria, transformOfferNext, transformXmlSection, transformXmlWrapper } from './semantic.js';
-import { transformIf, transformElse, transformLoop, transformOnStatus } from './control.js';
+import { transformIf, transformElse, transformLoop, transformOnStatus, transformOnStatusDefault } from './control.js';
 import { transformSpawnAgent } from './spawner.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
 import { transformReadState, transformWriteState } from './state.js';
@@ -238,6 +238,19 @@ function transformElement(
     return transformOnStatus(node, ctx);
   }
 
+  // OnStatusDefault component - standalone is an error (must follow OnStatus as sibling OR have output prop)
+  if (name === 'OnStatusDefault') {
+    // Allow with explicit output prop
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+    const hasOutputProp = openingElement.getAttribute('output');
+    if (!hasOutputProp) {
+      throw ctx.createError('<OnStatusDefault> must follow <OnStatus> as sibling or provide output prop', node);
+    }
+    return transformOnStatusDefault(node, ctx);
+  }
+
   // ReadState component - read state from registry
   if (name === 'ReadState') {
     return transformReadState(node, ctx);
@@ -405,6 +418,32 @@ export function transformBlockChildren(
             const elseNode = transformElse(sibling, ctx);
             blocks.push(elseNode);
             i = nextIndex; // Skip past Else in outer loop
+          }
+          break;
+        }
+      } else if (childName === 'OnStatus') {
+        // Transform OnStatus
+        const onStatusNode = transformOnStatus(child, ctx);
+        blocks.push(onStatusNode);
+
+        // Check for OnStatusDefault sibling
+        let nextIndex = i + 1;
+        while (nextIndex < jsxChildren.length) {
+          const sibling = jsxChildren[nextIndex];
+          // Skip whitespace-only text
+          if (Node.isJsxText(sibling)) {
+            const text = extractText(sibling);
+            if (!text) {
+              nextIndex++;
+              continue;
+            }
+          }
+          // Check if next non-whitespace is OnStatusDefault
+          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))
+              && getElementName(sibling) === 'OnStatusDefault') {
+            const onStatusDefaultNode = transformOnStatusDefault(sibling, ctx, onStatusNode.outputRef);
+            blocks.push(onStatusDefaultNode);
+            i = nextIndex; // Skip past OnStatusDefault in outer loop
           }
           break;
         }

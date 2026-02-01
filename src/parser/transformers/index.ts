@@ -114,6 +114,7 @@ export {
   transformElse,
   transformLoop,
   transformOnStatus,
+  transformOnStatusDefault,
   extractOutputDeclarations,
   extractStateRefDeclarations,
 } from './control.js';
