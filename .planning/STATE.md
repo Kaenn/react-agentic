@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.1 Meta-Prompting — Phase 34 (Agent Contract Components)
+**Current focus:** v3.1 Meta-Prompting — Phase 35 (Command Orchestration Components)
 
 ## Current Position
 
-Phase: 34 - Agent Contract Components
-Plan: 04 of 4
-Status: Phase complete
-Last activity: 2026-02-01 — Completed 34-04-PLAN.md (Integration Testing)
+Phase: 35 - Command Orchestration Components
+Plan: —
+Status: Ready for planning
+Last activity: 2026-02-01 — Phase 34 complete (verified)
 
-Progress: [████████████████████] 4/4 plans (100%)
+Progress: [█████---------------] 1/4 phases (v3.1)
 
-Next: Phase 35 or v3.1 milestone completion
+Next: `/gsd:plan-phase 35`
 
 ## Milestone History
 
@@ -40,9 +40,9 @@ Next: Phase 35 or v3.1 milestone completion
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 110 (v1.0-v3.1 in progress)
+- Total plans completed: 111 (v1.0-v3.1 in progress)
 - Average duration: ~4m
-- Total execution time: ~7.36 hours
+- Total execution time: ~7.4 hours
 
 **By Milestone:**
 
@@ -53,6 +53,7 @@ Next: Phase 35 or v3.1 milestone completion
 | v2.0 | 6 | 17 | 2 days |
 | v2.1 | 1 | 4 | 1 day |
 | v3.0 | 7 | 13 | 11 days |
+| v3.1 | 1 | 4 | 1 day (in progress) |
 
 *Updated after each milestone completion*
 
@@ -72,8 +73,6 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 **v3.1 Key Decisions (Phase 34):**
 - StatusReturn component name (avoid conflict with control flow Return)
 - ReturnStatusNode IR kind='returnStatus' (avoid conflict with control flow ReturnNode)
-- Emitter stub cases throw descriptive errors for phase 34-03 implementation
-- Support both ReturnStatus and StatusReturn JSX element names for compatibility
 - Contract components emit as snake_case XML blocks (role, upstream_input, etc.)
 - StructuredReturns emits with ## headings per status
 - Contract component validation allows interleaving while enforcing relative ordering
@@ -82,7 +81,7 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 
 ### Roadmap Evolution
 
-All milestones v1.0-v3.0 complete. v3.1 roadmap created with 4 phases (34-37).
+All milestones v1.0-v3.0 complete. v3.1 Phase 34 complete, phases 35-37 remaining.
 
 ### Pending Todos
 
@@ -94,6 +93,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 06:27 UTC
-Stopped at: Completed 34-04-PLAN.md execution (Integration Testing)
-Resume with: Phase 35 or v3.1 milestone completion
+Last session: 2026-02-01
+Stopped at: Phase 34 complete, verified
+Resume with: `/gsd:plan-phase 35` to plan Command Orchestration Components

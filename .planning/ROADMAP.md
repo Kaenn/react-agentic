@@ -100,17 +100,17 @@ Components for agent contracts, command orchestration, and meta-prompting contex
 **Plans:** 4 plans
 
 Plans:
-- [ ] 34-01-PLAN.md — IR node types and component stubs
-- [ ] 34-02-PLAN.md — Parser transformers for contract components
-- [ ] 34-03-PLAN.md — Emitter and validation logic
-- [ ] 34-04-PLAN.md — Snapshot tests
+- [x] 34-01-PLAN.md — IR node types and component stubs
+- [x] 34-02-PLAN.md — Parser transformers for contract components
+- [x] 34-03-PLAN.md — Emitter and validation logic
+- [x] 34-04-PLAN.md — Snapshot tests
 
 **Success Criteria:**
-1. Agent can declare identity and responsibilities with `<Role>` component
-2. Agent can document expected input context with `<UpstreamInput>` component
-3. Agent can document output consumers with `<DownstreamConsumer>` component
-4. Agent can describe working approach with `<Methodology>` component
-5. Agent can define typed return statuses with `<StructuredReturns>` containing `<Return>` children
+1. Agent can declare identity and responsibilities with `<Role>` component ✓
+2. Agent can document expected input context with `<UpstreamInput>` component ✓
+3. Agent can document output consumers with `<DownstreamConsumer>` component ✓
+4. Agent can describe working approach with `<Methodology>` component ✓
+5. Agent can define typed return statuses with `<StructuredReturns>` containing `<StatusReturn>` children ✓
 
 ---
 
@@ -177,12 +177,12 @@ All phases complete through v3.0. v3.1 in progress.
 | 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
-| 34 | v3.1 | 0/4 | Ready | — |
+| 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
 | 35 | v3.1 | 0/? | Pending | — |
 | 36 | v3.1 | 0/? | Pending | — |
 | 37 | v3.1 | 0/? | Pending | — |
 
-**Total:** 107 plans completed across 33 phases
+**Total:** 111 plans completed across 34 phases
 
 ---
 *Roadmap created: 2026-01-21*
