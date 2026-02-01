@@ -301,6 +301,14 @@ export class RuntimeMarkdownEmitter {
       case 'runtimeVarDecl':
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
 
+      // Contract components - will be implemented in phase 34-02
+      case 'role':
+      case 'upstreamInput':
+      case 'downstreamConsumer':
+      case 'methodology':
+      case 'structuredReturns':
+        throw new Error(`Contract node '${node.kind}' emitter not yet implemented (phase 34-02)`);
+
       default:
         return assertNever(node);
     }

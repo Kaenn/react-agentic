@@ -262,6 +262,13 @@ export class MarkdownEmitter {
         // MCP servers are not emitted via markdown emitter
         // They go through settings.ts emitter to settings.json
         throw new Error('MCPServerNode should not be emitted via markdown emitter');
+      // Contract components - will be implemented in phase 34-02
+      case 'role':
+      case 'upstreamInput':
+      case 'downstreamConsumer':
+      case 'methodology':
+      case 'structuredReturns':
+        throw new Error(`Contract node '${node.kind}' emitter not yet implemented (phase 34-02)`);
       // Runtime-specific nodes - use V3 emitter for these
       case 'spawnAgent':
       case 'if':

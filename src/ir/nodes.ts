@@ -275,6 +275,62 @@ export interface OnStatusNode {
 }
 
 /**
+ * Role - agent identity and responsibilities
+ * Renders as <role> XML block
+ */
+export interface RoleNode {
+  kind: 'role';
+  children: BaseBlockNode[];
+}
+
+/**
+ * UpstreamInput - documents expected input context
+ * Renders as <upstream_input> XML block
+ */
+export interface UpstreamInputNode {
+  kind: 'upstreamInput';
+  children: BaseBlockNode[];
+}
+
+/**
+ * DownstreamConsumer - documents output consumers
+ * Renders as <downstream_consumer> XML block
+ */
+export interface DownstreamConsumerNode {
+  kind: 'downstreamConsumer';
+  children: BaseBlockNode[];
+}
+
+/**
+ * Methodology - describes working approach
+ * Renders as <methodology> XML block
+ */
+export interface MethodologyNode {
+  kind: 'methodology';
+  children: BaseBlockNode[];
+}
+
+/**
+ * Return - individual return status with description
+ * Only valid inside StructuredReturns
+ * Named ReturnStatusNode to avoid conflict with control flow ReturnNode
+ */
+export interface ReturnStatusNode {
+  kind: 'returnStatus';
+  status: string;
+  children: BaseBlockNode[];
+}
+
+/**
+ * StructuredReturns - container for Return children
+ * Renders as <structured_returns> with ## headings for each status
+ */
+export interface StructuredReturnsNode {
+  kind: 'structuredReturns';
+  returns: ReturnStatusNode[];
+}
+
+/**
  * Read state value from registry
  * Emits as bash JSON read operation
  */
@@ -385,7 +441,12 @@ export type BaseBlockNode =
   | ReadFilesNode
   | PromptTemplateNode
   | MCPServerNode
-  | StepNode;
+  | StepNode
+  | RoleNode
+  | UpstreamInputNode
+  | DownstreamConsumerNode
+  | MethodologyNode
+  | StructuredReturnsNode;
 
 /**
  * Internal alias for backward compatibility within this file
@@ -616,7 +677,13 @@ export type IRNode =
   | SkillDocumentNode
   | MCPConfigDocumentNode
   | StateDocumentNode
-  | TypeReference;
+  | TypeReference
+  | RoleNode
+  | UpstreamInputNode
+  | DownstreamConsumerNode
+  | MethodologyNode
+  | StructuredReturnsNode
+  | ReturnStatusNode;
 
 // ============================================================================
 // Utilities
