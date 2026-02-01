@@ -99,7 +99,16 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 
 ### Active
 
-(Next milestone requirements will be defined here)
+**v3.1 Meta-Prompting:**
+
+Target features:
+- Agent contract components: `<Role>`, `<UpstreamInput>`, `<DownstreamConsumer>`, `<Methodology>`
+- Agent return contract: `<StructuredReturns>` with typed return statuses
+- Command orchestration: `<Uses agent={...}>`, `<Init>`, `<HandleReturn>`
+- Meta-prompting layer: `<MetaPrompt>`, `<GatherContext>`, `<ComposeContext>`
+- Context gathering: `<ReadFile>`, `<InlineField>`, `<XmlBlock>` with content prop
+- Return handling: `<Match status="...">`, `<Display>`, `<OfferNext>`
+- SpawnAgent enhancement: `readAgentFile` prop for agent self-reading pattern
 
 ### Out of Scope
 
@@ -109,6 +118,10 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - Package imports (only relative imports supported) — future
 - Config file support — future
 - Incremental compilation — future
+
+## Current Milestone: v3.1 Meta-Prompting
+
+**Goal:** Enable intelligent context gathering and structured prompt composition — let Claude think with context to create smart prompts adapted to each agent.
 
 ## Current State
 
@@ -181,4 +194,4 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | Composites subpath export | ./composites separate from main package | Good — tree-shaking friendly |
 
 ---
-*Last updated: 2026-01-31 after v3.0 milestone*
+*Last updated: 2026-01-31 after starting v3.1 Meta-Prompting milestone*

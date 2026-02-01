@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** Milestone v3.0 complete — ready for next milestone
+**Current focus:** v3.1 Meta-Prompting — defining requirements
 
 ## Current Position
 
-Phase: 33 of 33 (all complete)
-Plan: All plans complete
-Status: v3.0 Primitive/Composite Architecture SHIPPED
-Last activity: 2026-01-31 - v3.0 milestone completed
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-31 — Milestone v3.1 started
 
-Progress: [====================] v3.0: 100% SHIPPED
+Progress: Milestone setup in progress
 
-Next: `/gsd:new-milestone` — start next milestone (questioning → research → requirements → roadmap)
+Next: Define requirements → Create roadmap
 
 ## Milestone History
 
@@ -71,7 +71,7 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 
 ### Roadmap Evolution
 
-All milestones v1.0-v3.0 complete. Ready for next milestone planning.
+All milestones v1.0-v3.0 complete. v3.1 requirements being defined.
 
 ### Pending Todos
 
@@ -84,5 +84,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v3.0 milestone completion
-Resume with: `/gsd:new-milestone` — start next milestone (fresh requirements needed)
+Stopped at: v3.1 milestone started, requirements being defined
+Resume with: Continue requirements definition → roadmap creation
