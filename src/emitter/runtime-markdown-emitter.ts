@@ -301,13 +301,17 @@ export class RuntimeMarkdownEmitter {
       case 'runtimeVarDecl':
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
 
-      // Contract components - will be implemented in phase 34-02
+      // Contract components
       case 'role':
+        return this.emitContractComponent('role', node);
       case 'upstreamInput':
+        return this.emitContractComponent('upstream_input', node);
       case 'downstreamConsumer':
+        return this.emitContractComponent('downstream_consumer', node);
       case 'methodology':
+        return this.emitContractComponent('methodology', node);
       case 'structuredReturns':
-        throw new Error(`Contract node '${node.kind}' emitter not yet implemented (phase 34-02)`);
+        return this.emitStructuredReturns(node);
 
       default:
         return assertNever(node);
@@ -814,6 +818,33 @@ Task(
     // Prepend spaces to each line
     const indent = ' '.repeat(node.spaces);
     return content.split('\n').map(line => line ? indent + line : line).join('\n');
+  }
+
+  /**
+   * Emit a contract component as XML block with snake_case tag name
+   */
+  private emitContractComponent(
+    tagName: string,
+    node: import('../ir/nodes.js').RoleNode | import('../ir/nodes.js').UpstreamInputNode | import('../ir/nodes.js').DownstreamConsumerNode | import('../ir/nodes.js').MethodologyNode
+  ): string {
+    const children = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
+    // Indent children for readability
+    return `<${tagName}>\n${children}\n</${tagName}>`;
+  }
+
+  /**
+   * Emit StructuredReturns with ## headings for each status
+   */
+  private emitStructuredReturns(node: import('../ir/nodes.js').StructuredReturnsNode): string {
+    const sections = node.returns.map(returnNode => {
+      const heading = `## ${returnNode.status}`;
+      const content = returnNode.children
+        .map(c => this.emitBlock(c as BlockNode))
+        .join('\n\n');
+      return content ? `${heading}\n\n${content}` : heading;
+    }).join('\n\n');
+
+    return `<structured_returns>\n\n${sections}\n\n</structured_returns>`;
   }
 }
 
