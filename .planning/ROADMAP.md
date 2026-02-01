@@ -14,7 +14,7 @@
 - **v2.0 TSX Syntax Improvements** — Phases 20-25 (shipped 2026-01-27)
 - **v2.1 Parser Refactoring** — Phase 26 (shipped 2026-01-31)
 - **v3.0 Primitive/Composite Architecture** — Phases 27-33 (shipped 2026-01-31)
-- **v3.1 Meta-Prompting** — Phases 34-37 (in progress)
+- **v3.1 Meta-Prompting** — Phases 34-37 (shipped 2026-02-01)
 
 ## Phases
 
@@ -170,14 +170,14 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 37-01-PLAN.md — readAgentFile prop (types, transformer, emitter, config)
-- [ ] 37-02-PLAN.md — v3.1 integration tests
+- [x] 37-01-PLAN.md — readAgentFile prop (types, transformer, emitter, config)
+- [x] 37-02-PLAN.md — v3.1 integration tests
 
 **Success Criteria:**
-1. SpawnAgent accepts `readAgentFile` prop that emits instruction for agent to read its own definition
-2. Full scenario (command with Uses, Init, MetaPrompt, SpawnAgent, HandleReturn) compiles correctly
-3. Agent with Role, UpstreamInput, DownstreamConsumer, Methodology, StructuredReturns compiles correctly
-4. Integration test validates command-to-agent context flow
+1. SpawnAgent accepts `readAgentFile` prop that emits instruction for agent to read its own definition ✓
+2. Full scenario (command with Uses, Init, MetaPrompt, SpawnAgent, HandleReturn) compiles correctly ✓
+3. Agent with Role, UpstreamInput, DownstreamConsumer, Methodology, StructuredReturns compiles correctly ✓
+4. Integration test validates command-to-agent context flow ✓
 
 ---
 
@@ -196,13 +196,13 @@ All phases complete through v3.0. v3.1 in progress.
 | 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
 | 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
 | 36 | v3.1 | 3/3 | Complete | 2026-02-01 |
-| 37 | v3.1 | 0/2 | Pending | — |
+| 37 | v3.1 | 2/2 | Complete | 2026-02-01 |
 
-**Total:** 115 plans completed across 36 phases
+**Total:** 117 plans completed across 37 phases
 
 ---
 *Roadmap created: 2026-01-21*
 *v2.0 TSX Syntax Improvements shipped: 2026-01-27*
 *v2.1 Parser Refactoring shipped: 2026-01-31*
 *v3.0 Primitive/Composite Architecture shipped: 2026-01-31*
-*v3.1 Meta-Prompting roadmap created: 2026-01-31*
+*v3.1 Meta-Prompting shipped: 2026-02-01*

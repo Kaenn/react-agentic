@@ -11,39 +11,36 @@ Requirements for Meta-Prompting milestone. Each maps to roadmap phases.
 
 Components inside `<Agent>` that define its contract with callers.
 
-- [ ] **AGNT-01**: `<Role>` component defines agent identity and responsibilities
-- [ ] **AGNT-02**: `<UpstreamInput>` documents what context agent expects from caller
-- [ ] **AGNT-03**: `<DownstreamConsumer>` documents what consumes agent's output
-- [ ] **AGNT-04**: `<Methodology>` describes how the agent works (approach, patterns)
-- [ ] **AGNT-05**: `<StructuredReturns>` with `<Return>` children defines typed return statuses
+- [x] **AGNT-01**: `<Role>` component defines agent identity and responsibilities
+- [x] **AGNT-02**: `<UpstreamInput>` documents what context agent expects from caller
+- [x] **AGNT-03**: `<DownstreamConsumer>` documents what consumes agent's output
+- [x] **AGNT-04**: `<Methodology>` describes how the agent works (approach, patterns)
+- [x] **AGNT-05**: `<StructuredReturns>` with `<StatusReturn>` children defines typed return statuses
 
 ### Command Orchestration
 
 Components inside `<Command>` for agent orchestration.
 
-- [ ] **ORCH-01**: `<Uses agent={...}>` declares agent dependency at command level
-- [ ] **ORCH-02**: `<Init>` wrapper groups initialization logic
-- [ ] **ORCH-03**: `<ValidateEnvironment>` checks prerequisites before execution
-- [ ] **ORCH-04**: `<ParseArguments>` defines argument schema for command
-- [ ] **ORCH-05**: `<HandleReturn>` routes execution based on agent return status
-- [ ] **ORCH-06**: `<Match status="...">` matches specific return status in HandleReturn
+- [x] **ORCH-07**: `<OnStatusDefault>` catch-all for unhandled agent return statuses
+
+Note: ORCH-01 through ORCH-06 removed per CONTEXT.md (Uses, Init, ValidateEnvironment, ParseArguments, HandleReturn, Match). OnStatusDefault added as replacement catch-all component.
 
 ### Meta-Prompting
 
 The context-gathering layer for intelligent prompt composition.
 
-- [ ] **META-01**: `<MetaPrompt>` wrapper for context composition block
-- [ ] **META-02**: `<GatherContext>` wrapper for file read operations
-- [ ] **META-03**: `<ReadFile>` reads file into named variable for composition
-- [ ] **META-04**: `<ComposeContext>` structures gathered content into XML blocks
-- [ ] **META-05**: `<InlineField>` renders simple key-value inline (e.g., `**Phase:** 08`)
-- [ ] **META-06**: `<Preamble>` renders intro text before structured content
+- [x] **META-01**: `<MetaPrompt>` wrapper for context composition block
+- [x] **META-02**: `<GatherContext>` wrapper for file read operations
+- [x] **META-03**: `<ReadFile>` reads file into named variable for composition
+- [x] **META-04**: `<ComposeContext>` structures gathered content into XML blocks
+- [x] **META-05**: `<InlineField>` renders simple key-value inline (e.g., `**Phase:** 08`)
+- [x] **META-06**: `<Preamble>` renders intro text before structured content
 
 ### SpawnAgent Enhancement
 
 Enhancements to existing SpawnAgent component.
 
-- [ ] **SPWN-01**: `readAgentFile` prop enables agent self-reading pattern
+- [x] **SPWN-01**: `readAgentFile` prop enables agent self-reading pattern
 
 ## Future Requirements
 
@@ -79,30 +76,25 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AGNT-01 | Phase 34 | Pending |
-| AGNT-02 | Phase 34 | Pending |
-| AGNT-03 | Phase 34 | Pending |
-| AGNT-04 | Phase 34 | Pending |
-| AGNT-05 | Phase 34 | Pending |
-| ORCH-01 | Phase 35 | Pending |
-| ORCH-02 | Phase 35 | Pending |
-| ORCH-03 | Phase 35 | Pending |
-| ORCH-04 | Phase 35 | Pending |
-| ORCH-05 | Phase 35 | Pending |
-| ORCH-06 | Phase 35 | Pending |
-| META-01 | Phase 36 | Pending |
-| META-02 | Phase 36 | Pending |
-| META-03 | Phase 36 | Pending |
-| META-04 | Phase 36 | Pending |
-| META-05 | Phase 36 | Pending |
-| META-06 | Phase 36 | Pending |
-| SPWN-01 | Phase 37 | Pending |
+| AGNT-01 | Phase 34 | Complete |
+| AGNT-02 | Phase 34 | Complete |
+| AGNT-03 | Phase 34 | Complete |
+| AGNT-04 | Phase 34 | Complete |
+| AGNT-05 | Phase 34 | Complete |
+| ORCH-07 | Phase 35 | Complete |
+| META-01 | Phase 36 | Complete |
+| META-02 | Phase 36 | Complete |
+| META-03 | Phase 36 | Complete |
+| META-04 | Phase 36 | Complete |
+| META-05 | Phase 36 | Complete |
+| META-06 | Phase 36 | Complete |
+| SPWN-01 | Phase 37 | Complete |
 
 **Coverage:**
-- v3.1 requirements: 18 total
-- Mapped to phases: 18
-- Unmapped: 0
+- v3.1 requirements: 13 total (6 removed per CONTEXT.md)
+- Mapped to phases: 13
+- Complete: 13
 
 ---
 *Requirements defined: 2026-01-31*
-*Traceability updated: 2026-01-31 (roadmap creation)*
+*Traceability updated: 2026-02-01 (v3.1 milestone complete)*
