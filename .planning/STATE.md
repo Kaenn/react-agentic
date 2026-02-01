@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 35 - Command Orchestration Components
-Plan: —
-Status: Ready for planning
-Last activity: 2026-02-01 — Phase 34 complete (verified)
+Plan: 01 of 4
+Status: In progress
+Last activity: 2026-02-01 — Completed 35-01-PLAN.md (OnStatusDefault component)
 
-Progress: [█████---------------] 1/4 phases (v3.1)
+Progress: [█████░--------------] 1.25/4 phases (v3.1)
 
-Next: `/gsd:plan-phase 35`
+Next: Continue Phase 35 planning
 
 ## Milestone History
 
@@ -40,9 +40,9 @@ Next: `/gsd:plan-phase 35`
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 111 (v1.0-v3.1 in progress)
-- Average duration: ~4m
-- Total execution time: ~7.4 hours
+- Total plans completed: 112 (v1.0-v3.1 in progress)
+- Average duration: ~5m
+- Total execution time: ~7.5 hours
 
 **By Milestone:**
 
@@ -79,6 +79,11 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Deferred status type exhaustiveness validation to future enhancement
 - V1 transformer must support contract components for backward compatibility
 
+**v3.1 Key Decisions (Phase 35 Plan 01):**
+- OnStatusDefault follows sibling pairing pattern (consistent with If/Else)
+- Emits as "On any other status:" prose pattern (matches OnStatus format)
+- Supports both sibling and standalone modes (sibling inherits output, standalone requires explicit output prop)
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.0 complete. v3.1 Phase 34 complete, phases 35-37 remaining.
@@ -94,5 +99,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Phase 34 complete, verified
-Resume with: `/gsd:plan-phase 35` to plan Command Orchestration Components
+Stopped at: Completed 35-01-PLAN.md (OnStatusDefault component)
+Resume file: None
