@@ -1,5 +1,59 @@
 # Project Milestones: React Agentic
 
+## v3.0 Primitive/Composite Architecture (Shipped: 2026-01-31)
+
+**Delivered:** Established primitive/composite component architecture for customizable workflow patterns.
+
+**Phases completed:** 27-33 (13 plans total)
+
+**Key accomplishments:**
+
+- Safety baseline: 64 snapshot tests capturing all component output + primitive registry (22 components across 3 layers)
+- Content type system: CommandContent, AgentContent, SubComponentContent discriminated unions for type-safe content constraints
+- Reference printing: RuntimeVar/RuntimeFn shell variable syntax ($VAR.path), Ref component for explicit reference printing
+- Component composition: Full props and children support in custom components, fragment composition
+- Composite library: 7 user-definable convenience wrappers (IfElseBlock, LoopWithBreak, SpawnAgentWithRetry, StepSection, DataTable, BulletList, FileContext)
+- Documentation: Primitive/composite architecture guide with user-facing patterns and examples
+
+**Stats:**
+
+- 95 files changed (+16,984 / -164 lines)
+- 49,295 total lines of TypeScript
+- 7 phases, 13 plans
+- 11 days from start to ship
+
+**Git range:** `feat(27-02)` → `docs(33)`
+
+**What's next:** v3.1 or v4.0 based on user feedback
+
+---
+
+## v2.1 Parser Refactoring (Shipped: 2026-01-31)
+
+**Delivered:** Split monolithic parser files into organized submodules for maintainability.
+
+**Phases completed:** 26 (4 plans total)
+
+**Key accomplishments:**
+
+- Split parser.ts (1255 lines) into utils/ directory with 7 focused modules
+- Split transformer.ts (3956 lines) into transformers/ directory with 10 focused modules
+- Central index.ts re-exports all public APIs (no breaking changes)
+- All existing tests pass after refactoring
+
+**Stats:**
+
+- 20 files created/modified
+- 46,800 total lines of TypeScript
+- 1 phase, 4 plans
+- 1 day from start to ship
+
+**Git range:** `feat(26-01)` → `feat(26-04)`
+
+**What's next:** v3.0 Primitive/Composite Architecture
+
+---
+
 ## v2.0 TSX Syntax Improvements (Shipped: 2026-01-27)
 
 **Delivered:** Improved TSX authoring ergonomics with module restructure, semantic components, structured props (Table/List), and render props pattern for context access.

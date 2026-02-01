@@ -82,22 +82,24 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - Split transformer.ts (3956 lines) into transformers/ directory with focused modules — v2.1
 - Central index.ts re-exports all public APIs (no breaking changes) — v2.1
 
+**v3.0 Primitive/Composite Architecture:**
+- ✓ Baseline snapshot tests capture current behavior before refactoring — v3.0
+- ✓ Primitive registry lists compiler-owned components explicitly (22 primitives) — v3.0
+- ✓ CommandContent, AgentContent, SubComponentContent type system — v3.0
+- ✓ RuntimeVar shell variable syntax ($VAR.path) in markdown output — v3.0
+- ✓ RuntimeFn reference properties (.name, .call, .input, .output) — v3.0
+- ✓ Ref component for explicit variable/function reference printing — v3.0
+- ✓ Full props and children support in custom components — v3.0
+- ✓ Fragment composition (multiple elements without wrapper) — v3.0
+- ✓ Compile-time content validation (TypeScript errors for invalid nesting) — v3.0
+- ✓ Composite library: IfElseBlock, LoopWithBreak, SpawnAgentWithRetry — v3.0
+- ✓ Composite library: StepSection, DataTable, BulletList, FileContext — v3.0
+- ✓ Composites exported from react-agentic/composites — v3.0
+- ✓ User-facing documentation for primitive/composite architecture — v3.0
+
 ### Active
 
-**v3.0 Primitive/Composite Architecture:**
-- [ ] Define clear primitive vs composite component boundary
-- [ ] Variable reference printing: `.ref` property on useRuntimeVar return value
-- [ ] `<Ref>` component for explicit variable reference printing
-- [ ] runtimeFn reference printing: `.ref` property for function call emission
-- [ ] MarkdownContentNode abstraction for document-level content (full feature set)
-- [ ] MarkdownContentNode abstraction for sub-component content (subset, no SpawnAgent etc.)
-- [ ] Export both content types for user component typing
-- [ ] Move If/Else to composite layer (user-definable pattern)
-- [ ] Move Loop/Break to composite layer
-- [ ] Move SpawnAgent to composite layer
-- [ ] Move Step, Table, List, ExecutionContext, etc. to composite layer
-- [ ] Composite components use only primitives internally
-- [ ] Sub-components can use full markdown expressiveness (not just string templates)
+(Next milestone requirements will be defined here)
 
 ### Out of Scope
 
@@ -108,47 +110,48 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 - Config file support — future
 - Incremental compilation — future
 
-## Current Milestone: v3.0 Primitive/Composite Architecture
+## Current State
 
-**Goal:** Separate compiler-required primitives from user-definable composites, enabling customizable workflow patterns and full markdown expressiveness in sub-components.
+**Shipped:** v3.0 Primitive/Composite Architecture (2026-01-31)
 
-**Target features:**
-- Variable/function reference printing (`.ref` property, `<Ref>` component)
-- Two MarkdownContentNode types (document-level vs sub-component)
-- Move workflow components (If, Loop, SpawnAgent, etc.) to composite layer
-- Sub-components with full markdown children support
+**Codebase:**
+- 49,295 lines of TypeScript
+- 884 tests (all passing)
+- 7 composites available for user customization
+- 22 primitives documented and classified
+
+**Architecture:**
+- IR layer with discriminated unions decouples parsing from emission
+- Parse -> Transform -> Emit pipeline
+- Transformer supports component composition via import resolution
+- Organized module structure: primitives/, workflow/, workflow/sections/, composites/
+- Content type system for type-safe nesting constraints
 
 ## Context
-
-**Current State:** Shipped v2.1 with parser refactoring complete.
 
 **Tech stack:**
 - TypeScript 5.9.3 with NodeNext module resolution
 - ts-morph ^27.0.2 for TSX parsing
 - Commander.js for CLI
 - Chokidar for file watching
-- Vitest for testing (155+ tests)
-
-**Architecture:**
-- IR layer with discriminated unions decouples parsing from emission
-- Parse -> Transform -> Emit pipeline
-- Transformer supports component composition via import resolution
-- Organized module structure: primitives/, workflow/, workflow/sections/
+- Vitest for testing (884 tests)
 
 **Reference implementation:**
 - Input example: `src/app/commit-helper.tsx`
 - Output: `.claude/commands/commit-helper.md`
 - Documentation: `docs/build-pipeline.md`
 
-**v2.0 Component additions:**
+**v3.0 Component additions:**
 | Component | Props | Output |
 |-----------|-------|--------|
-| `<Table>` | headers, rows, align | Markdown table |
-| `<List>` | items, ordered, start | Bullet/numbered list |
-| `<ExecutionContext>` | paths, prefix | @ file references |
-| `<SuccessCriteria>` | items | Checkbox list |
-| `<OfferNext>` | routes | Navigation section |
-| `<Step>` | number, name, variant | Numbered section |
+| `<Ref>` | value, call | Variable/function reference |
+| `<IfElseBlock>` | condition, then, otherwise | Conditional block (composite) |
+| `<LoopWithBreak>` | max, breakWhen, breakMessage | Loop with break (composite) |
+| `<SpawnAgentWithRetry>` | maxRetries, retryWhen | Agent spawn with retry (composite) |
+| `<StepSection>` | number, name, description | Step with description (composite) |
+| `<DataTable>` | headers, rows, caption, emptyMessage | Table with caption (composite) |
+| `<BulletList>` | items, title | List with title (composite) |
+| `<FileContext>` | paths, title | ExecutionContext with title (composite) |
 
 ## Constraints
 
@@ -173,6 +176,9 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 | Structured props (Table/List) | Array props vs manual JSX children | Good — type-safe, less boilerplate |
 | Render props optional | Progressive disclosure, backwards compatible | Good — simple cases stay simple |
 | Step number as string | Support sub-steps like "1.1" | Good — flexible numbering |
+| Extract-based content types | Explicit allow-list vs deny-list for SubComponentContent | Good — clear boundaries |
+| Shell variable syntax | $VAR.path matches Claude Code conventions | Good — familiar to users |
+| Composites subpath export | ./composites separate from main package | Good — tree-shaking friendly |
 
 ---
-*Last updated: 2026-01-31 after v3.0 milestone started*
+*Last updated: 2026-01-31 after v3.0 milestone*
