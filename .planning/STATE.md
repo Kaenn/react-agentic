@@ -84,6 +84,11 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Emits as "On any other status:" prose pattern (matches OnStatus format)
 - Supports both sibling and standalone modes (sibling inherits output, standalone requires explicit output prop)
 
+**v3.1 Key Decisions (Phase 36 Plan 01):**
+- ReadFile uses as prop for variable name (consistency with batch ReadFiles)
+- Optional prop inverts required semantics (presence means optional=true)
+- Path quoting for $ or space characters
+
 **v3.1 Key Decisions (Phase 36 Plan 02):**
 - Semantic wrappers (MetaPrompt, GatherContext) return children via fragment
 - ComposeContext wraps XmlBlock primitive for structured output
