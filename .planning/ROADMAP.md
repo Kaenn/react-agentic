@@ -116,18 +116,21 @@ Plans:
 
 ### Phase 35: Command Orchestration Components
 
-**Goal:** Commands can declare agent dependencies and orchestrate initialization, argument parsing, and return handling.
+**Goal:** Add OnStatusDefault component for catch-all agent return status handling.
 
 **Dependencies:** Phase 34 (agents must have contracts to orchestrate)
 
-**Requirements:** ORCH-01, ORCH-02, ORCH-03, ORCH-04, ORCH-05, ORCH-06
+**Requirements:** OnStatusDefault catch-all component (ORCH-01 through ORCH-06 removed per CONTEXT.md)
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 35-01-PLAN.md — OnStatusDefault component (IR, transformer, emitter, tests)
 
 **Success Criteria:**
-1. Command can declare agent dependency with `<Uses agent={...}>` component
-2. Command can group initialization logic with `<Init>` wrapper
-3. Command can validate prerequisites with `<ValidateEnvironment>` component
-4. Command can define argument schema with `<ParseArguments>` component
-5. Command can route on agent return status with `<HandleReturn>` containing `<Match status="...">` children
+1. OnStatusDefault component can follow OnStatus blocks for catch-all handling
+2. OnStatusDefault with explicit output prop works standalone
+3. OnStatusDefault emits as "**On any other status:**" header
 
 ---
 
