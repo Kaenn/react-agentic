@@ -17,6 +17,7 @@ import type {
   BlockquoteNode,
   CodeBlockNode,
   DocumentNode,
+  DownstreamConsumerNode,
   ExecutionContextNode,
   FrontmatterNode,
   GroupNode,
@@ -25,20 +26,24 @@ import type {
   InlineNode,
   ListItemNode,
   ListNode,
+  MethodologyNode,
   OfferNextNode,
   OnStatusNode,
   ParagraphNode,
   ReadStateNode,
   ReadFilesNode,
   PromptTemplateNode,
+  RoleNode,
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
+  StructuredReturnsNode,
   SuccessCriteriaNode,
   StepNode,
   StepVariant,
   TableNode,
   TypeReference,
+  UpstreamInputNode,
   WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
@@ -164,7 +169,7 @@ export class MarkdownEmitter {
 
     // Auto-generate structured_returns if outputType present
     if (doc.frontmatter.outputType && sourceFile) {
-      const structuredReturns = this.emitStructuredReturns(doc.frontmatter.outputType, sourceFile);
+      const structuredReturns = this.emitStructuredReturnsFromType(doc.frontmatter.outputType, sourceFile);
       if (structuredReturns) {
         parts.push(structuredReturns);
       }
@@ -262,13 +267,17 @@ export class MarkdownEmitter {
         // MCP servers are not emitted via markdown emitter
         // They go through settings.ts emitter to settings.json
         throw new Error('MCPServerNode should not be emitted via markdown emitter');
-      // Contract components - will be implemented in phase 34-02
+      // Contract components
       case 'role':
+        return this.emitContractComponent('role', node);
       case 'upstreamInput':
+        return this.emitContractComponent('upstream_input', node);
       case 'downstreamConsumer':
+        return this.emitContractComponent('downstream_consumer', node);
       case 'methodology':
+        return this.emitContractComponent('methodology', node);
       case 'structuredReturns':
-        throw new Error(`Contract node '${node.kind}' emitter not yet implemented (phase 34-02)`);
+        return this.emitStructuredReturns(node);
       // Runtime-specific nodes - use V3 emitter for these
       case 'spawnAgent':
       case 'if':
@@ -819,12 +828,39 @@ export class MarkdownEmitter {
   }
 
   /**
+   * Emit a contract component as XML block with snake_case tag name
+   */
+  private emitContractComponent(
+    tagName: string,
+    node: RoleNode | UpstreamInputNode | DownstreamConsumerNode | MethodologyNode
+  ): string {
+    const children = node.children.map(c => this.emitBlock(c)).join('\n\n');
+    // Indent children for readability
+    return `<${tagName}>\n${children}\n</${tagName}>`;
+  }
+
+  /**
+   * Emit StructuredReturns with ## headings for each status
+   */
+  private emitStructuredReturns(node: StructuredReturnsNode): string {
+    const sections = node.returns.map(returnNode => {
+      const heading = `## ${returnNode.status}`;
+      const content = returnNode.children
+        .map(c => this.emitBlock(c))
+        .join('\n\n');
+      return content ? `${heading}\n\n${content}` : heading;
+    }).join('\n\n');
+
+    return `<structured_returns>\n\n${sections}\n\n</structured_returns>`;
+  }
+
+  /**
    * Generate <structured_returns> section from output type interface
    *
    * Resolves the TypeReference to its interface definition, extracts properties,
    * and generates status-specific templates based on field names.
    */
-  private emitStructuredReturns(outputType: TypeReference, sourceFile: SourceFile): string | null {
+  private emitStructuredReturnsFromType(outputType: TypeReference, sourceFile: SourceFile): string | null {
     // Resolve the interface
     const resolved = resolveTypeImport(outputType.name, sourceFile);
     if (!resolved?.interface) {
