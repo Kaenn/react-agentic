@@ -22,6 +22,14 @@ import { transformReadState, transformWriteState } from './state.js';
 import { transformStep, transformBash, transformReadFiles, transformPromptTemplate } from './primitives.js';
 import { transformMarkdown, transformXmlBlock, transformCustomComponent } from './markdown.js';
 import { transformInlineChildren } from './inline.js';
+import {
+  transformRole,
+  transformUpstreamInput,
+  transformDownstreamConsumer,
+  transformMethodology,
+  transformStructuredReturns,
+  isContractComponent,
+} from './contract.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -289,6 +297,28 @@ function transformElement(
   // PromptTemplate - wrap content in markdown code fence
   if (name === 'PromptTemplate') {
     return transformPromptTemplate(node, ctx);
+  }
+
+  // Contract components (inside Agent)
+  if (name === 'Role') {
+    return transformRole(node, ctx);
+  }
+  if (name === 'UpstreamInput') {
+    return transformUpstreamInput(node, ctx);
+  }
+  if (name === 'DownstreamConsumer') {
+    return transformDownstreamConsumer(node, ctx);
+  }
+  if (name === 'Methodology') {
+    return transformMethodology(node, ctx);
+  }
+  if (name === 'StructuredReturns') {
+    return transformStructuredReturns(node, ctx);
+  }
+  if (name === 'Return') {
+    // Return outside StructuredReturns - this is handled by StructuredReturns transformer
+    // If we get here, it means Return was used outside StructuredReturns
+    throw ctx.createError('Return component can only be used inside StructuredReturns', node);
   }
 
   // Markdown passthrough
