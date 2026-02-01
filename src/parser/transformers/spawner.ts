@@ -37,6 +37,9 @@ export function transformSpawnAgent(
   // Extract loadFromFile prop
   const loadFromFile = extractLoadFromFileProp(openingElement, agentPath, ctx);
 
+  // Extract readAgentFile prop
+  const readAgentFile = extractReadAgentFileProp(openingElement, agentName, ctx);
+
   // Extract prompt, promptVariable, and input props
   const prompt = extractPromptProp(openingElement, ctx);
   const promptVariable = getAttributeValue(openingElement, 'promptVariable');
@@ -103,6 +106,7 @@ export function transformSpawnAgent(
     ...(extraInstructions && { extraInstructions }),
     ...(inputType && { inputType }),
     ...(loadFromFile && { loadFromFile }),
+    ...(readAgentFile && { readAgentFile }),
   };
 }
 
@@ -366,6 +370,69 @@ function extractLoadFromFileProp(
     'loadFromFile must be a boolean or string path',
     element
   );
+}
+
+/**
+ * Extract readAgentFile prop
+ *
+ * Supports:
+ * - readAgentFile (boolean true shorthand)
+ * - readAgentFile={true}
+ * - readAgentFile={false}
+ *
+ * When true, validates that agent prop exists (can't self-read without agent name).
+ */
+function extractReadAgentFileProp(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  agentName: string | undefined,
+  ctx: TransformContext
+): boolean {
+  const attr = element.getAttribute('readAgentFile');
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return false;
+  }
+
+  const init = attr.getInitializer();
+
+  // Case 1: Boolean shorthand - readAgentFile (no value = true)
+  if (!init) {
+    validateCanSelfRead(agentName, element, ctx);
+    return true;
+  }
+
+  // Case 2: JSX expression - readAgentFile={true|false}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (expr && expr.getText() === 'true') {
+      validateCanSelfRead(agentName, element, ctx);
+      return true;
+    }
+    if (expr && expr.getText() === 'false') {
+      return false;
+    }
+  }
+
+  throw ctx.createError(
+    'readAgentFile must be a boolean (true or false)',
+    element
+  );
+}
+
+/**
+ * Validate that agent name exists for self-reading pattern
+ */
+function validateCanSelfRead(
+  agentName: string | undefined,
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  ctx: TransformContext
+): void {
+  if (!agentName) {
+    throw ctx.createError(
+      'readAgentFile requires agent prop to be specified. ' +
+      'Cannot self-read without an agent name.',
+      element
+    );
+  }
 }
 
 /**
