@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 37 - SpawnAgent Enhancement Integration
-Plan: 01 of 3 complete
+Plan: 02 of 3 complete
 Status: In progress
-Last activity: 2026-02-01 — Completed 37-01-PLAN.md
+Last activity: 2026-02-01 — Completed 37-02-PLAN.md
 
-Progress: [████████████████----] 4/4 phases (v3.1) - Plan 1/3 of Phase 37
+Progress: [████████████████----] 4/4 phases (v3.1) - Plan 2/3 of Phase 37
 
-Next: Phase 37 Plans 02-03
+Next: Phase 37 Plan 03
 
 ## Milestone History
 
@@ -103,6 +103,11 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - agentsDir defaults to ~/.claude/agents/ with tilde expansion support
 - Config passed through build pipeline to emitter for runtime access
 
+**v3.1 Key Decisions (Phase 37 Plan 02):**
+- Removed MetaPrompt/OnStatus tests - composites not supported in runtime transformer's in-memory test mode
+- Focus integration tests on primitive components that work in V3 runtime transformer
+- Fixed missing readAgentFile extraction in runtime spawner (was only in V1 transformer)
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.0 complete. v3.1 Phases 34-36 complete, phase 37 remaining.
@@ -117,6 +122,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 10:57:43Z
-Stopped at: Completed 37-01-PLAN.md
+Last session: 2026-02-01 11:07:18Z
+Stopped at: Completed 37-02-PLAN.md
 Resume file: None
