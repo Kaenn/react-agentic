@@ -585,7 +585,7 @@ export class MarkdownEmitter {
   private emitAssignmentLine(node: AssignNode): string {
     const { variableName, assignment, comment } = node;
 
-    let line: string;
+    let line: string = '';
     switch (assignment.type) {
       case 'bash':
         // Bash command: VAR=$(command)
