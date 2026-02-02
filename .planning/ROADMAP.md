@@ -112,13 +112,14 @@ Unify data assignment patterns with a single `<Assign>` component using a `from`
 
 **Requirements:** See claudedocs/proposals/data-abstraction.md
 
-**Plans:** 4 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] 38-01-PLAN.md — Source helpers and types (file, bash, value, env)
-- [ ] 38-02-PLAN.md — IR, transformer, and emitter support for from prop
-- [ ] 38-03-PLAN.md — Integration tests for from prop pattern
-- [ ] 38-04-PLAN.md — Remove legacy syntax and ReadFile component
+- [x] 38-01-PLAN.md — Source helpers and types (file, bash, value, env)
+- [x] 38-02-PLAN.md — IR, transformer, and emitter support for from prop
+- [x] 38-03-PLAN.md — Integration tests for from prop pattern
+- [x] 38-04-PLAN.md — Remove legacy syntax and ReadFile component
+- [ ] 38-05-PLAN.md — Gap closure: runtimeFn support for Assign from prop
 
 **Details:**
 - Implement `file()`, `bash()`, `value()`, `env()` source helper functions
@@ -153,9 +154,9 @@ All phases complete through v3.1. v3.2 in progress.
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
 | 34-37 | v3.1 | 10/10 | Complete | 2026-02-01 |
-| 38 | v3.2 | 0/4 | In Progress | - |
+| 38 | v3.2 | 4/5 | In Progress (gap closure) | - |
 
-**Total:** 117 plans completed across 37 phases, Phase 38 planned (4 plans)
+**Total:** 121 plans completed across 37 phases, Phase 38 gap closure in progress (1 plan)
 
 ---
 *Roadmap created: 2026-01-21*
