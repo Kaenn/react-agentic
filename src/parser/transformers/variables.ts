@@ -14,10 +14,9 @@ import { extractTemplateContent } from './shared.js';
  * Transform an Assign element to AssignNode
  * Assign emits a bash code block with variable assignment
  *
- * Supports three assignment types (exactly one required):
- * - bash: VAR=$(command)
- * - value: VAR=value (quoted if spaces)
- * - env: VAR=$ENV_VAR
+ * Supports two patterns:
+ * 1. New pattern: <Assign var={v} from={file("path")} />
+ * 2. Legacy pattern: <Assign var={v} bash="..." /> or value="..." or env="..."
  */
 export function transformAssign(
   node: JsxElement | JsxSelfClosingElement,
@@ -65,7 +64,13 @@ export function transformAssign(
     );
   }
 
-  // Extract assignment from props (exactly one of bash, value, env)
+  // Check for new from prop pattern first
+  const fromProp = openingElement.getAttribute('from');
+  if (fromProp) {
+    return transformAssignWithFrom(node, ctx, variable);
+  }
+
+  // Fall through to legacy prop handling (bash, value, env)
   const bashProp = extractAssignPropValue(openingElement, 'bash');
   const valueProp = extractAssignPropValue(openingElement, 'value');
   const envProp = extractAssignPropValue(openingElement, 'env');
@@ -73,7 +78,7 @@ export function transformAssign(
   const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
   if (propCount === 0) {
     throw ctx.createError(
-      'Assign requires one of: bash, value, or env prop',
+      'Assign requires one of: from, bash, value, or env prop',
       openingElement
     );
   }
@@ -84,7 +89,7 @@ export function transformAssign(
     );
   }
 
-  let assignment: { type: 'bash' | 'value' | 'env'; content: string };
+  let assignment: AssignNode['assignment'];
   if (bashProp !== undefined) {
     assignment = { type: 'bash', content: bashProp };
   } else if (valueProp !== undefined) {
@@ -102,6 +107,188 @@ export function transformAssign(
     assignment,
     ...(commentProp && { comment: commentProp }),
   };
+}
+
+/**
+ * Transform an Assign element with from prop
+ * Handles: <Assign var={v} from={file("path")} /> or from={bash(`cmd`)} etc.
+ */
+function transformAssignWithFrom(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext,
+  variable: { envName: string }
+): AssignNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Extract from prop value (JSX expression containing source helper call)
+  const fromAttr = openingElement.getAttribute('from');
+  if (!fromAttr || !Node.isJsxAttribute(fromAttr)) {
+    throw ctx.createError('Assign from prop must be a JSX expression', openingElement);
+  }
+
+  const init = fromAttr.getInitializer();
+  if (!init || !Node.isJsxExpression(init)) {
+    throw ctx.createError('Assign from must be a JSX expression: from={file(...)}', openingElement);
+  }
+
+  const expr = init.getExpression();
+  if (!expr) {
+    throw ctx.createError('Assign from must contain a source helper call', openingElement);
+  }
+
+  // Check if it's a call expression to a source helper (file, bash, value, env)
+  if (Node.isCallExpression(expr)) {
+    const callExpr = expr;
+    const fnExpr = callExpr.getExpression();
+
+    if (!Node.isIdentifier(fnExpr)) {
+      throw ctx.createError('Assign from must call a source helper: file(), bash(), value(), env()', openingElement);
+    }
+
+    const fnName = fnExpr.getText();
+    const args = callExpr.getArguments();
+
+    // Handle each source type
+    switch (fnName) {
+      case 'file': {
+        if (args.length === 0) {
+          throw ctx.createError('file() requires a path argument', openingElement);
+        }
+
+        const pathArg = args[0];
+        let path: string;
+
+        // Extract path from string literal or template
+        if (Node.isStringLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(pathArg)) {
+          path = extractTemplateContent(pathArg);
+        } else {
+          throw ctx.createError('file() path must be a string or template literal', openingElement);
+        }
+
+        // Check for optional option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let optional = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const optionalProp = options.getProperty('optional');
+          if (optionalProp && Node.isPropertyAssignment(optionalProp)) {
+            const init = optionalProp.getInitializer();
+            if (init && (init.getText() === 'true' || init.getText() === 'false')) {
+              optional = init.getText() === 'true';
+            }
+          }
+        }
+
+        return {
+          kind: 'assign',
+          variableName: variable.envName,
+          assignment: { type: 'file', path, ...(optional && { optional }) },
+        };
+      }
+
+      case 'bash': {
+        if (args.length === 0) {
+          throw ctx.createError('bash() requires a command argument', openingElement);
+        }
+
+        const cmdArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(cmdArg)) {
+          content = extractTemplateContent(cmdArg);
+        } else {
+          throw ctx.createError('bash() command must be a string or template literal', openingElement);
+        }
+
+        return {
+          kind: 'assign',
+          variableName: variable.envName,
+          assignment: { type: 'bash', content },
+        };
+      }
+
+      case 'value': {
+        if (args.length === 0) {
+          throw ctx.createError('value() requires a value argument', openingElement);
+        }
+
+        const valArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(valArg)) {
+          content = extractTemplateContent(valArg);
+        } else {
+          throw ctx.createError('value() must be a string or template literal', openingElement);
+        }
+
+        // Check for raw option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let raw = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const rawProp = options.getProperty('raw');
+          if (rawProp && Node.isPropertyAssignment(rawProp)) {
+            const init = rawProp.getInitializer();
+            if (init && (init.getText() === 'true' || init.getText() === 'false')) {
+              raw = init.getText() === 'true';
+            }
+          }
+        }
+
+        return {
+          kind: 'assign',
+          variableName: variable.envName,
+          assignment: { type: 'value', content, ...(raw && { raw }) },
+        };
+      }
+
+      case 'env': {
+        if (args.length === 0) {
+          throw ctx.createError('env() requires an environment variable name', openingElement);
+        }
+
+        const envArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(envArg)) {
+          content = envArg.getLiteralValue();
+        } else {
+          throw ctx.createError('env() variable name must be a string literal', openingElement);
+        }
+
+        return {
+          kind: 'assign',
+          variableName: variable.envName,
+          assignment: { type: 'env', content },
+        };
+      }
+
+      default:
+        throw ctx.createError(
+          `Unknown source helper: ${fnName}. Use file(), bash(), value(), or env()`,
+          openingElement
+        );
+    }
+  }
+
+  throw ctx.createError(
+    'Assign from must be a source helper call: file(), bash(), value(), or env()',
+    openingElement
+  );
 }
 
 /**
