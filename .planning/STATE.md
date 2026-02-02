@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
-**Current focus:** v3.1 Meta-Prompting — SHIPPED
+**Current focus:** v3.2 Data Abstraction — In Progress
 
 ## Current Position
 
-Phase: 37 - SpawnAgent Enhancement + Integration
-Plan: 02 of 2 complete
-Status: Phase complete (v3.1 milestone complete)
-Last activity: 2026-02-01 — Completed 37-02-PLAN.md
+Phase: 38 - Unified Assign with from Prop
+Plan: 2 of 3 complete
+Status: In progress
+Last activity: 2026-02-02 — Completed 38-02-PLAN.md
 
-Progress: [████████████████████] 4/4 phases (v3.1)
+Progress: [██████░░░░░░░░░░░░░░] 2/3 plans (v3.2 Phase 38)
 
-Next: Milestone audit or next milestone
+Next: Continue with Plan 38-03
 
 ## Milestone History
 
@@ -37,6 +37,7 @@ Next: Milestone audit or next milestone
 - v3.0 Primitive/Composite Architecture: Shipped 2026-01-31 (7 phases, 13 plans)
   See: .planning/milestones/v3.0-ROADMAP.md
 - v3.1 Meta-Prompting: Shipped 2026-02-01 (4 phases, 10 plans)
+- v3.2 Data Abstraction: In Progress (1 phase)
 
 ## Performance Metrics
 
@@ -109,9 +110,17 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Focus integration tests on primitive components that work in V3 runtime transformer
 - Fixed missing readAgentFile extraction in runtime spawner (was only in V1 transformer)
 
+**v3.2 Key Decisions (Phase 38 Plan 02):**
+- Extended AssignNode with discriminated union for assignment types
+- Added raw option to value type for unquoted bash values
+- Deferred runtimeFn support until context infrastructure ready
+- Maintained backward compatibility with legacy props (bash=, value=, env=)
+
 ### Roadmap Evolution
 
-All milestones v1.0-v3.1 complete.
+All milestones v1.0-v3.1 complete. v3.2 started.
+
+- Phase 38 added: Unified Assign with from Prop (Data Abstraction)
 
 ### Pending Todos
 
@@ -123,6 +132,6 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 
 ## Session Continuity
 
-Last session: 2026-02-01 11:30:00Z
-Stopped at: Completed Phase 37, v3.1 milestone shipped
+Last session: 2026-02-02
+Stopped at: Completed 38-02-PLAN.md (Unified Assign from prop)
 Resume file: None
