@@ -2,11 +2,10 @@
  * Grammar Tests: Assign Component
  *
  * Tests Assign component for variable assignments.
- * Assign uses the `var` prop with a VariableRef from useVariable().
+ * Assign uses the `var` prop with a VariableRef from useVariable()
+ * and `from` prop with source helpers (bash, value, env, file).
  *
- * Note: These tests use legacy bash=/value=/env= syntax.
- * See assign-from.test.ts for new from={source} pattern tests.
- * Legacy props will be removed in Phase 38, Plan 04.
+ * Updated in Phase 38, Plan 04 to use new from={source} syntax exclusively.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -14,13 +13,14 @@ import { transformAgentContent, wrapInAgent, expectAgentTransformError } from '.
 
 describe('<Assign>', () => {
   describe('type safety', () => {
-    it('compiles with var and bash props', () => {
+    it('compiles with var and from={bash(...)}', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const TIMESTAMP = useVariable("TIMESTAMP");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={TIMESTAMP} bash={\`date -u +"%Y-%m-%dT%H:%M:%SZ"\`} />
+              <Assign var={TIMESTAMP} from={bash(\`date -u +"%Y-%m-%dT%H:%M:%SZ"\`)} />
             </Agent>
           );
         }
@@ -28,13 +28,14 @@ describe('<Assign>', () => {
       expect(() => transformAgentContent(tsx, true)).not.toThrow();
     });
 
-    it('compiles with var and value props', () => {
+    it('compiles with var and from={value(...)}', () => {
       const tsx = `
+        import { value } from 'react-agentic';
         const OUTPUT = useVariable("OUTPUT");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={OUTPUT} value="/tmp/result.md" />
+              <Assign var={OUTPUT} from={value("/tmp/result.md")} />
             </Agent>
           );
         }
@@ -42,13 +43,14 @@ describe('<Assign>', () => {
       expect(() => transformAgentContent(tsx, true)).not.toThrow();
     });
 
-    it('compiles with var and env props', () => {
+    it('compiles with var and from={env(...)}', () => {
       const tsx = `
+        import { env } from 'react-agentic';
         const PHASE = useVariable("PHASE");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={PHASE} env="PHASE_NUMBER" />
+              <Assign var={PHASE} from={env("PHASE_NUMBER")} />
             </Agent>
           );
         }
@@ -58,11 +60,12 @@ describe('<Assign>', () => {
 
     it('accepts comment prop', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const DIR = useVariable("DIR");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={DIR} bash="pwd" comment="Get current directory" />
+              <Assign var={DIR} from={bash("pwd")} comment="Get current directory" />
             </Agent>
           );
         }
@@ -75,11 +78,12 @@ describe('<Assign>', () => {
     describe('bash assignment', () => {
       it('emits VAR=$(command) format', () => {
         const tsx = `
+          import { bash } from 'react-agentic';
           const TIMESTAMP = useVariable("TIMESTAMP");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={TIMESTAMP} bash={\`date +%s\`} />
+                <Assign var={TIMESTAMP} from={bash(\`date +%s\`)} />
               </Agent>
             );
           }
@@ -91,43 +95,47 @@ describe('<Assign>', () => {
 
       it('preserves variable references in bash', () => {
         const tsx = `
+          import { bash } from 'react-agentic';
           const PHASE_DIR = useVariable("PHASE_DIR");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={PHASE_DIR} bash={\`ls -d .planning/phases/\${PHASE}-*\`} />
+                <Assign var={PHASE_DIR} from={bash(\`ls -d .planning/phases/\${PHASE}-*\`)} />
               </Agent>
             );
           }
         `;
         const output = transformAgentContent(tsx, true);
-        expect(output).toContain('${PHASE}');
+        // Template interpolation emits $VAR without braces
+        expect(output).toContain('$PHASE');
       });
     });
 
     describe('value assignment', () => {
-      it('emits VAR=value format', () => {
+      it('emits VAR="value" format (quoted by default)', () => {
         const tsx = `
+          import { value } from 'react-agentic';
           const OUTPUT = useVariable("OUTPUT");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={OUTPUT} value="/tmp/out.md" />
+                <Assign var={OUTPUT} from={value("/tmp/out.md")} />
               </Agent>
             );
           }
         `;
         const output = transformAgentContent(tsx, true);
-        expect(output).toContain('OUTPUT=/tmp/out.md');
+        expect(output).toContain('OUTPUT="/tmp/out.md"');
       });
 
       it('quotes values with spaces', () => {
         const tsx = `
+          import { value } from 'react-agentic';
           const MSG = useVariable("MSG");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={MSG} value="hello world" />
+                <Assign var={MSG} from={value("hello world")} />
               </Agent>
             );
           }
@@ -140,11 +148,12 @@ describe('<Assign>', () => {
     describe('env assignment', () => {
       it('emits VAR=$ENV format', () => {
         const tsx = `
+          import { env } from 'react-agentic';
           const PHASE = useVariable("PHASE");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={PHASE} env="PHASE_NUMBER" />
+                <Assign var={PHASE} from={env("PHASE_NUMBER")} />
               </Agent>
             );
           }
@@ -157,11 +166,12 @@ describe('<Assign>', () => {
     describe('comment', () => {
       it('emits comment before assignment', () => {
         const tsx = `
+          import { bash } from 'react-agentic';
           const DIR = useVariable("DIR");
           export default function Doc() {
             return (
               <Agent name="test" description="Test">
-                <Assign var={DIR} bash="pwd" comment="Get working directory" />
+                <Assign var={DIR} from={bash("pwd")} comment="Get working directory" />
               </Agent>
             );
           }
@@ -175,11 +185,14 @@ describe('<Assign>', () => {
 
   describe('error cases', () => {
     it('throws when var prop is missing', () => {
-      const tsx = wrapInAgent(`<Assign bash="echo hi" />`);
+      const tsx = wrapInAgent(`
+        import { bash } from 'react-agentic';
+        <Assign from={bash("echo hi")} />
+      `);
       expectAgentTransformError(tsx, /requires var prop/);
     });
 
-    it('throws when no assignment prop provided', () => {
+    it('throws when from prop is missing', () => {
       const tsx = `
         const TEST = useVariable("TEST");
         export default function Doc() {
@@ -190,21 +203,21 @@ describe('<Assign>', () => {
           );
         }
       `;
-      expectAgentTransformError(tsx, /requires one of: bash, value, or env/);
+      expectAgentTransformError(tsx, /requires from prop/);
     });
 
-    it('throws when multiple assignment props provided', () => {
+    it('throws when from prop contains invalid source', () => {
       const tsx = `
         const TEST = useVariable("TEST");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={TEST} bash="echo hi" value="static" />
+              <Assign var={TEST} from="invalid" />
             </Agent>
           );
         }
       `;
-      expectAgentTransformError(tsx, /accepts only one of: bash, value, or env/);
+      expectAgentTransformError(tsx, /from must be a JSX expression/);
     });
   });
 });

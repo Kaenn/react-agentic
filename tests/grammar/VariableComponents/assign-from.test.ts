@@ -294,26 +294,6 @@ describe('<Assign from={...}>', () => {
       expect(fenceCount).toBe(1);
     });
 
-    it('handles mixed from and legacy syntax', () => {
-      const tsx = `
-        import { useVariable, file } from 'react-agentic';
-        const STATE = useVariable("STATE");
-        const TIMESTAMP = useVariable("TIMESTAMP");
-        export default function Doc() {
-          return (
-            <Agent name="test" description="Test">
-              <AssignGroup>
-                <Assign var={STATE} from={file('.planning/STATE.md')} />
-                <Assign var={TIMESTAMP} bash="date +%s" />
-              </AssignGroup>
-            </Agent>
-          );
-        }
-      `;
-      const output = transformAgentContent(tsx, true);
-      expect(output).toContain('STATE=$(cat .planning/STATE.md)');
-      expect(output).toContain('TIMESTAMP=$(date +%s)');
-    });
   });
 
   describe('template string interpolation', () => {
@@ -394,51 +374,6 @@ describe('<Assign from={...}>', () => {
   });
 
   describe('error cases', () => {
-    it('throws when both from and bash props provided', () => {
-      const tsx = `
-        import { useVariable, bash } from 'react-agentic';
-        const TEST = useVariable("TEST");
-        export default function Doc() {
-          return (
-            <Agent name="test" description="Test">
-              <Assign var={TEST} from={bash('echo hi')} bash="echo bye" />
-            </Agent>
-          );
-        }
-      `;
-      expectAgentTransformError(tsx, /from prop is mutually exclusive with bash, value, and env props/);
-    });
-
-    it('throws when both from and value props provided', () => {
-      const tsx = `
-        import { useVariable, value } from 'react-agentic';
-        const TEST = useVariable("TEST");
-        export default function Doc() {
-          return (
-            <Agent name="test" description="Test">
-              <Assign var={TEST} from={value('hello')} value="world" />
-            </Agent>
-          );
-        }
-      `;
-      expectAgentTransformError(tsx, /from prop is mutually exclusive with bash, value, and env props/);
-    });
-
-    it('throws when both from and env props provided', () => {
-      const tsx = `
-        import { useVariable, env } from 'react-agentic';
-        const TEST = useVariable("TEST");
-        export default function Doc() {
-          return (
-            <Agent name="test" description="Test">
-              <Assign var={TEST} from={env('HOME')} env="USER" />
-            </Agent>
-          );
-        }
-      `;
-      expectAgentTransformError(tsx, /from prop is mutually exclusive with bash, value, and env props/);
-    });
-
     it('throws when var prop is missing', () => {
       const tsx = `
         import { file } from 'react-agentic';
@@ -451,6 +386,21 @@ describe('<Assign from={...}>', () => {
         }
       `;
       expectAgentTransformError(tsx, /requires var prop/);
+    });
+
+    it('throws when from prop is missing', () => {
+      const tsx = `
+        import { useVariable } from 'react-agentic';
+        const TEST = useVariable("TEST");
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={TEST} />
+            </Agent>
+          );
+        }
+      `;
+      expectAgentTransformError(tsx, /requires from prop/);
     });
   });
 });

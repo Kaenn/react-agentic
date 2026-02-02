@@ -2,10 +2,9 @@
  * Grammar Tests: AssignGroup Component
  *
  * Tests AssignGroup for grouped variable assignments.
+ * Uses new from={source} syntax with source helpers (bash, value, env, file).
  *
- * Note: These tests use legacy bash=/value=/env= syntax.
- * See assign-from.test.ts for new from={source} pattern tests.
- * Legacy props will be removed in Phase 38, Plan 04.
+ * Updated in Phase 38, Plan 04 to use new from={source} syntax exclusively.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,14 +14,15 @@ describe('<AssignGroup>', () => {
   describe('type safety', () => {
     it('compiles with Assign children', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const A = useVariable("A");
         const B = useVariable("B");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={A} bash="echo a" />
-                <Assign var={B} bash="echo b" />
+                <Assign var={A} from={bash("echo a")} />
+                <Assign var={B} from={bash("echo b")} />
               </AssignGroup>
             </Agent>
           );
@@ -35,14 +35,15 @@ describe('<AssignGroup>', () => {
   describe('output correctness', () => {
     it('emits single bash code block with all assignments', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const A = useVariable("A");
         const B = useVariable("B");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={A} bash="echo a" />
-                <Assign var={B} bash="echo b" />
+                <Assign var={A} from={bash("echo a")} />
+                <Assign var={B} from={bash("echo b")} />
               </AssignGroup>
             </Agent>
           );
@@ -60,14 +61,15 @@ describe('<AssignGroup>', () => {
 
     it('preserves comments with blank lines before', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const A = useVariable("A");
         const B = useVariable("B");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={A} bash="echo a" comment="First" />
-                <Assign var={B} bash="echo b" comment="Second" />
+                <Assign var={A} from={bash("echo a")} comment="First" />
+                <Assign var={B} from={bash("echo b")} comment="Second" />
               </AssignGroup>
             </Agent>
           );
@@ -80,6 +82,7 @@ describe('<AssignGroup>', () => {
 
     it('handles mixed assignment types', () => {
       const tsx = `
+        import { bash, value, env } from 'react-agentic';
         const CMD = useVariable("CMD");
         const VAL = useVariable("VAL");
         const ENV_VAR = useVariable("ENV_VAR");
@@ -87,9 +90,9 @@ describe('<AssignGroup>', () => {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={CMD} bash="pwd" />
-                <Assign var={VAL} value="static" />
-                <Assign var={ENV_VAR} env="HOME" />
+                <Assign var={CMD} from={bash("pwd")} />
+                <Assign var={VAL} from={value("static", { raw: true })} />
+                <Assign var={ENV_VAR} from={env("HOME")} />
               </AssignGroup>
             </Agent>
           );
@@ -105,14 +108,15 @@ describe('<AssignGroup>', () => {
   describe('blank line handling', () => {
     it('adds blank line before assignments with comments', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const A = useVariable("A");
         const B = useVariable("B");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={A} bash="echo a" />
-                <Assign var={B} bash="echo b" comment="Has comment" />
+                <Assign var={A} from={bash("echo a")} />
+                <Assign var={B} from={bash("echo b")} comment="Has comment" />
               </AssignGroup>
             </Agent>
           );
@@ -129,15 +133,16 @@ describe('<AssignGroup>', () => {
 
     it('handles br separator for blank lines', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const A = useVariable("A");
         const B = useVariable("B");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
               <AssignGroup>
-                <Assign var={A} bash="echo a" />
+                <Assign var={A} from={bash("echo a")} />
                 <br />
-                <Assign var={B} bash="echo b" />
+                <Assign var={B} from={bash("echo b")} />
               </AssignGroup>
             </Agent>
           );

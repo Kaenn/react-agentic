@@ -3209,62 +3209,24 @@ export class Transformer {
       );
     }
 
-    // Extract assignment from props
+    // Check for from prop (required)
     const fromProp = openingElement.getAttribute('from');
-    const bashProp = this.extractAssignPropValue(openingElement, 'bash');
-    const valueProp = this.extractAssignPropValue(openingElement, 'value');
-    const envProp = this.extractAssignPropValue(openingElement, 'env');
 
-    // Validate from prop is mutually exclusive with legacy props
-    if (fromProp && (bashProp !== undefined || valueProp !== undefined || envProp !== undefined)) {
+    if (!fromProp) {
       throw this.createError(
-        'Assign from prop is mutually exclusive with bash, value, and env props',
+        'Assign requires from prop with a source helper: from={file(...)} or from={bash(...)} or from={value(...)} or from={env(...)}',
         openingElement
       );
+    }
+
+    if (!Node.isJsxAttribute(fromProp)) {
+      throw this.createError('from prop must be a regular attribute, not a spread', openingElement);
     }
 
     // Extract optional comment prop
     const commentProp = this.extractAssignPropValue(openingElement, 'comment');
 
-    // Handle new from prop pattern
-    if (fromProp) {
-      if (!Node.isJsxAttribute(fromProp)) {
-        throw this.createError('from prop must be a regular attribute, not a spread', openingElement);
-      }
-      const assignment = this.transformAssignFromProp(openingElement, fromProp);
-      return {
-        kind: 'assign',
-        variableName: variable.envName,
-        assignment,
-        ...(commentProp && { comment: commentProp }),
-      };
-    }
-
-    // Fall through to legacy prop handling (bash, value, env)
-    const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
-    if (propCount === 0) {
-      throw this.createError(
-        'Assign requires one of: bash, value, or env prop',
-        openingElement
-      );
-    }
-    if (propCount > 1) {
-      throw this.createError(
-        'Assign accepts only one of: bash, value, or env prop',
-        openingElement
-      );
-    }
-
-    let assignment: AssignNode['assignment'];
-    if (bashProp !== undefined) {
-      assignment = { type: 'bash', content: bashProp };
-    } else if (valueProp !== undefined) {
-      // Legacy value syntax: only quote if contains spaces (backward compatibility)
-      assignment = { type: 'value', content: valueProp, raw: !/\s/.test(valueProp) };
-    } else {
-      assignment = { type: 'env', content: envProp! };
-    }
-
+    const assignment = this.transformAssignFromProp(openingElement, fromProp);
     return {
       kind: 'assign',
       variableName: variable.envName,
