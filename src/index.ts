@@ -226,3 +226,19 @@ export {
   ExecutionContext,
   type ExecutionContextProps,
 } from './workflow/sections/index.js';
+
+// ============================================================================
+// Primitive Helpers
+// ============================================================================
+
+export {
+  file,
+  bash,
+  value,
+  env,
+  type FileSource,
+  type BashSource,
+  type ValueSource,
+  type EnvSource,
+  type AssignSource,
+} from './primitives/sources.js';
