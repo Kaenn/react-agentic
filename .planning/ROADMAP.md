@@ -15,7 +15,7 @@
 - **v2.1 Parser Refactoring** — Phase 26 (shipped 2026-01-31)
 - **v3.0 Primitive/Composite Architecture** — Phases 27-33 (shipped 2026-01-31)
 - **v3.1 Meta-Prompting** — Phases 34-37 (shipped 2026-02-01)
-- **v3.2 Data Abstraction** — Phase 38 (in progress)
+- **v3.2 Data Abstraction** — Phase 38 (shipped 2026-02-02)
 
 ## Phases
 
@@ -119,7 +119,7 @@ Plans:
 - [x] 38-02-PLAN.md — IR, transformer, and emitter support for from prop
 - [x] 38-03-PLAN.md — Integration tests for from prop pattern
 - [x] 38-04-PLAN.md — Remove legacy syntax and ReadFile component
-- [ ] 38-05-PLAN.md — Gap closure: runtimeFn support for Assign from prop
+- [x] 38-05-PLAN.md — Gap closure: runtimeFn support for Assign from prop
 
 **Details:**
 - Implement `file()`, `bash()`, `value()`, `env()` source helper functions
@@ -154,9 +154,9 @@ All phases complete through v3.1. v3.2 in progress.
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
 | 34-37 | v3.1 | 10/10 | Complete | 2026-02-01 |
-| 38 | v3.2 | 4/5 | In Progress (gap closure) | - |
+| 38 | v3.2 | 5/5 | Complete | 2026-02-02 |
 
-**Total:** 121 plans completed across 37 phases, Phase 38 gap closure in progress (1 plan)
+**Total:** 122 plans completed across 38 phases
 
 ---
 *Roadmap created: 2026-01-21*
@@ -164,3 +164,4 @@ All phases complete through v3.1. v3.2 in progress.
 *v2.1 Parser Refactoring shipped: 2026-01-31*
 *v3.0 Primitive/Composite Architecture shipped: 2026-01-31*
 *v3.1 Meta-Prompting shipped: 2026-02-01*
+*v3.2 Data Abstraction shipped: 2026-02-02*
