@@ -40,19 +40,19 @@ export function useVariable<T = string>(name: string): VariableRef<T> {
   return { name, ref: name };
 }
 
+import type { AssignSource } from './sources.js';
+import type { RuntimeFnComponent } from '../components/runtime-fn.js';
+
 /**
  * Props for the Assign component
- * Specify exactly one of: bash, value, or env
  */
 export interface AssignProps {
   /** Variable reference from useVariable */
   var: VariableRef;
-  /** Bash command to capture output: VAR=$(command) */
-  bash?: string;
-  /** Static value: VAR=value (quoted if contains spaces) */
-  value?: string;
-  /** Environment variable to read: VAR=$ENV_VAR */
-  env?: string;
+  /** Data source - file, bash, value, env, or runtimeFn */
+  from: AssignSource | RuntimeFnComponent<any, any>;
+  /** For runtimeFn sources: arguments to pass */
+  args?: Record<string, unknown>;
   /** Optional comment to emit above the assignment (e.g., "Get phase from roadmap") */
   comment?: string;
 }
@@ -61,22 +61,31 @@ export interface AssignProps {
  * Assign component - emits shell variable assignment
  *
  * This is a compile-time component. It's never executed at runtime.
- * It emits a bash code block with the variable assignment.
+ * It emits a bash code block with the variable assignment using a source helper.
  *
  * @example bash command
+ * import { bash } from 'react-agentic';
  * const phaseDir = useVariable("PHASE_DIR");
- * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* | head -1`} />
+ * <Assign var={phaseDir} from={bash(`ls -d .planning/phases/\${PHASE}-* | head -1`)} />
  * // Outputs: PHASE_DIR=$(ls -d .planning/phases/${PHASE}-* | head -1)
  *
  * @example static value
+ * import { value } from 'react-agentic';
  * const outputFile = useVariable("OUTPUT_FILE");
- * <Assign var={outputFile} value="/tmp/output.md" />
- * // Outputs: OUTPUT_FILE=/tmp/output.md
+ * <Assign var={outputFile} from={value("/tmp/output.md")} />
+ * // Outputs: OUTPUT_FILE="/tmp/output.md"
  *
  * @example environment variable
+ * import { env } from 'react-agentic';
  * const phase = useVariable("PHASE");
- * <Assign var={phase} env="PHASE_NUMBER" />
+ * <Assign var={phase} from={env("PHASE_NUMBER")} />
  * // Outputs: PHASE=$PHASE_NUMBER
+ *
+ * @example file content
+ * import { file } from 'react-agentic';
+ * const stateContent = useVariable("STATE_CONTENT");
+ * <Assign var={stateContent} from={file(".planning/STATE.md")} />
+ * // Outputs: STATE_CONTENT=$(cat .planning/STATE.md)
  */
 export function Assign(_props: AssignProps): null {
   return null;
