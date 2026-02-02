@@ -102,3 +102,44 @@ claudedocs/        # Internal/future documentation
 | Component | Purpose | Example |
 |-----------|---------|---------|
 | `<ExecutionContext>` | @ file references | `<ExecutionContext paths={["file.md"]} />` |
+
+## Claude Code Variable Patterns
+
+When emitting markdown for Claude Code, use simple variable reference patterns instead of explicit bash/jq commands. Claude Code understands variable filling patterns directly from its context (memory) and will resolve them without needing functional bash commands.
+
+### Pattern Format
+
+```
+$VARIABLE_NAME.property.nested_property
+```
+
+### Examples
+
+**Simple variable reference:**
+```
+prompt=$RESEARCHER_PROMPT
+```
+Claude Code will fill this with the value of `$RESEARCHER_PROMPT` from its context.
+
+**Property access:**
+```
+$CTX.phase_id
+$RESULT.data.items
+```
+Claude Code understands dot notation to access nested properties.
+
+**String concatenation in prompts:**
+```
+prompt="Instructions: " + $RESEARCHER_PROMPT
+```
+Claude Code will concatenate the static string with the variable value.
+
+### Why Not jq/bash Commands?
+
+Avoid generating explicit bash commands like:
+```bash
+# DON'T do this
+$(echo "$CTX" | jq -r '.phase_id')
+```
+
+This is unnecessarily complex. Claude Code doesn't execute these as bash — it recognizes the variable pattern and fills it from context. Simple notation like `$CTX.phase_id` achieves the same result and is clearer.

@@ -5,7 +5,7 @@
  * Delegates unchanged elements (headings, lists, etc.) to shared transformers.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, JsxOpeningElement } from 'ts-morph';
 import type { BlockNode, DocumentNode, BaseBlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
 import { getElementName, extractText, extractMarkdownText, getAttributeValue, getAttributeExpression, camelToKebab, getStringArrayAttribute, isCustomComponent, processIfElseSiblings, getArrayWithRuntimeVars } from './runtime-utils.js';
@@ -306,6 +306,12 @@ function transformRuntimeMixedChildren(
             contentAccumulator.push(text);
           }
         }
+      } else if (name === 'Markdown') {
+        // Handle Markdown elements inline with RuntimeVar support
+        const content = extractMarkdownContentWithRuntimeVars(child, ctx);
+        if (content) {
+          contentAccumulator.push(content);
+        }
       } else if (name === 'If' || name === 'V3If') {
         // Handle If with Else sibling lookahead
         flushContent();
@@ -418,12 +424,30 @@ function transformRuntimeMixedChildren(
               contentAccumulator.push(String(propValue));
             }
           } else {
-            // Not a prop reference - add placeholder syntax
-            contentAccumulator.push(`{${exprText}}`);
+            // Not a prop reference - check for RuntimeVar reference
+            const runtimeRef = parseRuntimeVarRef(expr, ctx);
+            if (runtimeRef) {
+              const pathStr = runtimeRef.path.length === 0
+                ? ''
+                : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+              contentAccumulator.push(`$${runtimeRef.varName}${pathStr}`);
+            } else {
+              // Not a RuntimeVar - add placeholder syntax
+              contentAccumulator.push(`{${exprText}}`);
+            }
           }
         } else {
-          // Not in component context - add placeholder syntax
-          contentAccumulator.push(`{${exprText}}`);
+          // Not in component context - check for RuntimeVar reference
+          const runtimeRef = parseRuntimeVarRef(expr, ctx);
+          if (runtimeRef) {
+            const pathStr = runtimeRef.path.length === 0
+              ? ''
+              : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+            contentAccumulator.push(`$${runtimeRef.varName}${pathStr}`);
+          } else {
+            // Not a RuntimeVar - add placeholder syntax
+            contentAccumulator.push(`{${exprText}}`);
+          }
         }
       }
     }
@@ -755,6 +779,293 @@ function extractCodeContentWithProps(
 }
 
 // ============================================================================
+// Markdown Content Extraction with RuntimeVar Support
+// ============================================================================
+
+/**
+ * Extract content from Markdown element with RuntimeVar support
+ *
+ * Handles JSX expressions containing RuntimeVar references and converts
+ * them to shell variable syntax ($VAR.path).
+ */
+function extractMarkdownContentWithRuntimeVars(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): string {
+  if (Node.isJsxSelfClosingElement(node)) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  for (const child of node.getJsxChildren()) {
+    if (Node.isJsxText(child)) {
+      const text = extractMarkdownText(child);
+      if (text) {
+        parts.push(text);
+      }
+    } else if (Node.isJsxExpression(child)) {
+      const expr = child.getExpression();
+      if (!expr) continue;
+
+      // String literal: {"text"}
+      if (Node.isStringLiteral(expr)) {
+        parts.push(expr.getLiteralValue());
+        continue;
+      }
+
+      // No-substitution template: {`text`}
+      if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+        parts.push(expr.getLiteralValue());
+        continue;
+      }
+
+      // Template expression: {`text ${var} more`}
+      if (Node.isTemplateExpression(expr)) {
+        const templateParts: string[] = [];
+        templateParts.push(expr.getHead().getLiteralText());
+
+        for (const span of expr.getTemplateSpans()) {
+          const spanExpr = span.getExpression();
+
+          // Check for RuntimeVar reference
+          const runtimeRef = parseRuntimeVarRef(spanExpr, ctx);
+          if (runtimeRef) {
+            const pathStr = runtimeRef.path.length === 0
+              ? ''
+              : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+            templateParts.push(`$${runtimeRef.varName}${pathStr}`);
+          } else {
+            // Not a RuntimeVar - preserve as ${...}
+            templateParts.push(`\${${spanExpr.getText()}}`);
+          }
+
+          templateParts.push(span.getLiteral().getLiteralText());
+        }
+
+        parts.push(templateParts.join(''));
+        continue;
+      }
+
+      // Check for RuntimeVar reference (property access like ctx.phaseId)
+      const runtimeRef = parseRuntimeVarRef(expr, ctx);
+      if (runtimeRef) {
+        const pathStr = runtimeRef.path.length === 0
+          ? ''
+          : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+        parts.push(`$${runtimeRef.varName}${pathStr}`);
+        continue;
+      }
+
+      // Identifier - might be a variable reference
+      if (Node.isIdentifier(expr)) {
+        parts.push(`{${expr.getText()}}`);
+        continue;
+      }
+
+      // Other expressions - preserve as placeholder
+      parts.push(`{${expr.getText()}}`);
+    }
+  }
+
+  return parts.join('').trim();
+}
+
+// ============================================================================
+// Meta-Prompting Component Transformations
+// ============================================================================
+
+/**
+ * Transform GatherContext - semantic wrapper that passes through children
+ *
+ * GatherContext groups file read operations. It's purely organizational
+ * and renders children directly as a group.
+ */
+function transformRuntimeGatherContext(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  // Transform children using V3 transformers
+  const children = Node.isJsxElement(node)
+    ? transformRuntimeBlockChildren(node, ctx)
+    : [];
+
+  return {
+    kind: 'group',
+    children,
+  } as BlockNode;
+}
+
+/**
+ * Transform ComposeContext - wraps children in named XML block
+ *
+ * Renders as <name>...</name> XML wrapper around children.
+ */
+function transformRuntimeComposeContext(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Get name prop
+  const nameAttr = getAttributeValue(openingElement, 'name');
+  if (!nameAttr) {
+    throw ctx.createError('ComposeContext requires name prop', node);
+  }
+
+  // Transform children using mixed content handler
+  const children = Node.isJsxElement(node)
+    ? transformRuntimeMixedChildren(node.getJsxChildren(), ctx)
+    : [];
+
+  return {
+    kind: 'xmlBlock',
+    name: nameAttr,
+    children: children as BaseBlockNode[],
+  };
+}
+
+/**
+ * Transform Preamble - renders children as blockquote
+ *
+ * Preamble provides introductory text in blockquote format.
+ */
+function transformRuntimePreamble(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  // Transform children to get content
+  const children = Node.isJsxElement(node)
+    ? transformRuntimeMixedChildren(node.getJsxChildren(), ctx)
+    : [];
+
+  return {
+    kind: 'blockquote',
+    children: children as BaseBlockNode[],
+  } as BlockNode;
+}
+
+// ============================================================================
+// ReadFile Component Transformation
+// ============================================================================
+
+/**
+ * Transform ReadFile component to ReadFileNode
+ *
+ * Supports:
+ * - Static path: <ReadFile path=".planning/STATE.md" as="STATE_CONTENT" />
+ * - Template path: <ReadFile path={`${ctx.phaseDir}/*-PLAN.md`} as="PLANS" />
+ * - Optional flag: <ReadFile path="..." as="..." optional />
+ */
+function transformRuntimeReadFile(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): BlockNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Get path prop - supports string, template literal, or expression
+  const pathValue = extractPathProp(openingElement, 'path', ctx);
+  if (!pathValue) {
+    throw ctx.createError('ReadFile requires path prop', node);
+  }
+
+  // Get as prop (required) - variable name
+  const varName = getAttributeValue(openingElement, 'as');
+  if (!varName) {
+    throw ctx.createError('ReadFile requires as prop', node);
+  }
+
+  // Get optional prop (default: false = required)
+  const optionalAttr = openingElement.getAttribute('optional');
+  const required = !optionalAttr; // Present optional prop means not required
+
+  return {
+    kind: 'readFile',
+    path: pathValue,
+    varName,
+    required,
+  } as BlockNode;
+}
+
+/**
+ * Extract path prop value, handling strings, templates, and RuntimeVar references
+ *
+ * Converts RuntimeVar property access to shell variable syntax:
+ * - ctx.phaseDir -> $CTX.phaseDir
+ * - ctx.phaseId -> $CTX.phaseId
+ */
+function extractPathProp(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string,
+  ctx: RuntimeTransformContext
+): string | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init) {
+    return undefined;
+  }
+
+  // String literal: path="value"
+  if (Node.isStringLiteral(init)) {
+    return init.getLiteralValue();
+  }
+
+  // JSX expression: path={...}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (!expr) {
+      return undefined;
+    }
+
+    // String literal inside expression: path={"value"}
+    if (Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // No-substitution template literal: path={`value`}
+    if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // Template expression with interpolation: path={`${ctx.phaseDir}/file.md`}
+    if (Node.isTemplateExpression(expr)) {
+      const parts: string[] = [];
+      parts.push(expr.getHead().getLiteralText());
+
+      for (const span of expr.getTemplateSpans()) {
+        const spanExpr = span.getExpression();
+
+        // Check for RuntimeVar reference
+        const runtimeRef = parseRuntimeVarRef(spanExpr, ctx);
+        if (runtimeRef) {
+          const pathStr = runtimeRef.path.length === 0
+            ? ''
+            : runtimeRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+          parts.push(`$${runtimeRef.varName}${pathStr}`);
+        } else {
+          // Not a runtime var - preserve expression text
+          parts.push(`\${${spanExpr.getText()}}`);
+        }
+
+        parts.push(span.getLiteral().getLiteralText());
+      }
+
+      return parts.join('');
+    }
+  }
+
+  return undefined;
+}
+
+// ============================================================================
 // Ref Component Transformation
 // ============================================================================
 
@@ -1023,6 +1334,26 @@ function transformRuntimeElement(
   // Ref component (reference printing)
   if (name === 'Ref') {
     return transformRef(node, ctx);
+  }
+
+  // ReadFile component (single file reading)
+  if (name === 'ReadFile') {
+    return transformRuntimeReadFile(node, ctx);
+  }
+
+  // GatherContext - semantic wrapper, passes through children
+  if (name === 'GatherContext') {
+    return transformRuntimeGatherContext(node, ctx);
+  }
+
+  // ComposeContext - wraps children in named XML block
+  if (name === 'ComposeContext') {
+    return transformRuntimeComposeContext(node, ctx);
+  }
+
+  // Preamble - renders children as blockquote
+  if (name === 'Preamble') {
+    return transformRuntimePreamble(node, ctx);
   }
 
   // ============================================================

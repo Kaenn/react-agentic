@@ -776,10 +776,13 @@ export class MarkdownEmitter {
   /**
    * Emit single file read as bash code block
    * Pattern follows GSD: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
+   *
+   * Smart quoting for paths with variables and globs:
+   * - $CTX_phaseDir/*-PLAN.md -> "$CTX_phaseDir"/*-PLAN.md
+   * - Variable parts are quoted, glob parts are not (so glob expands)
    */
   private emitReadFile(node: ReadFileNode): string {
-    // Quote path if it contains variables ($) or spaces
-    const quotedPath = /[$\s]/.test(node.path) ? `"${node.path}"` : node.path;
+    const quotedPath = this.smartQuotePath(node.path);
 
     if (node.required) {
       // Required file - fail loudly if missing
@@ -788,6 +791,51 @@ export class MarkdownEmitter {
       // Optional file - suppress errors with 2>/dev/null
       return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath} 2>/dev/null)\n\`\`\``;
     }
+  }
+
+  /**
+   * Smart quote path for shell: quote variable parts, leave glob parts unquoted
+   *
+   * Examples:
+   * - .planning/STATE.md -> .planning/STATE.md (no change)
+   * - $CTX_phaseDir/file.md -> "$CTX_phaseDir"/file.md
+   * - $CTX_phaseDir/*-PLAN.md -> "$CTX_phaseDir"/*-PLAN.md
+   * - path with space.md -> "path with space.md"
+   */
+  private smartQuotePath(path: string): string {
+    // No special chars - return as-is
+    if (!/[$\s*?[\]]/.test(path)) {
+      return path;
+    }
+
+    // Has glob chars (* ? [ ]) - need to quote carefully
+    const hasGlob = /[*?[\]]/.test(path);
+
+    if (!hasGlob) {
+      // No globs - safe to quote entire path
+      return `"${path}"`;
+    }
+
+    // Has both variables and globs - quote segment by segment
+    // Split on / and quote segments containing $ or spaces
+    const segments = path.split('/');
+    const quotedSegments = segments.map(seg => {
+      // Segment with variable or space - quote it
+      if (/[$\s]/.test(seg) && !/[*?[\]]/.test(seg)) {
+        return `"${seg}"`;
+      }
+      // Segment with both var and glob (rare) - quote the var part only
+      // e.g., $DIR*-PLAN.md - this is unusual, leave as-is and warn
+      if (/[$]/.test(seg) && /[*?[\]]/.test(seg)) {
+        // Best effort: wrap variable references in quotes
+        // $VAR*-PLAN.md -> "$VAR"*-PLAN.md
+        return seg.replace(/(\$[A-Z_][A-Z0-9_]*)/g, '"$1"');
+      }
+      // Pure glob or plain text - leave unquoted
+      return seg;
+    });
+
+    return quotedSegments.join('/');
   }
 
   /**

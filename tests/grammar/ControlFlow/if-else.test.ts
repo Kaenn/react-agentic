@@ -59,7 +59,7 @@ describe('If/Else Control Flow', () => {
         `;
         const output = transformCommand(tsx);
         expect(output).toContain('**If');
-        expect(output).toContain('ctx.error');
+        expect(output).toContain('$CTX.error');
       });
 
       it('emits block content', () => {
@@ -161,7 +161,7 @@ describe('If/Else Control Flow', () => {
         }
       `;
       const output = transformCommand(tsx);
-      expect(output).toContain('ctx.user.name');
+      expect(output).toContain('$CTX.user.name');
     });
   });
 });

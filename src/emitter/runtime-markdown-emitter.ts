@@ -49,6 +49,26 @@ function toJqExpression(ref: RuntimeVarRefNode): string {
 }
 
 /**
+ * Convert RuntimeVarRefNode to simple variable reference notation
+ *
+ * Claude Code understands variable filling patterns directly without needing
+ * explicit bash/jq commands. It can resolve $VAR.property from its context.
+ *
+ * @example
+ * toVarRef({ varName: 'CTX', path: ['user', 'name'] })
+ * // Returns: $CTX.user.name
+ *
+ * toVarRef({ varName: 'PROMPT', path: [] })
+ * // Returns: $PROMPT
+ */
+function toVarRef(ref: RuntimeVarRefNode): string {
+  if (ref.path.length === 0) {
+    return `$${ref.varName}`;
+  }
+  return `$${ref.varName}.${ref.path.join('.')}`;
+}
+
+/**
  * Convert Condition to shell condition string
  */
 function conditionToShell(condition: Condition): string {
@@ -137,15 +157,16 @@ function conditionToShell(condition: Condition): string {
 /**
  * Convert Condition to prose-friendly string
  *
- * Used in markdown output like: **If ctx.error:**
+ * Used in markdown output like: **If $CTX.error:**
  */
 function conditionToProse(condition: Condition): string {
   switch (condition.type) {
     case 'ref': {
-      const path = condition.ref.path.length === 0
-        ? condition.ref.varName.toLowerCase()
-        : `${condition.ref.varName.toLowerCase()}.${condition.ref.path.join('.')}`;
-      return path;
+      const { varName, path } = condition.ref;
+      if (path.length === 0) {
+        return `$${varName}`;
+      }
+      return `$${varName}.${path.join('.')}`;
     }
 
     case 'literal':
@@ -293,6 +314,8 @@ export class RuntimeMarkdownEmitter {
         return node.content;
       case 'indent':
         return this.emitIndent(node as import('../ir/nodes.js').IndentNode);
+      case 'readFile':
+        return this.emitReadFile(node as import('../ir/nodes.js').ReadFileNode);
 
       // V1 nodes that shouldn't appear in runtime documents
       case 'assign':
@@ -302,7 +325,6 @@ export class RuntimeMarkdownEmitter {
       case 'readState':
       case 'writeState':
       case 'readFiles':
-      case 'readFile':
       case 'promptTemplate':
       case 'step':
       case 'successCriteria':
@@ -394,8 +416,10 @@ export class RuntimeMarkdownEmitter {
 
       case 'runtimeVarRef': {
         const { varName, path } = value.ref;
-        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
-        return `"$(echo "$${varName}" | jq -r '${jqPath}')"`;
+        if (path.length === 0) {
+          return `$${varName}`;
+        }
+        return `$${varName}.${path.join('.')}`;
       }
 
       case 'expression':
@@ -610,14 +634,15 @@ export class RuntimeMarkdownEmitter {
    * Format a string or RuntimeVarRefNode for Task() output
    *
    * For static strings: returns escaped string in quotes
-   * For RuntimeVarRefNode: returns jq expression (no quotes, will be interpolated)
+   * For RuntimeVarRefNode: returns simple variable reference (Claude Code understands these)
    */
   private formatSpawnAgentProp(value: string | RuntimeVarRefNode): string {
     if (typeof value === 'string') {
       return `"${value.replace(/"/g, '\\"')}"`;
     }
-    // RuntimeVarRefNode - use jq expression
-    return toJqExpression(value);
+    // RuntimeVarRefNode - use simple variable reference notation
+    // Claude Code understands $VAR.path filling patterns from context
+    return toVarRef(value);
   }
 
   /**
@@ -626,17 +651,29 @@ export class RuntimeMarkdownEmitter {
   private emitSpawnAgent(node: SpawnAgentNode): string {
     const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
 
-    // Build prompt
+    // Build prompt - track if we have a RuntimeVarRef for concatenation
     let promptContent: string;
+    let hasVarRef = false;
+    let varRefContent = '';
+
     if (node.prompt) {
       promptContent = node.prompt;
     } else if (node.input) {
-      promptContent = this.formatInput(node.input);
+      const inputResult = this.formatInput(node.input);
+      if (inputResult.isVarRef) {
+        // Single RuntimeVarRef - will use concatenation
+        hasVarRef = true;
+        varRefContent = inputResult.content;
+        promptContent = ''; // Prefix will be added below
+      } else {
+        promptContent = inputResult.content;
+      }
     } else {
       promptContent = '';
     }
 
-    // Handle readAgentFile - prepends self-reading instruction
+    // Build prefix for readAgentFile
+    let prefix = '';
     if (node.readAgentFile) {
       const agentName = typeof node.agent === 'string'
         ? node.agent
@@ -652,9 +689,7 @@ export class RuntimeMarkdownEmitter {
       const normalizedDir = expandedDir.endsWith('/') ? expandedDir : expandedDir + '/';
       const agentFilePath = `${normalizedDir}${agentName}.md`;
 
-      // Prepend self-reading instruction
-      const instruction = `First, read ${agentFilePath} for your role and instructions.\\n\\n`;
-      promptContent = instruction + promptContent;
+      prefix = `First, read ${agentFilePath} for your role and instructions.\\n\\n`;
     }
 
     // Handle loadFromFile
@@ -663,10 +698,17 @@ export class RuntimeMarkdownEmitter {
 
     if (node.loadFromFile) {
       subagentType = 'general-purpose';
-      const prefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
-      promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
+      const loadPrefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
+      if (hasVarRef) {
+        promptOutput = `"${escapeQuotes(loadPrefix + prefix)}" + ${varRefContent}`;
+      } else {
+        promptOutput = `"${escapeQuotes(loadPrefix + prefix + promptContent)}"`;
+      }
+    } else if (hasVarRef) {
+      // Use string concatenation for RuntimeVarRef
+      promptOutput = `"${escapeQuotes(prefix)}" + ${varRefContent}`;
     } else {
-      promptOutput = `"${escapeQuotes(promptContent)}"`;
+      promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
     }
 
     // Format props - handle both static strings and RuntimeVar refs
@@ -692,30 +734,48 @@ Task(
   }
 
   /**
-   * Format V3 input for prompt
+   * Format V3 input for prompt - returns structured result for concatenation support
+   *
+   * When input is a single RuntimeVarRef property, returns it for string concatenation.
+   * Variable bindings keep the <input>{$var}</input> format for backward compatibility.
+   * Multiple properties or non-RuntimeVarRef use XML structure.
    */
-  private formatInput(input: import('../ir/index.js').SpawnAgentInput): string {
+  private formatInput(input: import('../ir/index.js').SpawnAgentInput): { content: string; isVarRef: boolean } {
     if (input.type === 'variable') {
-      return `<input>\n{$${input.varName.toLowerCase()}}\n</input>`;
+      // Variable binding - use XML wrapper format (backward compatible)
+      return { content: `<input>\n{$${input.varName.toLowerCase()}}\n</input>`, isVarRef: false };
     }
 
+    // Check if it's a single property with a RuntimeVarRef value
+    if (input.properties.length === 1) {
+      const prop = input.properties[0];
+      if (prop.value.type === 'runtimeVarRef') {
+        // Single RuntimeVarRef - use direct concatenation
+        return { content: toVarRef(prop.value.ref), isVarRef: true };
+      }
+    }
+
+    // Multiple properties or non-RuntimeVarRef - use XML structure
     const sections: string[] = [];
     for (const prop of input.properties) {
       const value = this.formatInputValue(prop.value);
       sections.push(`<${prop.name}>\n${value}\n</${prop.name}>`);
     }
-    return sections.join('\n\n');
+    return { content: sections.join('\n\n'), isVarRef: false };
   }
 
   /**
    * Format InputValue
+   *
+   * Uses simple variable reference notation ($VAR.path) instead of jq expressions.
+   * Claude Code understands variable filling patterns directly from its context.
    */
   private formatInputValue(value: InputValue): string {
     switch (value.type) {
       case 'string':
         return value.value;
       case 'runtimeVarRef':
-        return toJqExpression(value.ref);
+        return toVarRef(value.ref);
       case 'json':
         return JSON.stringify(value.value, null, 2);
     }
@@ -847,6 +907,74 @@ Task(
 
   // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
   // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
+
+  /**
+   * Emit ReadFileNode as bash code block
+   *
+   * Pattern: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
+   *
+   * Smart quoting for paths with variables and globs:
+   * - $CTX.phaseDir/*-PLAN.md -> "$CTX.phaseDir"/*-PLAN.md
+   */
+  private emitReadFile(node: import('../ir/nodes.js').ReadFileNode): string {
+    const quotedPath = this.smartQuotePath(node.path);
+
+    if (node.required) {
+      // Required file - fail loudly if missing
+      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath})\n\`\`\``;
+    } else {
+      // Optional file - suppress errors with 2>/dev/null
+      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath} 2>/dev/null)\n\`\`\``;
+    }
+  }
+
+  /**
+   * Smart quote path for shell: quote variable parts, leave glob parts unquoted
+   *
+   * Examples:
+   * - .planning/STATE.md -> .planning/STATE.md (no change)
+   * - $CTX.phaseDir/file.md -> "$CTX.phaseDir"/file.md
+   * - $CTX.phaseDir/*-PLAN.md -> "$CTX.phaseDir"/*-PLAN.md
+   * - path with space.md -> "path with space.md"
+   */
+  private smartQuotePath(path: string): string {
+    // No special chars - return as-is
+    if (!/[$\s*?[\]]/.test(path)) {
+      return path;
+    }
+
+    // Has glob chars (* ? [ ]) - need to quote carefully
+    const hasGlob = /[*?[\]]/.test(path);
+
+    if (!hasGlob) {
+      // No globs - quote the whole thing if it has spaces or vars
+      return `"${path}"`;
+    }
+
+    // Has both vars/spaces AND globs - split and quote only var parts
+    // Strategy: find variable refs ($VAR or $VAR.path) and quote them
+    // Leave glob parts unquoted so shell expands them
+
+    // Split on path separators, quote segments with vars, leave others
+    const segments = path.split('/');
+    const quotedSegments = segments.map(seg => {
+      // If segment starts with $ or contains $, quote it
+      if (seg.includes('$')) {
+        return `"${seg}"`;
+      }
+      // If segment has glob, leave unquoted
+      if (/[*?[\]]/.test(seg)) {
+        return seg;
+      }
+      // Otherwise, quote if it has spaces
+      if (seg.includes(' ')) {
+        return `"${seg}"`;
+      }
+      return seg;
+    });
+
+    return quotedSegments.join('/');
+  }
 
   /**
    * Emit StructuredReturns with ## headings for each status

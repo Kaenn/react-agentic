@@ -57,7 +57,7 @@ describe('V3 Runtime Components', () => {
       `;
       const output = transformCommand(tsx);
       // RuntimeVar property access is shown in the If condition
-      expect(output).toContain('ctx.status');
+      expect(output).toContain('$CTX.status');
     });
   });
 

@@ -31,7 +31,7 @@ describe('emitReadFile', () => {
       expect(emit(doc(node))).toBe('```bash\nSTATE_CONTENT=$(cat .planning/STATE.md)\n```\n');
     });
 
-    it('quotes path with variable reference', () => {
+    it('smart quotes path with variable reference - quotes var, not glob', () => {
       const node: ReadFileNode = {
         kind: 'readFile',
         path: '${PHASE_DIR}/*-CONTEXT.md',
@@ -39,7 +39,19 @@ describe('emitReadFile', () => {
         required: true,
       };
 
-      expect(emit(doc(node))).toBe('```bash\nCONTEXT=$(cat "${PHASE_DIR}/*-CONTEXT.md")\n```\n');
+      // Variable part quoted, glob part unquoted so it expands
+      expect(emit(doc(node))).toBe('```bash\nCONTEXT=$(cat "${PHASE_DIR}"/*-CONTEXT.md)\n```\n');
+    });
+
+    it('quotes entire path when no globs present', () => {
+      const node: ReadFileNode = {
+        kind: 'readFile',
+        path: '${PHASE_DIR}/STATE.md',
+        varName: 'STATE',
+        required: true,
+      };
+
+      expect(emit(doc(node))).toBe('```bash\nSTATE=$(cat "${PHASE_DIR}/STATE.md")\n```\n');
     });
 
     it('quotes path with spaces', () => {
@@ -66,7 +78,7 @@ describe('emitReadFile', () => {
       expect(emit(doc(node))).toBe('```bash\nREQS=$(cat .planning/REQUIREMENTS.md 2>/dev/null)\n```\n');
     });
 
-    it('quotes and suppresses errors for optional file with variable', () => {
+    it('smart quotes and suppresses errors for optional file with variable and glob', () => {
       const node: ReadFileNode = {
         kind: 'readFile',
         path: '${PHASE_DIR}/*-RESEARCH.md',
@@ -74,7 +86,8 @@ describe('emitReadFile', () => {
         required: false,
       };
 
-      expect(emit(doc(node))).toBe('```bash\nRESEARCH=$(cat "${PHASE_DIR}/*-RESEARCH.md" 2>/dev/null)\n```\n');
+      // Variable part quoted, glob part unquoted so it expands
+      expect(emit(doc(node))).toBe('```bash\nRESEARCH=$(cat "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)\n```\n');
     });
   });
 });

@@ -46,6 +46,9 @@ export {
   runtimeFn,
   Ref,
 
+  // Meta-prompting
+  ReadFile,
+
   // Utilities
   useOutput,
   defineAgent,
@@ -110,6 +113,7 @@ export {
   type ContractComponentProps,
   type StatusReturnProps,
   type StructuredReturnsProps,
+  type ReadFileProps,
 } from './components/index.js';
 
 // ============================================================================

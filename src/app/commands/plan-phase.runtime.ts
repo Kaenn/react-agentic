@@ -13,7 +13,6 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { randomCatName } from 'cat-names';
 
 // ============================================================================
 // Types
@@ -46,54 +45,14 @@ export interface PlanPhaseContext {
   flags: PlanPhaseFlags;
   models: ModelConfig;
   modelProfile: string;      // 'quality' | 'balanced' | 'budget'
+  // Shorthand model accessors for TSX
+  researcherModel: 'opus' | 'sonnet' | 'haiku';
+  plannerModel: 'opus' | 'sonnet' | 'haiku';
+  checkerModel: 'opus' | 'sonnet' | 'haiku';
   config: {
     workflowResearch: boolean;
     workflowPlanCheck: boolean;
   };
-  mascot: string;            // Random cat name for this phase
-}
-
-export interface ResearchContext {
-  phaseDescription: string;
-  requirements: string;
-  decisions: string;
-  phaseContext: string;
-}
-
-export interface PlanningContext {
-  state: string;
-  roadmap: string;
-  requirements: string;
-  context: string;
-  research: string;
-  verification: string;
-  uat: string;
-}
-
-export interface AgentResult {
-  status: 'COMPLETE' | 'BLOCKED' | 'INCONCLUSIVE' | 'CHECKPOINT';
-  message?: string;
-  data?: Record<string, unknown>;
-}
-
-export interface CheckerResult {
-  passed: boolean;
-  issues: string[];
-  status: 'PASSED' | 'ISSUES_FOUND';
-}
-
-export interface PlanSummary {
-  phaseId: string;
-  phaseName: string;
-  planCount: number;
-  waveCount: number;
-  waves: { wave: number; plans: string[]; objective: string }[];
-  research: 'completed' | 'existing' | 'skipped';
-  verification: 'passed' | 'override' | 'skipped';
-}
-
-export interface PromptResult {
-  prompt: string;
 }
 
 // ============================================================================
@@ -189,7 +148,9 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     models: { researcher: 'sonnet', planner: 'opus', checker: 'sonnet' },
     modelProfile: 'balanced',
     config: { workflowResearch: true, workflowPlanCheck: true },
-    mascot: randomCatName(),
+    researcherModel: 'sonnet',
+    plannerModel: 'opus',
+    checkerModel: 'sonnet',
   });
 
   // Check .planning directory exists
@@ -296,6 +257,8 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     }
   }
 
+  const models = resolveModels(modelProfile);
+
   return {
     phaseId,
     phaseName,
@@ -307,10 +270,12 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     planFiles,
     needsResearch,
     flags,
-    models: resolveModels(modelProfile),
+    models,
     modelProfile,
     config,
-    mascot: randomCatName(),
+    researcherModel: models.researcher,
+    plannerModel: models.planner,
+    checkerModel: models.checker,
   };
 }
 
@@ -356,209 +321,6 @@ export async function checkExistingPlans(args: { phaseDir: string }): Promise<{
     planCount: planFiles.length,
     planFiles,
     planSummary: summaryLines.join('\n'),
-  };
-}
-
-/**
- * Build prompt for researcher agent with inlined context
- */
-export async function buildResearcherPrompt(args: {
-  phaseId: string;
-  phaseName: string;
-  phaseDir: string;
-  phaseDescription: string;
-}): Promise<PromptResult> {
-  // Gather all context files
-  const roadmap = await readFile('.planning/ROADMAP.md');
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-  const state = await readFile('.planning/STATE.md');
-  const phaseContext = await readFile(`${args.phaseDir}/${args.phaseId}-CONTEXT.md`);
-
-  // Extract prior decisions from STATE.md
-  const decisionsMatch = state.match(/### Decisions Made[\s\S]*?(?=###|$)/);
-  const decisions = decisionsMatch ? decisionsMatch[0] : '';
-
-  const prompt = `<objective>
-Research how to implement Phase ${args.phaseId}: ${args.phaseName}
-
-Answer: "What do I need to know to PLAN this phase well?"
-</objective>
-
-<context>
-**Phase description:**
-${args.phaseDescription}
-
-**Requirements (if any):**
-${requirements.slice(0, 3000)}
-
-**Prior decisions:**
-${decisions}
-
-**Phase context (if any):**
-${phaseContext}
-</context>
-
-<output>
-Write research findings to: ${args.phaseDir}/${args.phaseId}-RESEARCH.md
-</output>`;
-
-  return { prompt };
-}
-
-/**
- * Build prompt for planner agent with inlined context
- */
-export async function buildPlannerPrompt(args: {
-  phaseId: string;
-  phaseName: string;
-  phaseDir: string;
-  mode: 'standard' | 'gap_closure' | 'revision';
-  issues?: string[];
-}): Promise<PromptResult> {
-  // Read all context files
-  const state = await readFile('.planning/STATE.md');
-  const roadmap = await readFile('.planning/ROADMAP.md');
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-  const context = await readFile(`${args.phaseDir}/${args.phaseId}-CONTEXT.md`);
-  const research = await readFile(`${args.phaseDir}/${args.phaseId}-RESEARCH.md`);
-
-  // Gap closure mode files
-  const verification = args.mode === 'gap_closure'
-    ? await readFile(`${args.phaseDir}/${args.phaseId}-VERIFICATION.md`)
-    : '';
-  const uat = args.mode === 'gap_closure'
-    ? await readFile(`${args.phaseDir}/${args.phaseId}-UAT.md`)
-    : '';
-
-  // Revision mode: read current plans
-  let currentPlans = '';
-  if (args.mode === 'revision') {
-    const planFiles = await findFiles(args.phaseDir, /-PLAN\.md$/);
-    const plans = await Promise.all(planFiles.map(f => readFile(f)));
-    currentPlans = plans.join('\n\n---\n\n');
-  }
-
-  let prompt: string;
-
-  if (args.mode === 'revision') {
-    // Revision mode prompt
-    prompt = `<revision_context>
-
-**Phase:** ${args.phaseId}
-**Mode:** revision
-
-**Existing plans:**
-${currentPlans}
-
-**Checker issues:**
-${args.issues?.map((issue, i) => `${i + 1}. ${issue}`).join('\n') || 'None specified'}
-
-</revision_context>
-
-<instructions>
-Make targeted updates to address checker issues.
-Do NOT replan from scratch unless issues are fundamental.
-Return what changed.
-</instructions>`;
-  } else {
-    // Standard or gap_closure mode prompt
-    prompt = `<planning_context>
-
-**Phase:** ${args.phaseId} - ${args.phaseName}
-**Mode:** ${args.mode}
-
-**Project State:**
-${state}
-
-**Roadmap:**
-${roadmap}
-
-**Requirements (if exists):**
-${requirements}
-
-**Phase Context (if exists):**
-${context}
-
-**Research (if exists):**
-${research}
-
-${args.mode === 'gap_closure' ? `**Gap Closure:**
-VERIFICATION.md:
-${verification}
-
-UAT.md:
-${uat}
-` : ''}
-</planning_context>
-
-<downstream_consumer>
-Output consumed by /gsd:execute-phase
-Plans must be executable prompts with:
-
-- Frontmatter (wave, depends_on, files_modified, autonomous)
-- Tasks in XML format
-- Verification criteria
-- must_haves for goal-backward verification
-</downstream_consumer>
-
-<quality_gate>
-Before returning PLANNING COMPLETE:
-
-- [ ] PLAN.md files created in phase directory
-- [ ] Each plan has valid frontmatter
-- [ ] Tasks are specific and actionable
-- [ ] Dependencies correctly identified
-- [ ] Waves assigned for parallel execution
-- [ ] must_haves derived from phase goal
-</quality_gate>`;
-  }
-
-  return { prompt };
-}
-
-/**
- * Build prompt for checker agent
- */
-export async function buildCheckerPrompt(args: {
-  phaseId: string;
-  phaseDir: string;
-}): Promise<{ prompt: string; phaseGoal: string }> {
-  // Read plans
-  const planFiles = await findFiles(args.phaseDir, /-PLAN\.md$/);
-  const plans = await Promise.all(planFiles.map(f => readFile(f)));
-  const plansContent = plans.join('\n\n---\n\n');
-
-  // Read requirements
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-
-  // Extract phase goal from roadmap
-  const roadmap = await readFile('.planning/ROADMAP.md');
-  const goalRegex = new RegExp(`Phase ${args.phaseId.replace('.', '\\.')}:[^\\n]*`);
-  const goalMatch = roadmap.match(goalRegex);
-  const phaseGoal = goalMatch ? goalMatch[0] : `Phase ${args.phaseId}`;
-
-  const prompt = `<verification_context>
-
-**Phase:** ${args.phaseId}
-**Phase Goal:** ${phaseGoal}
-
-**Plans to verify:**
-${plansContent}
-
-**Requirements (if exists):**
-${requirements}
-
-</verification_context>
-
-<expected_output>
-Return one of:
-- ## VERIFICATION PASSED — all checks pass
-- ## ISSUES FOUND — structured issue list
-</expected_output>`;
-
-  return {
-    prompt,
-    phaseGoal,
   };
 }
 
@@ -622,104 +384,6 @@ export async function parseAgentStatus(args: { output: string }): Promise<{
 }
 
 /**
- * Gather context for research agent (legacy, kept for compatibility)
- */
-export async function getResearchContext(args: {
-  phaseId: string;
-  phaseDir: string;
-}): Promise<ResearchContext> {
-  const roadmap = await readFile('.planning/ROADMAP.md');
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-  const state = await readFile('.planning/STATE.md');
-  const phaseContext = await readFile(`${args.phaseDir}/${args.phaseId}-CONTEXT.md`);
-
-  // Extract phase description
-  const phaseRegex = new RegExp(`Phase ${args.phaseId.replace('.', '\\.')}:[^\\n]*\\n([\\s\\S]*?)(?=\\n## |\\nPhase \\d|$)`);
-  const descMatch = roadmap.match(phaseRegex);
-  const phaseDescription = descMatch ? descMatch[1].trim() : '';
-
-  // Extract decisions from STATE.md
-  const decisionsMatch = state.match(/### Decisions Made[\s\S]*?(?=###|$)/);
-  const decisions = decisionsMatch ? decisionsMatch[0] : '';
-
-  return {
-    phaseDescription,
-    requirements: requirements.slice(0, 2000), // Limit size
-    decisions,
-    phaseContext,
-  };
-}
-
-/**
- * Gather context for planning agent (legacy, kept for compatibility)
- */
-export async function getPlanningContext(args: {
-  phaseDir: string;
-  phaseId: string;
-  gaps: boolean;
-}): Promise<PlanningContext> {
-  const state = await readFile('.planning/STATE.md');
-  const roadmap = await readFile('.planning/ROADMAP.md');
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-  const context = await readFile(`${args.phaseDir}/${args.phaseId}-CONTEXT.md`);
-  const research = await readFile(`${args.phaseDir}/${args.phaseId}-RESEARCH.md`);
-  const verification = args.gaps ? await readFile(`${args.phaseDir}/${args.phaseId}-VERIFICATION.md`) : '';
-  const uat = args.gaps ? await readFile(`${args.phaseDir}/${args.phaseId}-UAT.md`) : '';
-
-  return { state, roadmap, requirements, context, research, verification, uat };
-}
-
-/**
- * Gather context for verification agent
- */
-export async function getVerificationContext(args: {
-  phaseDir: string;
-  phaseId: string;
-}): Promise<{ plans: string; requirements: string; phaseGoal: string }> {
-  const planFiles = await findFiles(args.phaseDir, /-PLAN\.md$/);
-  const plans = await Promise.all(planFiles.map(f => readFile(f)));
-  const requirements = await readFile('.planning/REQUIREMENTS.md');
-  const roadmap = await readFile('.planning/ROADMAP.md');
-
-  // Extract phase goal
-  const goalRegex = new RegExp(`Phase ${args.phaseId.replace('.', '\\.')}:[^\\n]*`);
-  const goalMatch = roadmap.match(goalRegex);
-  const phaseGoal = goalMatch ? goalMatch[0] : '';
-
-  return {
-    plans: plans.join('\n\n---\n\n'),
-    requirements,
-    phaseGoal,
-  };
-}
-
-/**
- * Prepare revision context for planner
- */
-export async function prepareRevisionContext(args: {
-  issues: string[];
-  phaseDir: string;
-}): Promise<string> {
-  const planFiles = await findFiles(args.phaseDir, /-PLAN\.md$/);
-  const plans = await Promise.all(planFiles.map(f => readFile(f)));
-
-  return `
-## Current Plans
-
-${plans.join('\n\n---\n\n')}
-
-## Issues to Address
-
-${args.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
-
-## Instructions
-
-Make targeted updates to address the issues above.
-Do NOT replan from scratch unless issues are fundamental.
-`;
-}
-
-/**
  * Read and display existing plans
  */
 export async function readAndDisplayPlans(args: { phaseDir: string }): Promise<string> {
@@ -744,130 +408,4 @@ export async function archiveExistingPlans(args: { phaseDir: string }): Promise<
     const basename = path.basename(file);
     await fs.rename(file, `${archiveDir}/${timestamp}-${basename}`);
   }
-}
-
-/**
- * Generate summary of planning session
- */
-export async function generateSummary(args: {
-  phaseId: string;
-  phaseName: string;
-  phaseDir: string;
-  checkerPassed: boolean;
-  skipVerify: boolean;
-  hasResearch: boolean;
-  forcedResearch: boolean;
-  skippedResearch: boolean;
-}): Promise<PlanSummary> {
-  const planFiles = await findFiles(args.phaseDir, /-PLAN\.md$/);
-
-  // Parse waves from plans
-  const waves: { wave: number; plans: string[]; objective: string }[] = [];
-  for (const file of planFiles) {
-    const content = await readFile(file);
-    const waveMatch = content.match(/wave:\s*(\d+)/);
-    const wave = waveMatch ? parseInt(waveMatch[1]) : 1;
-
-    // Extract objective
-    const objMatch = content.match(/##.*(?:objective|goal)[^\n]*\n([^\n]+)/i);
-    const objective = objMatch ? objMatch[1].trim() : '';
-
-    const existing = waves.find(w => w.wave === wave);
-    const planName = path.basename(file, '.md');
-    if (existing) {
-      existing.plans.push(planName);
-      if (!existing.objective && objective) {
-        existing.objective = objective;
-      }
-    } else {
-      waves.push({ wave, plans: [planName], objective });
-    }
-  }
-  waves.sort((a, b) => a.wave - b.wave);
-
-  // Determine research status
-  let research: 'completed' | 'existing' | 'skipped';
-  if (args.skippedResearch) {
-    research = 'skipped';
-  } else if (args.forcedResearch || !args.hasResearch) {
-    research = 'completed';
-  } else {
-    research = 'existing';
-  }
-
-  // Determine verification status
-  let verification: 'passed' | 'override' | 'skipped';
-  if (args.skipVerify) {
-    verification = 'skipped';
-  } else if (args.checkerPassed) {
-    verification = 'passed';
-  } else {
-    verification = 'override';
-  }
-
-  return {
-    phaseId: args.phaseId,
-    phaseName: args.phaseName,
-    planCount: planFiles.length,
-    waveCount: waves.length,
-    waves,
-    research,
-    verification,
-  };
-}
-
-/**
- * Format summary as markdown
- */
-export async function formatSummaryMarkdown(args: { summary: PlanSummary }): Promise<string> {
-  const { summary } = args;
-
-  const waveTable = summary.waves.map(w =>
-    `| ${w.wave} | ${w.plans.join(', ')} | ${w.objective || '-'} |`
-  ).join('\n');
-
-  const researchStatus = {
-    completed: 'Completed',
-    existing: 'Used existing',
-    skipped: 'Skipped',
-  }[summary.research];
-
-  const verificationStatus = {
-    passed: 'Passed',
-    override: 'Passed with override',
-    skipped: 'Skipped',
-  }[summary.verification];
-
-  return `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE ${summary.phaseId} PLANNED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**Phase ${summary.phaseId}: ${summary.phaseName}** — ${summary.planCount} plan(s) in ${summary.waveCount} wave(s)
-
-| Wave | Plans | What it builds |
-|------|-------|----------------|
-${waveTable}
-
-Research: ${researchStatus}
-Verification: ${verificationStatus}
-
-───────────────────────────────────────────────────────────────
-
-## ▶ Next Up
-
-**Execute Phase ${summary.phaseId}** — run all ${summary.planCount} plans
-
-\`/gsd:execute-phase ${summary.phaseId}\`
-
-<sub>/clear first → fresh context window</sub>
-
-───────────────────────────────────────────────────────────────
-
-**Also available:**
-- cat .planning/phases/${summary.phaseId}-*/*-PLAN.md — review plans
-- /gsd:plan-phase ${summary.phaseId} --research — re-research first
-
-───────────────────────────────────────────────────────────────
-`;
 }
