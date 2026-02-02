@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 38 - Unified Assign with from Prop
-Plan: 2 of 3 complete
+Plan: 1 of 3 complete
 Status: In progress
-Last activity: 2026-02-02 — Completed 38-02-PLAN.md
+Last activity: 2026-02-02 — Completed 38-01-PLAN.md
 
-Progress: [██████░░░░░░░░░░░░░░] 2/3 plans (v3.2 Phase 38)
+Progress: [███░░░░░░░░░░░░░░░░░] 1/3 plans (v3.2 Phase 38)
 
-Next: Continue with Plan 38-03
+Next: Continue with Plan 38-02
 
 ## Milestone History
 
@@ -110,11 +110,10 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Focus integration tests on primitive components that work in V3 runtime transformer
 - Fixed missing readAgentFile extraction in runtime spawner (was only in V1 transformer)
 
-**v3.2 Key Decisions (Phase 38 Plan 02):**
-- Extended AssignNode with discriminated union for assignment types
-- Added raw option to value type for unquoted bash values
-- Deferred runtimeFn support until context infrastructure ready
-- Maintained backward compatibility with legacy props (bash=, value=, env=)
+**v3.2 Key Decisions (Phase 38 Plan 01):**
+- Branded source types with __sourceType discriminator for compile-time safety
+- Pure functions returning typed objects (not classes) for source helpers
+- Optional and raw flags for file and value sources respectively
 
 ### Roadmap Evolution
 
@@ -133,5 +132,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 38-02-PLAN.md (Unified Assign from prop)
+Stopped at: Completed 38-01-PLAN.md (Source helper types and functions)
 Resume file: None
