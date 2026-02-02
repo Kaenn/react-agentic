@@ -10,13 +10,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 38 - Unified Assign with from Prop
-Plan: 1 of 3 complete
-Status: In progress
-Last activity: 2026-02-02 — Completed 38-01-PLAN.md
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-02-02 — Completed 38-03-PLAN.md
 
-Progress: [███░░░░░░░░░░░░░░░░░] 1/3 plans (v3.2 Phase 38)
+Progress: [█████████████████████] 3/3 plans (v3.2 Phase 38 complete)
 
-Next: Continue with Plan 38-02
+Next: Begin next phase or milestone planning
 
 ## Milestone History
 
@@ -115,6 +115,12 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Pure functions returning typed objects (not classes) for source helpers
 - Optional and raw flags for file and value sources respectively
 
+**v3.2 Key Decisions (Phase 38 Plan 03):**
+- Value quoting behavior differs: new from={value()} quotes by default, legacy value= uses smart quoting for backward compatibility
+- Template interpolation emits simple $VAR syntax (no braces) per CONTEXT.md specification
+- Smart path quoting distinguishes shell variables (uppercase: $VAR) from literal $ characters
+- Legacy value= syntax sets raw: true for non-space values to maintain backward compatibility
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.1 complete. v3.2 started.
@@ -127,10 +133,15 @@ None.
 
 ### Blockers/Concerns
 
+**Plan 38-03 identified:**
+- Transformer duplication between V1 (Agent) and V3 (Command) creates maintenance burden
+- Plan 38-02 gap: planning process doesn't catch multi-transformer requirements
+- Consider consolidating transformers in future refactoring phase
+
 Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - unrelated to milestone work.
 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 38-01-PLAN.md (Source helper types and functions)
+Stopped at: Completed 38-03-PLAN.md (Integration tests for unified Assign pattern)
 Resume file: None
