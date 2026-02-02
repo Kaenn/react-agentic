@@ -403,4 +403,77 @@ describe('<Assign from={...}>', () => {
       expectAgentTransformError(tsx, /requires from prop/);
     });
   });
+
+  describe('runtimeFn() source', () => {
+    it('emits VAR=$(node runtime.js fnName args) format', () => {
+      const tsx = `
+        import { useVariable, runtimeFn } from 'react-agentic';
+
+        async function initProject(args: { path: string }): Promise<{ success: boolean }> {
+          return { success: true };
+        }
+        const Init = runtimeFn(initProject);
+
+        const RESULT = useVariable("RESULT");
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={RESULT} from={Init} args={{ path: "." }} />
+            </Agent>
+          );
+        }
+      `;
+      const output = transformAgentContent(tsx, true);
+      expect(output).toContain('RESULT=$(node .claude/runtime/runtime.js initProject');
+      expect(output).toContain('{"path":"."}\')');
+    });
+
+    it('handles empty args object', () => {
+      const tsx = `
+        import { useVariable, runtimeFn } from 'react-agentic';
+
+        async function getContext(args: {}): Promise<{ data: string }> {
+          return { data: "test" };
+        }
+        const GetContext = runtimeFn(getContext);
+
+        const CTX = useVariable("CTX");
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={CTX} from={GetContext} args={{}} />
+            </Agent>
+          );
+        }
+      `;
+      const output = transformAgentContent(tsx, true);
+      expect(output).toContain('CTX=$(node .claude/runtime/runtime.js getContext');
+      expect(output).toContain("'{}'");
+    });
+
+    it('handles multiple arg properties', () => {
+      const tsx = `
+        import { useVariable, runtimeFn } from 'react-agentic';
+
+        async function process(args: { id: number; name: string; active: boolean }): Promise<void> {
+          return;
+        }
+        const Process = runtimeFn(process);
+
+        const OUT = useVariable("OUT");
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={OUT} from={Process} args={{ id: 42, name: "test", active: true }} />
+            </Agent>
+          );
+        }
+      `;
+      const output = transformAgentContent(tsx, true);
+      expect(output).toContain('OUT=$(node .claude/runtime/runtime.js process');
+      expect(output).toContain('"id":42');
+      expect(output).toContain('"name":"test"');
+      expect(output).toContain('"active":true');
+    });
+  });
 });
