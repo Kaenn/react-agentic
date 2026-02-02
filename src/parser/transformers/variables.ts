@@ -66,19 +66,28 @@ export function transformAssign(
 
   // Check for new from prop pattern first
   const fromProp = openingElement.getAttribute('from');
+  const bashProp = extractAssignPropValue(openingElement, 'bash');
+  const valueProp = extractAssignPropValue(openingElement, 'value');
+  const envProp = extractAssignPropValue(openingElement, 'env');
+
+  // Validate from prop is mutually exclusive with legacy props
+  if (fromProp && (bashProp !== undefined || valueProp !== undefined || envProp !== undefined)) {
+    throw ctx.createError(
+      'Assign from prop is mutually exclusive with bash, value, and env props',
+      openingElement
+    );
+  }
+
   if (fromProp) {
     return transformAssignWithFrom(node, ctx, variable);
   }
 
   // Fall through to legacy prop handling (bash, value, env)
-  const bashProp = extractAssignPropValue(openingElement, 'bash');
-  const valueProp = extractAssignPropValue(openingElement, 'value');
-  const envProp = extractAssignPropValue(openingElement, 'env');
 
   const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
   if (propCount === 0) {
     throw ctx.createError(
-      'Assign requires one of: from, bash, value, or env prop',
+      'Assign requires one of: bash, value, or env prop',
       openingElement
     );
   }
@@ -121,6 +130,9 @@ function transformAssignWithFrom(
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
     : node;
+
+  // Extract optional comment prop
+  const commentProp = extractAssignPropValue(openingElement, 'comment');
 
   // Extract from prop value (JSX expression containing source helper call)
   const fromAttr = openingElement.getAttribute('from');
@@ -189,6 +201,7 @@ function transformAssignWithFrom(
           kind: 'assign',
           variableName: variable.envName,
           assignment: { type: 'file', path, ...(optional && { optional }) },
+          ...(commentProp && { comment: commentProp }),
         };
       }
 
@@ -214,6 +227,7 @@ function transformAssignWithFrom(
           kind: 'assign',
           variableName: variable.envName,
           assignment: { type: 'bash', content },
+          ...(commentProp && { comment: commentProp }),
         };
       }
 
@@ -253,6 +267,7 @@ function transformAssignWithFrom(
           kind: 'assign',
           variableName: variable.envName,
           assignment: { type: 'value', content, ...(raw && { raw }) },
+          ...(commentProp && { comment: commentProp }),
         };
       }
 
@@ -274,6 +289,7 @@ function transformAssignWithFrom(
           kind: 'assign',
           variableName: variable.envName,
           assignment: { type: 'env', content },
+          ...(commentProp && { comment: commentProp }),
         };
       }
 

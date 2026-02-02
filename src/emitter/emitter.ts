@@ -592,16 +592,14 @@ export class MarkdownEmitter {
         line = `${variableName}=$(${assignment.content})`;
         break;
       case 'value': {
-        // Static value: quote if contains spaces (unless raw option set)
+        // Static value: quote by default (unless raw option set)
         const val = assignment.content;
         if (assignment.raw) {
           // Raw option: emit unquoted
           line = `${variableName}=${val}`;
         } else {
-          // Quote by default (safe for spaces)
-          line = /\s/.test(val)
-            ? `${variableName}="${val}"`
-            : `${variableName}=${val}`;
+          // Quote by default (safe for spaces and special chars)
+          line = `${variableName}="${val}"`;
         }
         break;
       }
@@ -826,23 +824,26 @@ export class MarkdownEmitter {
 
     // Has glob chars (* ? [ ]) - need to quote carefully
     const hasGlob = /[*?[\]]/.test(path);
+    const hasVar = /\$/.test(path);
+    // Check if $ is a shell variable (uppercase) vs literal $ (lowercase/other)
+    const hasShellVar = /\$[A-Z_][A-Z0-9_]*/.test(path);
 
-    if (!hasGlob) {
-      // No globs - safe to quote entire path
+    // No variable reference (or only literal $), no glob - quote entire path
+    if ((!hasVar || !hasShellVar) && !hasGlob) {
       return `"${path}"`;
     }
 
-    // Has both variables and globs - quote segment by segment
+    // Has shell variables or globs - quote segment by segment for proper expansion
     // Split on / and quote segments containing $ or spaces
     const segments = path.split('/');
     const quotedSegments = segments.map(seg => {
-      // Segment with variable or space - quote it
-      if (/[$\s]/.test(seg) && !/[*?[\]]/.test(seg)) {
+      // Segment with shell variable or space (but no glob) - quote it
+      if (/(\$[A-Z_][A-Z0-9_]*|\s)/.test(seg) && !/[*?[\]]/.test(seg)) {
         return `"${seg}"`;
       }
       // Segment with both var and glob (rare) - quote the var part only
       // e.g., $DIR*-PLAN.md - this is unusual, leave as-is and warn
-      if (/[$]/.test(seg) && /[*?[\]]/.test(seg)) {
+      if (/\$[A-Z_][A-Z0-9_]*/.test(seg) && /[*?[\]]/.test(seg)) {
         // Best effort: wrap variable references in quotes
         // $VAR*-PLAN.md -> "$VAR"*-PLAN.md
         return seg.replace(/(\$[A-Z_][A-Z0-9_]*)/g, '"$1"');

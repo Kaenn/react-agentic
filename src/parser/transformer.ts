@@ -11,6 +11,7 @@ import {
   JsxSelfClosingElement,
   JsxFragment,
   JsxOpeningElement,
+  JsxAttribute,
   JsxSpreadAttribute,
   SourceFile,
   TemplateExpression,
@@ -1817,8 +1818,8 @@ export class Transformer {
 
     for (const span of tmpl.getTemplateSpans()) {
       const spanExpr = span.getExpression();
-      // Convert TS ${expr} to shell ${expr}
-      result += '${' + spanExpr.getText() + '}';
+      // Convert TS ${expr} to shell $VAR (without braces for simplicity)
+      result += '$' + spanExpr.getText();
       result += span.getLiteral().getLiteralText();
     }
 
@@ -3250,11 +3251,38 @@ export class Transformer {
       );
     }
 
-    // Extract assignment from props (exactly one of bash, value, env)
+    // Extract assignment from props
+    const fromProp = openingElement.getAttribute('from');
     const bashProp = this.extractAssignPropValue(openingElement, 'bash');
     const valueProp = this.extractAssignPropValue(openingElement, 'value');
     const envProp = this.extractAssignPropValue(openingElement, 'env');
 
+    // Validate from prop is mutually exclusive with legacy props
+    if (fromProp && (bashProp !== undefined || valueProp !== undefined || envProp !== undefined)) {
+      throw this.createError(
+        'Assign from prop is mutually exclusive with bash, value, and env props',
+        openingElement
+      );
+    }
+
+    // Extract optional comment prop
+    const commentProp = this.extractAssignPropValue(openingElement, 'comment');
+
+    // Handle new from prop pattern
+    if (fromProp) {
+      if (!Node.isJsxAttribute(fromProp)) {
+        throw this.createError('from prop must be a regular attribute, not a spread', openingElement);
+      }
+      const assignment = this.transformAssignFromProp(openingElement, fromProp);
+      return {
+        kind: 'assign',
+        variableName: variable.envName,
+        assignment,
+        ...(commentProp && { comment: commentProp }),
+      };
+    }
+
+    // Fall through to legacy prop handling (bash, value, env)
     const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
     if (propCount === 0) {
       throw this.createError(
@@ -3269,17 +3297,15 @@ export class Transformer {
       );
     }
 
-    let assignment: { type: 'bash' | 'value' | 'env'; content: string };
+    let assignment: AssignNode['assignment'];
     if (bashProp !== undefined) {
       assignment = { type: 'bash', content: bashProp };
     } else if (valueProp !== undefined) {
-      assignment = { type: 'value', content: valueProp };
+      // Legacy value syntax: only quote if contains spaces (backward compatibility)
+      assignment = { type: 'value', content: valueProp, raw: !/\s/.test(valueProp) };
     } else {
       assignment = { type: 'env', content: envProp! };
     }
-
-    // Extract optional comment prop
-    const commentProp = this.extractAssignPropValue(openingElement, 'comment');
 
     return {
       kind: 'assign',
@@ -3287,6 +3313,159 @@ export class Transformer {
       assignment,
       ...(commentProp && { comment: commentProp }),
     };
+  }
+
+  /**
+   * Transform an Assign from prop to assignment object
+   * Handles file(), bash(), value(), env() source helpers
+   */
+  private transformAssignFromProp(
+    openingElement: JsxOpeningElement | JsxSelfClosingElement,
+    fromAttr: JsxAttribute
+  ): AssignNode['assignment'] {
+    const init = fromAttr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) {
+      throw this.createError('Assign from must be a JSX expression: from={file(...)}', openingElement);
+    }
+
+    const expr = init.getExpression();
+    if (!expr) {
+      throw this.createError('Assign from must contain a source helper call', openingElement);
+    }
+
+    // Check if it's a call expression to a source helper (file, bash, value, env)
+    if (!Node.isCallExpression(expr)) {
+      throw this.createError(
+        'Assign from must be a source helper call: file(), bash(), value(), or env()',
+        openingElement
+      );
+    }
+
+    const fnExpr = expr.getExpression();
+    if (!Node.isIdentifier(fnExpr)) {
+      throw this.createError('Assign from must call a source helper: file(), bash(), value(), env()', openingElement);
+    }
+
+    const fnName = fnExpr.getText();
+    const args = expr.getArguments();
+
+    // Handle each source type
+    switch (fnName) {
+      case 'file': {
+        if (args.length === 0) {
+          throw this.createError('file() requires a path argument', openingElement);
+        }
+
+        const pathArg = args[0];
+        let path: string;
+
+        // Extract path from string literal or template
+        if (Node.isStringLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(pathArg)) {
+          path = this.extractTemplatePath(pathArg);
+        } else {
+          throw this.createError('file() path must be a string or template literal', openingElement);
+        }
+
+        // Check for optional option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let optional = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const optionalProp = options.getProperty('optional');
+          if (optionalProp && Node.isPropertyAssignment(optionalProp)) {
+            const optInit = optionalProp.getInitializer();
+            if (optInit && (optInit.getText() === 'true' || optInit.getText() === 'false')) {
+              optional = optInit.getText() === 'true';
+            }
+          }
+        }
+
+        return { type: 'file', path, ...(optional && { optional }) };
+      }
+
+      case 'bash': {
+        if (args.length === 0) {
+          throw this.createError('bash() requires a command argument', openingElement);
+        }
+
+        const cmdArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(cmdArg)) {
+          content = this.extractTemplatePath(cmdArg);
+        } else {
+          throw this.createError('bash() command must be a string or template literal', openingElement);
+        }
+
+        return { type: 'bash', content };
+      }
+
+      case 'value': {
+        if (args.length === 0) {
+          throw this.createError('value() requires a value argument', openingElement);
+        }
+
+        const valArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(valArg)) {
+          content = this.extractTemplatePath(valArg);
+        } else {
+          throw this.createError('value() must be a string or template literal', openingElement);
+        }
+
+        // Check for raw option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let raw = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const rawProp = options.getProperty('raw');
+          if (rawProp && Node.isPropertyAssignment(rawProp)) {
+            const rawInit = rawProp.getInitializer();
+            if (rawInit && (rawInit.getText() === 'true' || rawInit.getText() === 'false')) {
+              raw = rawInit.getText() === 'true';
+            }
+          }
+        }
+
+        return { type: 'value', content, ...(raw && { raw }) };
+      }
+
+      case 'env': {
+        if (args.length === 0) {
+          throw this.createError('env() requires an environment variable name', openingElement);
+        }
+
+        const envArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(envArg)) {
+          content = envArg.getLiteralValue();
+        } else {
+          throw this.createError('env() variable name must be a string literal', openingElement);
+        }
+
+        return { type: 'env', content };
+      }
+
+      default:
+        throw this.createError(
+          `Unknown source helper: ${fnName}. Use file(), bash(), value(), or env()`,
+          openingElement
+        );
+    }
   }
 
   /**
