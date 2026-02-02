@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 38 - Unified Assign with from Prop
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-02-02 — Completed 38-04-PLAN.md (Legacy syntax removal)
+Plan: 5 of 5 complete (includes gap closure plan 05)
+Status: Phase complete (all gaps closed)
+Last activity: 2026-02-02 — Completed 38-05-PLAN.md (RuntimeFn support gap closure)
 
-Progress: [████████████████████████] 4/4 plans (v3.2 Phase 38 complete)
+Progress: [████████████████████████] 5/5 plans (v3.2 Phase 38 complete + gap closure)
 
 Next: Begin next phase or milestone planning
 
@@ -42,7 +42,7 @@ Next: Begin next phase or milestone planning
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 121 (v1.0-v3.2)
+- Total plans completed: 122 (v1.0-v3.2)
 - Average duration: ~5m
 - Total execution time: ~10 hours
 
@@ -56,7 +56,7 @@ Next: Begin next phase or milestone planning
 | v2.1 | 1 | 4 | 1 day |
 | v3.0 | 7 | 13 | 11 days |
 | v3.1 | 4 | 10 | 1 day |
-| v3.2 | 1 | 4 | 1 hour |
+| v3.2 | 1 | 5 | 1 hour |
 
 *Updated after each milestone completion*
 
@@ -128,11 +128,16 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Legacy prop tests removed (no longer supported)
 - Both V1 and V3 transformers updated to require from prop
 
+**v3.2 Key Decisions (Phase 38 Plan 05 - Gap Closure):**
+- Static AST analysis for runtimeFn wrapper detection (transformer has basic TransformContext, not RuntimeTransformContext)
+- Literal values only in args prop - runtime variable references deferred to future work
+- V1 transformer duplicates V3 transformer logic (confirms maintenance burden from Plan 03)
+
 ### Roadmap Evolution
 
 All milestones v1.0-v3.2 complete.
 
-- Phase 38 completed: Unified Assign with from Prop (Data Abstraction) - 4 plans shipped
+- Phase 38 completed: Unified Assign with from Prop (Data Abstraction) - 5 plans shipped (includes gap closure)
 
 ### Pending Todos
 
@@ -150,5 +155,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 38-04-PLAN.md (Legacy syntax removal)
+Stopped at: Completed 38-05-PLAN.md (RuntimeFn support gap closure)
 Resume file: None
