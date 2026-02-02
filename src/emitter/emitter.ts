@@ -614,6 +614,14 @@ export class MarkdownEmitter {
         }
         break;
       }
+      case 'runtimeFn': {
+        // Runtime function: VAR=$(node .claude/runtime/runtime.js fnName '{"key": "value"}')
+        const argsJson = JSON.stringify(assignment.args);
+        // Escape single quotes in JSON for bash
+        const escapedJson = argsJson.replace(/'/g, "'\\''");
+        line = `${variableName}=$(node .claude/runtime/runtime.js ${assignment.fnName} '${escapedJson}')`;
+        break;
+      }
     }
 
     // Prepend comment if present
