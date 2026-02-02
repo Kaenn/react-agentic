@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 38 - Unified Assign with from Prop
-Plan: 3 of 3 complete
+Plan: 4 of 4 complete
 Status: Phase complete
-Last activity: 2026-02-02 — Completed 38-03-PLAN.md
+Last activity: 2026-02-02 — Completed 38-04-PLAN.md (Legacy syntax removal)
 
-Progress: [█████████████████████] 3/3 plans (v3.2 Phase 38 complete)
+Progress: [████████████████████████] 4/4 plans (v3.2 Phase 38 complete)
 
 Next: Begin next phase or milestone planning
 
@@ -37,14 +37,14 @@ Next: Begin next phase or milestone planning
 - v3.0 Primitive/Composite Architecture: Shipped 2026-01-31 (7 phases, 13 plans)
   See: .planning/milestones/v3.0-ROADMAP.md
 - v3.1 Meta-Prompting: Shipped 2026-02-01 (4 phases, 10 plans)
-- v3.2 Data Abstraction: In Progress (1 phase)
+- v3.2 Data Abstraction: Shipped 2026-02-02 (1 phase, 4 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 117 (v1.0-v3.1)
+- Total plans completed: 121 (v1.0-v3.2)
 - Average duration: ~5m
-- Total execution time: ~8 hours
+- Total execution time: ~10 hours
 
 **By Milestone:**
 
@@ -56,6 +56,7 @@ Next: Begin next phase or milestone planning
 | v2.1 | 1 | 4 | 1 day |
 | v3.0 | 7 | 13 | 11 days |
 | v3.1 | 4 | 10 | 1 day |
+| v3.2 | 1 | 4 | 1 hour |
 
 *Updated after each milestone completion*
 
@@ -121,11 +122,17 @@ All v1.0-v3.0 decisions logged in PROJECT.md Key Decisions table and milestone a
 - Smart path quoting distinguishes shell variables (uppercase: $VAR) from literal $ characters
 - Legacy value= syntax sets raw: true for non-space values to maintain backward compatibility
 
+**v3.2 Key Decisions (Phase 38 Plan 04):**
+- No deprecation period - clean break to new syntax per CONTEXT.md "Removal strategy"
+- ReadFile removed entirely (superseded by Assign + file() helper)
+- Legacy prop tests removed (no longer supported)
+- Both V1 and V3 transformers updated to require from prop
+
 ### Roadmap Evolution
 
-All milestones v1.0-v3.1 complete. v3.2 started.
+All milestones v1.0-v3.2 complete.
 
-- Phase 38 added: Unified Assign with from Prop (Data Abstraction)
+- Phase 38 completed: Unified Assign with from Prop (Data Abstraction) - 4 plans shipped
 
 ### Pending Todos
 
@@ -143,5 +150,5 @@ Pre-existing TypeScript error in build.ts:86 (extractPromptPlaceholders call) - 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 38-03-PLAN.md (Integration tests for unified Assign pattern)
+Stopped at: Completed 38-04-PLAN.md (Legacy syntax removal)
 Resume file: None
