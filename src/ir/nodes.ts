@@ -231,10 +231,11 @@ export interface IndentNode {
 export interface AssignNode {
   kind: 'assign';
   variableName: string;    // Shell variable name (e.g., 'PHASE_DIR')
-  assignment: {
-    type: 'bash' | 'value' | 'env';  // bash: VAR=$(...), value: VAR=..., env: VAR=$ENV
-    content: string;                  // The bash command, static value, or env var name
-  };
+  assignment:
+    | { type: 'bash'; content: string; }
+    | { type: 'value'; content: string; raw?: boolean; }
+    | { type: 'env'; content: string; }
+    | { type: 'file'; path: string; optional?: boolean; };
   comment?: string;        // Optional inline comment (e.g., "Get phase from roadmap")
   blankBefore?: boolean;   // Insert extra blank line before this assignment (from <br/>)
 }
