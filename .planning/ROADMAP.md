@@ -15,6 +15,7 @@
 - **v2.1 Parser Refactoring** — Phase 26 (shipped 2026-01-31)
 - **v3.0 Primitive/Composite Architecture** — Phases 27-33 (shipped 2026-01-31)
 - **v3.1 Meta-Prompting** — Phases 34-37 (shipped 2026-02-01)
+- **v3.2 Data Abstraction** — Phase 38 (in progress)
 
 ## Phases
 
@@ -85,106 +86,64 @@ See: .planning/milestones/v3.0-ROADMAP.md
 
 ---
 
-## v3.1 Meta-Prompting (Phases 34-37)
+<details>
+<summary>v3.1 Meta-Prompting (Phases 34-37) — SHIPPED 2026-02-01</summary>
 
-Components for agent contracts, command orchestration, and meta-prompting context composition. Enables structured context passing between commands and agents while keeping agent definitions self-contained.
+See: .planning/milestones/v3.1-ROADMAP.md
 
-### Phase 34: Agent Contract Components
+- Phase 34: Agent Contract Components (4/4 plans) — Role, UpstreamInput, DownstreamConsumer, Methodology, StructuredReturns
+- Phase 35: Command Orchestration Components (1/1 plan) — OnStatusDefault
+- Phase 36: Meta-Prompting Components (3/3 plans) — ReadFile, MetaPrompt, GatherContext, ComposeContext, XmlBlock, InlineField, Preamble
+- Phase 37: SpawnAgent Enhancement + Integration (2/2 plans) — readAgentFile prop, integration tests
 
-**Goal:** Agents can define complete contracts describing identity, inputs, outputs, methodology, and return statuses.
+</details>
 
-**Dependencies:** None (builds on existing Agent primitive)
+---
 
-**Requirements:** AGNT-01, AGNT-02, AGNT-03, AGNT-04, AGNT-05
+## v3.2 Data Abstraction (Phase 38)
+
+Unify data assignment patterns with a single `<Assign>` component using a `from` prop that accepts different source types (file, bash, value, runtimeFn). Deprecates separate ReadFile and simplifies the API.
+
+### Phase 38: Unified Assign with from Prop
+
+**Goal:** Single unified `<Assign var={ref} from={source} />` pattern for all data sources.
+
+**Dependencies:** Phase 37 (builds on ReadFile and runtime patterns)
+
+**Requirements:** See claudedocs/proposals/data-abstraction.md
 
 **Plans:** 4 plans
 
 Plans:
-- [x] 34-01-PLAN.md — IR node types and component stubs
-- [x] 34-02-PLAN.md — Parser transformers for contract components
-- [x] 34-03-PLAN.md — Emitter and validation logic
-- [x] 34-04-PLAN.md — Snapshot tests
+- [ ] 38-01-PLAN.md — Source helpers and types (file, bash, value, env)
+- [ ] 38-02-PLAN.md — IR, transformer, and emitter support for from prop
+- [ ] 38-03-PLAN.md — Integration tests for from prop pattern
+- [ ] 38-04-PLAN.md — Remove legacy syntax and ReadFile component
+
+**Details:**
+- Implement `file()`, `bash()`, `value()`, `env()` source helper functions
+- Extend `<Assign>` to accept `from` prop with source types
+- Support runtimeFn directly as source (existing pattern)
+- Optional file reads with `{ optional: true }`
+- Remove `<ReadFile>` component entirely (not deprecated — clean break)
+- Remove old Assign props (bash=, value=, env=) entirely
 
 **Success Criteria:**
-1. Agent can declare identity and responsibilities with `<Role>` component ✓
-2. Agent can document expected input context with `<UpstreamInput>` component ✓
-3. Agent can document output consumers with `<DownstreamConsumer>` component ✓
-4. Agent can describe working approach with `<Methodology>` component ✓
-5. Agent can define typed return statuses with `<StructuredReturns>` containing `<StatusReturn>` children ✓
-
----
-
-### Phase 35: Command Orchestration Components
-
-**Goal:** Add OnStatusDefault component for catch-all agent return status handling.
-
-**Dependencies:** Phase 34 (agents must have contracts to orchestrate)
-
-**Requirements:** OnStatusDefault catch-all component (ORCH-01 through ORCH-06 removed per CONTEXT.md)
-
-**Plans:** 1 plan
-
-Plans:
-- [x] 35-01-PLAN.md — OnStatusDefault component (IR, transformer, emitter, tests)
-
-**Success Criteria:**
-1. OnStatusDefault component can follow OnStatus blocks for catch-all handling ✓
-2. OnStatusDefault with explicit output prop works standalone ✓
-3. OnStatusDefault emits as "**On any other status:**" header ✓
-
----
-
-### Phase 36: Meta-Prompting Components
-
-**Goal:** Commands can compose structured context from file reads into typed XML blocks for agent consumption.
-
-**Dependencies:** Phase 35 (orchestration provides the structure context lives in)
-
-**Requirements:** META-01, META-02, META-03, META-04, META-05, META-06
-
-**Plans:** 3 plans
-
-Plans:
-- [x] 36-01-PLAN.md — ReadFile primitive (IR, transformer, emitter)
-- [x] 36-02-PLAN.md — Meta-prompting composites (5 components)
-- [x] 36-03-PLAN.md — Tests and documentation
-
-**Success Criteria:**
-1. Command can wrap context composition logic with `<MetaPrompt>` component ✓
-2. Command can group file reads with `<GatherContext>` wrapper ✓
-3. Command can read files into named variables with `<ReadFile path="..." as="...">` component ✓
-4. Command can structure content into XML blocks with `<ComposeContext>` containing `<XmlBlock>` children ✓
-5. Command can render simple key-value fields inline with `<InlineField name="..." value={...}>` component ✓
-6. Command can render intro text with `<Preamble>` component ✓
-
----
-
-### Phase 37: SpawnAgent Enhancement + Integration
-
-**Goal:** SpawnAgent supports agent self-reading pattern and all v3.1 components work together end-to-end.
-
-**Dependencies:** Phase 34, 35, 36 (all component types must exist)
-
-**Requirements:** SPWN-01
-
-**Plans:** 2 plans
-
-Plans:
-- [x] 37-01-PLAN.md — readAgentFile prop (types, transformer, emitter, config)
-- [x] 37-02-PLAN.md — v3.1 integration tests
-
-**Success Criteria:**
-1. SpawnAgent accepts `readAgentFile` prop that emits instruction for agent to read its own definition ✓
-2. Full scenario (command with Uses, Init, MetaPrompt, SpawnAgent, HandleReturn) compiles correctly ✓
-3. Agent with Role, UpstreamInput, DownstreamConsumer, Methodology, StructuredReturns compiles correctly ✓
-4. Integration test validates command-to-agent context flow ✓
+1. `<Assign var={x} from={file('path')} />` emits `X=$(cat path)`
+2. `<Assign var={x} from={file('path', { optional: true })} />` emits `X=$(cat path 2>/dev/null)`
+3. `<Assign var={x} from={bash('cmd')} />` emits `X=$(cmd)`
+4. `<Assign var={x} from={value('str')} />` emits `X="str"` (quoted by default)
+5. `<Assign var={x} from={value('str', { raw: true })} />` emits `X=str` (unquoted)
+6. `<Assign var={x} from={env('HOME')} />` emits `X=$HOME`
+7. `<Assign var={x} from={MyFn} args={{}} />` emits runtime function call
+8. Old syntax removed, ReadFile removed (no deprecation period)
 
 ---
 
 ## Progress
 
 **Execution Order:**
-All phases complete through v3.0. v3.1 in progress.
+All phases complete through v3.1. v3.2 in progress.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -193,12 +152,10 @@ All phases complete through v3.0. v3.1 in progress.
 | 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
 | 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
 | 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
-| 34 | v3.1 | 4/4 | Complete | 2026-02-01 |
-| 35 | v3.1 | 1/1 | Complete | 2026-02-01 |
-| 36 | v3.1 | 3/3 | Complete | 2026-02-01 |
-| 37 | v3.1 | 2/2 | Complete | 2026-02-01 |
+| 34-37 | v3.1 | 10/10 | Complete | 2026-02-01 |
+| 38 | v3.2 | 0/4 | In Progress | - |
 
-**Total:** 117 plans completed across 37 phases
+**Total:** 117 plans completed across 37 phases, Phase 38 planned (4 plans)
 
 ---
 *Roadmap created: 2026-01-21*
