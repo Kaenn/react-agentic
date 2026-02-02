@@ -2,6 +2,10 @@
  * Grammar Tests: AssignGroup Component
  *
  * Tests AssignGroup for grouped variable assignments.
+ *
+ * Note: These tests use legacy bash=/value=/env= syntax.
+ * See assign-from.test.ts for new from={source} pattern tests.
+ * Legacy props will be removed in Phase 38, Plan 04.
  */
 
 import { describe, it, expect } from 'vitest';
