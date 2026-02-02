@@ -74,6 +74,8 @@ export interface RuntimeBuildResult {
 export interface RuntimeBuildOptions {
   /** Output directory for commands */
   commandsOut: string;
+  /** Output directory for agents */
+  agentsOut: string;
   /** Output directory for runtime */
   runtimeOut: string;
   /** Dry run - don't write files */
@@ -298,10 +300,16 @@ export async function buildRuntimeFile(
   // Extract folder from metadata (if present) - only for Command documents
   const folder = document?.metadata?.folder;
 
-  // Determine output paths (with optional folder subdirectory)
-  const markdownPath = folder
-    ? path.join(options.commandsOut, folder, `${basename}.md`)
-    : path.join(options.commandsOut, `${basename}.md`);
+  // Determine output paths based on component type
+  // Agents go to agentsOut, Commands go to commandsOut (with optional folder subdirectory)
+  let markdownPath: string;
+  if (isAgent) {
+    markdownPath = path.join(options.agentsOut, `${basename}.md`);
+  } else if (folder) {
+    markdownPath = path.join(options.commandsOut, folder, `${basename}.md`);
+  } else {
+    markdownPath = path.join(options.commandsOut, `${basename}.md`);
+  }
   const runtimePath = path.join(options.runtimeOut, 'runtime.js');
 
   return {

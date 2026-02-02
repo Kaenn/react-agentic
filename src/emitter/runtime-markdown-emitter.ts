@@ -11,6 +11,7 @@
  */
 
 import matter from 'gray-matter';
+import * as os from 'os';
 import type {
   DocumentNode,
   BlockNode,
@@ -311,14 +312,8 @@ export class RuntimeMarkdownEmitter {
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
 
       // Contract components
-      case 'role':
-        return this.emitContractComponent('role', node);
-      case 'upstreamInput':
-        return this.emitContractComponent('upstream_input', node);
-      case 'downstreamConsumer':
-        return this.emitContractComponent('downstream_consumer', node);
-      case 'methodology':
-        return this.emitContractComponent('methodology', node);
+      // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+      // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
       case 'structuredReturns':
         return this.emitStructuredReturns(node);
 
@@ -649,7 +644,6 @@ export class RuntimeMarkdownEmitter {
 
       // Construct path using agentsDir (expand ~ to home)
       const agentsDir = this.config?.agentsDir || '~/.claude/agents/';
-      const os = require('os');
       const expandedDir = agentsDir.startsWith('~')
         ? agentsDir.replace('~', os.homedir())
         : agentsDir;
@@ -851,17 +845,8 @@ Task(
     return content.split('\n').map(line => line ? indent + line : line).join('\n');
   }
 
-  /**
-   * Emit a contract component as XML block with snake_case tag name
-   */
-  private emitContractComponent(
-    tagName: string,
-    node: import('../ir/nodes.js').RoleNode | import('../ir/nodes.js').UpstreamInputNode | import('../ir/nodes.js').DownstreamConsumerNode | import('../ir/nodes.js').MethodologyNode
-  ): string {
-    const children = node.children.map(c => this.emitBlock(c as BlockNode)).join('\n\n');
-    // Indent children for readability
-    return `<${tagName}>\n${children}\n</${tagName}>`;
-  }
+  // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
+  // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
 
   /**
    * Emit StructuredReturns with ## headings for each status

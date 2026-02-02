@@ -25,7 +25,7 @@ import {
   SpawnAgent,
   XmlBlock,
   Table,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // Import runtime functions
 import {

@@ -17,7 +17,6 @@ import type {
   BlockquoteNode,
   CodeBlockNode,
   DocumentNode,
-  DownstreamConsumerNode,
   ExecutionContextNode,
   FrontmatterNode,
   GroupNode,
@@ -26,7 +25,6 @@ import type {
   InlineNode,
   ListItemNode,
   ListNode,
-  MethodologyNode,
   OfferNextNode,
   OnStatusNode,
   OnStatusDefaultNode,
@@ -35,7 +33,6 @@ import type {
   ReadFilesNode,
   ReadFileNode,
   PromptTemplateNode,
-  RoleNode,
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
@@ -45,7 +42,6 @@ import type {
   StepVariant,
   TableNode,
   TypeReference,
-  UpstreamInputNode,
   WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
@@ -274,14 +270,8 @@ export class MarkdownEmitter {
         // They go through settings.ts emitter to settings.json
         throw new Error('MCPServerNode should not be emitted via markdown emitter');
       // Contract components
-      case 'role':
-        return this.emitContractComponent('role', node);
-      case 'upstreamInput':
-        return this.emitContractComponent('upstream_input', node);
-      case 'downstreamConsumer':
-        return this.emitContractComponent('downstream_consumer', node);
-      case 'methodology':
-        return this.emitContractComponent('methodology', node);
+      // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+      // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
       case 'structuredReturns':
         return this.emitStructuredReturns(node);
       // Runtime-specific nodes - use V3 emitter for these
@@ -872,17 +862,8 @@ export class MarkdownEmitter {
     return parts.join('\n\n');
   }
 
-  /**
-   * Emit a contract component as XML block with snake_case tag name
-   */
-  private emitContractComponent(
-    tagName: string,
-    node: RoleNode | UpstreamInputNode | DownstreamConsumerNode | MethodologyNode
-  ): string {
-    const children = node.children.map(c => this.emitBlock(c)).join('\n\n');
-    // Indent children for readability
-    return `<${tagName}>\n${children}\n</${tagName}>`;
-  }
+  // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
+  // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
 
   /**
    * Emit StructuredReturns with ## headings for each status

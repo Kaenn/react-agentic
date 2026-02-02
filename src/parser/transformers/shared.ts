@@ -98,6 +98,8 @@ export const SPECIAL_COMPONENTS = new Set([
   'ReadFiles',
   // Template primitives
   'PromptTemplate',
+  // Agent contract composites (emit as XmlBlock directly, no import needed)
+  'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
 ]);
 
 /**

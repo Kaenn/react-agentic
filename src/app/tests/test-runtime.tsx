@@ -14,7 +14,7 @@ import {
   runtimeFn,
   If,
   Else,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // Define runtime function types
 interface InitArgs {

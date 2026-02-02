@@ -23,7 +23,7 @@ export interface ReactAgenticConfig {
   minify: boolean;
   /** Split runtime into per-namespace modules (default: false) */
   codeSplit: boolean;
-  /** Directory for agent definition files (default: ~/.claude/agents/) */
+  /** Directory for agent definition files (default: .claude/agents) */
   agentsDir: string;
 }
 
@@ -35,7 +35,7 @@ export const DEFAULT_CONFIG: ReactAgenticConfig = {
   runtimeDir: DEFAULT_RUNTIME_DIR,
   minify: false,
   codeSplit: false,
-  agentsDir: '~/.claude/agents/',
+  agentsDir: '.claude/agents',
 };
 
 const CONFIG_FILENAME = 'react-agentic.config.json';

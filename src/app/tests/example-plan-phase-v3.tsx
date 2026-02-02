@@ -34,7 +34,7 @@ import {
   // Structured primitives
   Table,
   List,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // ============================================================================
 // Type Definitions

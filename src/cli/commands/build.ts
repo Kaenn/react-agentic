@@ -29,6 +29,7 @@ import type { RuntimeFileInfo } from '../../emitter/index.js';
 
 interface BuildOptions {
   out: string;
+  agentsOut: string;
   runtimeOut: string;
   codeSplit: boolean;
   minify: boolean;
@@ -60,6 +61,7 @@ async function processFile(
   // Build runtime file
   const buildResult = await buildRuntimeFile(sourceFile, project, {
     commandsOut: options.out,
+    agentsOut: options.agentsOut,
     runtimeOut: options.runtimeOut,
     dryRun: options.dryRun,
     config: options.config,
@@ -255,6 +257,7 @@ export const buildCommand = new Command('build')
 
     const options: BuildOptions = {
       out: config.outputDir,
+      agentsOut: config.agentsDir,
       runtimeOut: config.runtimeDir,
       codeSplit: config.codeSplit,
       minify: config.minify,

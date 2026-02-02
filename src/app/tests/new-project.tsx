@@ -27,7 +27,7 @@ import {
   XmlBlock,
   ExecutionContext,
   Table,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // Import runtime functions
 import {

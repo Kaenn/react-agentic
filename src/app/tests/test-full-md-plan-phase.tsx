@@ -8,7 +8,7 @@
 import {
   Command,
   XmlBlock
-} from '../jsx.js';
+} from '../../jsx.js';
 
 
 export default (

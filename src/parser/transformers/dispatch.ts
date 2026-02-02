@@ -23,10 +23,6 @@ import { transformStep, transformBash, transformReadFiles, transformReadFile, tr
 import { transformMarkdown, transformXmlBlock, transformCustomComponent } from './markdown.js';
 import { transformInlineChildren } from './inline.js';
 import {
-  transformRole,
-  transformUpstreamInput,
-  transformDownstreamConsumer,
-  transformMethodology,
   transformStructuredReturns,
   isContractComponent,
 } from './contract.js';
@@ -318,17 +314,31 @@ function transformElement(
   }
 
   // Contract components (inside Agent)
+  // Role, UpstreamInput, DownstreamConsumer, Methodology are composites that wrap XmlBlock.
+  // We handle them directly here to avoid requiring imports.
   if (name === 'Role') {
-    return transformRole(node, ctx);
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'role', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
   }
   if (name === 'UpstreamInput') {
-    return transformUpstreamInput(node, ctx);
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'upstream_input', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
   }
   if (name === 'DownstreamConsumer') {
-    return transformDownstreamConsumer(node, ctx);
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'downstream_consumer', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
   }
   if (name === 'Methodology') {
-    return transformMethodology(node, ctx);
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'methodology', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
   }
   if (name === 'StructuredReturns') {
     return transformStructuredReturns(node, ctx);

@@ -68,13 +68,11 @@ import type {
   ReadFileNode,
   ReadFileEntry,
   PromptTemplateNode,
-  RoleNode,
-  UpstreamInputNode,
-  DownstreamConsumerNode,
-  MethodologyNode,
   StructuredReturnsNode,
   ReturnStatusNode,
 } from '../ir/index.js';
+// Note: RoleNode, UpstreamInputNode, DownstreamConsumerNode, MethodologyNode
+// are no longer needed. Those components are now composites that emit XmlBlockNode.
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
 // Document transformers - extracted functions for Agent, Skill, MCPConfig, State
@@ -608,17 +606,31 @@ export class Transformer {
     }
 
     // Contract components (inside Agent)
+    // Role, UpstreamInput, DownstreamConsumer, Methodology are composites that wrap XmlBlock.
+    // We handle them directly here to avoid requiring imports.
     if (name === 'Role') {
-      return this.transformRole(node);
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'role', children: children as BaseBlockNode[] };
     }
     if (name === 'UpstreamInput') {
-      return this.transformUpstreamInput(node);
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'upstream_input', children: children as BaseBlockNode[] };
     }
     if (name === 'DownstreamConsumer') {
-      return this.transformDownstreamConsumer(node);
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'downstream_consumer', children: children as BaseBlockNode[] };
     }
     if (name === 'Methodology') {
-      return this.transformMethodology(node);
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'methodology', children: children as BaseBlockNode[] };
     }
     if (name === 'StructuredReturns') {
       return this.transformStructuredReturns(node);
@@ -1896,53 +1908,8 @@ export class Transformer {
     return { kind: 'raw', content };
   }
 
-  /**
-   * Contract Component Transformers
-   * Added for Phase 34 - Agent Contract Components
-   */
-  private transformRole(node: JsxElement | JsxSelfClosingElement): RoleNode {
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'role',
-      children: children as BaseBlockNode[],
-    };
-  }
-
-  private transformUpstreamInput(node: JsxElement | JsxSelfClosingElement): UpstreamInputNode {
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'upstreamInput',
-      children: children as BaseBlockNode[],
-    };
-  }
-
-  private transformDownstreamConsumer(node: JsxElement | JsxSelfClosingElement): DownstreamConsumerNode {
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'downstreamConsumer',
-      children: children as BaseBlockNode[],
-    };
-  }
-
-  private transformMethodology(node: JsxElement | JsxSelfClosingElement): MethodologyNode {
-    const children = Node.isJsxElement(node)
-      ? this.transformBlockChildren(node.getJsxChildren())
-      : [];
-
-    return {
-      kind: 'methodology',
-      children: children as BaseBlockNode[],
-    };
-  }
+  // Note: transformRole, transformUpstreamInput, transformDownstreamConsumer, transformMethodology
+  // have been removed. Those components are now composites that wrap XmlBlock.
 
   private transformReturnStatus(node: JsxElement | JsxSelfClosingElement): ReturnStatusNode {
     const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;

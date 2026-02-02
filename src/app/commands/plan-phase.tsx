@@ -27,7 +27,7 @@ import {
   XmlBlock,
   ExecutionContext,
   Table,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // Import runtime functions
 import {
@@ -72,7 +72,7 @@ const ReadAndDisplayPlans = runtimeFn(readAndDisplayPlans);
 export default (
   <Command
     name="gsd:plan-phase-ra"
-    description="REACT AGENTIC: Create detailed execution plan for a phase (PLAN.md) with verification loop"
+    description="Create detailed execution plan for a phase (PLAN.md) with verification loop"
     argumentHint="[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
     agent="gsd-planner"
     allowedTools={["Read", "Write", "Bash", "Glob", "Grep", "Task", "WebFetch", "mcp__context7__*"]}
@@ -190,7 +190,6 @@ export default (
                       phaseName: ctx.phaseName,
                       phaseDir: ctx.phaseDir,
                       phaseDescription: ctx.phaseDescription,
-                      agentPath: ctx.agentPaths.researcher,
                     }}
                     output={researcherPrompt}
                   />
@@ -199,7 +198,7 @@ export default (
 
                   <SpawnAgent
                     agent="gsd-phase-researcher"
-                    loadFromFile={ctx.agentPaths.researcher}
+                    readAgentFile={true}
                     model="sonnet"
                     description={`Research Phase ${ctx.phaseId}`}
                     input={{ prompt: researcherPrompt.prompt }}
@@ -323,7 +322,6 @@ export default (
                 phaseId: ctx.phaseId,
                 phaseName: ctx.phaseName,
                 phaseDir: ctx.phaseDir,
-                agentPath: ctx.agentPaths.planner,
                 mode: ctx.flags.gaps ? 'gap_closure' : 'standard',
               }}
               output={plannerPrompt}
@@ -333,7 +331,7 @@ export default (
 
             <SpawnAgent
               agent="gsd-planner"
-              loadFromFile={ctx.agentPaths.planner}
+              readAgentFile={true}
               model="opus"
               description={`Plan Phase ${ctx.phaseId}`}
               input={{ prompt: plannerPrompt.prompt }}
@@ -423,6 +421,7 @@ export default (
 
                   <SpawnAgent
                     agent="gsd-plan-checker"
+                    readAgentFile={true}
                     model="sonnet"
                     description={`Verify Phase ${ctx.phaseId} plans`}
                     input={{ prompt: checkerPrompt.prompt }}
@@ -473,7 +472,6 @@ export default (
                           phaseId: ctx.phaseId,
                           phaseName: ctx.phaseName,
                           phaseDir: ctx.phaseDir,
-                          agentPath: ctx.agentPaths.planner,
                           mode: 'revision',
                           issues: agentStatus.issues,
                         }}
@@ -482,7 +480,7 @@ export default (
 
                       <SpawnAgent
                         agent="gsd-planner"
-                        loadFromFile={ctx.agentPaths.planner}
+                        readAgentFile={true}
                         model="opus"
                         description={`Revise Phase ${ctx.phaseId} plans`}
                         input={{ prompt: plannerPrompt.prompt }}

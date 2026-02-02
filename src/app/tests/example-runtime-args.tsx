@@ -15,7 +15,7 @@ import {
   runtimeFn,
   If,
   Else,
-} from '../jsx.js';
+} from '../../jsx.js';
 
 // Type definitions
 interface ProjectContext {

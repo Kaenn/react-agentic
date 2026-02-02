@@ -192,11 +192,9 @@ export {
 // Contract Component Transformers
 // ============================================================================
 
+// Note: transformRole, transformUpstreamInput, transformDownstreamConsumer, transformMethodology
+// are no longer exported. Those components are now composites that wrap XmlBlock.
 export {
-  transformRole,
-  transformUpstreamInput,
-  transformDownstreamConsumer,
-  transformMethodology,
   transformStructuredReturns,
   transformReturn,
   isContractComponent,

@@ -286,41 +286,8 @@ export interface OnStatusDefaultNode {
   children: BaseBlockNode[];
 }
 
-/**
- * Role - agent identity and responsibilities
- * Renders as <role> XML block
- */
-export interface RoleNode {
-  kind: 'role';
-  children: BaseBlockNode[];
-}
-
-/**
- * UpstreamInput - documents expected input context
- * Renders as <upstream_input> XML block
- */
-export interface UpstreamInputNode {
-  kind: 'upstreamInput';
-  children: BaseBlockNode[];
-}
-
-/**
- * DownstreamConsumer - documents output consumers
- * Renders as <downstream_consumer> XML block
- */
-export interface DownstreamConsumerNode {
-  kind: 'downstreamConsumer';
-  children: BaseBlockNode[];
-}
-
-/**
- * Methodology - describes working approach
- * Renders as <methodology> XML block
- */
-export interface MethodologyNode {
-  kind: 'methodology';
-  children: BaseBlockNode[];
-}
+// Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+// that wrap XmlBlock. They no longer have dedicated IR nodes - they emit XmlBlockNode.
 
 /**
  * Return - individual return status with description
@@ -470,11 +437,9 @@ export type BaseBlockNode =
   | PromptTemplateNode
   | MCPServerNode
   | StepNode
-  | RoleNode
-  | UpstreamInputNode
-  | DownstreamConsumerNode
-  | MethodologyNode
   | StructuredReturnsNode;
+  // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+  // that wrap XmlBlock. They emit XmlBlockNode instead of dedicated IR nodes.
 
 /**
  * Internal alias for backward compatibility within this file
@@ -706,10 +671,6 @@ export type IRNode =
   | MCPConfigDocumentNode
   | StateDocumentNode
   | TypeReference
-  | RoleNode
-  | UpstreamInputNode
-  | DownstreamConsumerNode
-  | MethodologyNode
   | StructuredReturnsNode
   | ReturnStatusNode;
 

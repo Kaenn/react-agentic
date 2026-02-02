@@ -1,28 +1,38 @@
 /**
- * Agent Contract Components - Compile-time JSX components
+ * Agent Contract Components
  *
- * These components define the agent's contract: identity, inputs, outputs,
- * methodology, and structured return statuses. They render as XML blocks
- * in the agent markdown output.
+ * Re-exports composites for Role, UpstreamInput, DownstreamConsumer, Methodology.
+ * These are now composites that wrap XmlBlock.
+ *
+ * StatusReturn and StructuredReturns remain as primitives because:
+ * - StructuredReturns validates that children are only StatusReturn
+ * - StatusReturn is only valid inside StructuredReturns
  *
  * All components are optional but must appear in order if used:
- * Role → UpstreamInput → DownstreamConsumer → Methodology → StructuredReturns
+ * Role -> UpstreamInput -> DownstreamConsumer -> Methodology -> StructuredReturns
  */
 
 import type { ReactNode } from 'react';
 
 // ============================================================================
-// Types
+// Re-export Composites
 // ============================================================================
 
-/**
- * Props for container contract components (Role, UpstreamInput, etc.)
- * These accept free-form children - author decides internal structure
- */
-export interface ContractComponentProps {
-  /** Free-form content: markdown, XmlBlock, text */
-  children?: ReactNode;
-}
+export {
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  type ContractComponentProps,
+  type RoleProps,
+  type UpstreamInputProps,
+  type DownstreamConsumerProps,
+  type MethodologyProps,
+} from '../composites/contract/index.js';
+
+// ============================================================================
+// Primitive Types (StatusReturn, StructuredReturns)
+// ============================================================================
 
 /**
  * Props for StatusReturn component
@@ -43,77 +53,8 @@ export interface StructuredReturnsProps {
 }
 
 // ============================================================================
-// Components
+// Primitive Components
 // ============================================================================
-
-/**
- * Role - Declares agent identity and responsibilities
- *
- * Renders as <role> XML block in agent markdown.
- *
- * @example
- * ```tsx
- * <Role>
- *   You are a test runner. You execute tests and report results.
- * </Role>
- * ```
- */
-export function Role(_props: ContractComponentProps): null {
-  return null;
-}
-
-/**
- * UpstreamInput - Documents expected input context from orchestrator
- *
- * Renders as <upstream_input> XML block in agent markdown.
- *
- * @example
- * ```tsx
- * <UpstreamInput>
- *   Expects:
- *   - testPath: string
- *   - coverage: boolean
- * </UpstreamInput>
- * ```
- */
-export function UpstreamInput(_props: ContractComponentProps): null {
-  return null;
-}
-
-/**
- * DownstreamConsumer - Documents output consumers
- *
- * Renders as <downstream_consumer> XML block in agent markdown.
- *
- * @example
- * ```tsx
- * <DownstreamConsumer>
- *   Output is consumed by the orchestrator for status routing.
- * </DownstreamConsumer>
- * ```
- */
-export function DownstreamConsumer(_props: ContractComponentProps): null {
-  return null;
-}
-
-/**
- * Methodology - Describes working approach
- *
- * Renders as <methodology> XML block in agent markdown.
- *
- * @example
- * ```tsx
- * <Methodology>
- *   1. Load test files
- *   2. Execute test runner
- *   3. Parse results
- *   4. Report status
- * </Methodology>
- * ```
- */
-export function Methodology(_props: ContractComponentProps): null {
-  return null;
-}
 
 /**
  * StatusReturn - Individual return status with description

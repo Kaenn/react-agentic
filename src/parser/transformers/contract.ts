@@ -2,11 +2,10 @@
  * Contract Component Transformers
  *
  * Transforms agent contract components to IR nodes:
- * - Role → RoleNode
- * - UpstreamInput → UpstreamInputNode
- * - DownstreamConsumer → DownstreamConsumerNode
- * - Methodology → MethodologyNode
- * - StructuredReturns → StructuredReturnsNode (with Return children)
+ * - StructuredReturns -> StructuredReturnsNode (with Return children)
+ *
+ * Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+ * that wrap XmlBlock and are handled by the custom component transformer.
  */
 
 import {
@@ -15,10 +14,6 @@ import {
   JsxSelfClosingElement,
 } from 'ts-morph';
 import type {
-  RoleNode,
-  UpstreamInputNode,
-  DownstreamConsumerNode,
-  MethodologyNode,
   StructuredReturnsNode,
   ReturnStatusNode,
   BaseBlockNode,
@@ -36,78 +31,6 @@ import { transformBlockChildren as dispatchTransformBlockChildren } from './disp
  */
 function getTransformBlockChildren(ctx: TransformContext) {
   return ctx.transformBlockChildren ?? dispatchTransformBlockChildren;
-}
-
-// ============================================================================
-// Simple Container Transformers
-// ============================================================================
-
-/**
- * Transform Role component to RoleNode
- */
-export function transformRole(
-  node: JsxElement | JsxSelfClosingElement,
-  ctx: TransformContext
-): RoleNode {
-  const children = Node.isJsxElement(node)
-    ? getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'role',
-    children: children as BaseBlockNode[],
-  };
-}
-
-/**
- * Transform UpstreamInput component to UpstreamInputNode
- */
-export function transformUpstreamInput(
-  node: JsxElement | JsxSelfClosingElement,
-  ctx: TransformContext
-): UpstreamInputNode {
-  const children = Node.isJsxElement(node)
-    ? getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'upstreamInput',
-    children: children as BaseBlockNode[],
-  };
-}
-
-/**
- * Transform DownstreamConsumer component to DownstreamConsumerNode
- */
-export function transformDownstreamConsumer(
-  node: JsxElement | JsxSelfClosingElement,
-  ctx: TransformContext
-): DownstreamConsumerNode {
-  const children = Node.isJsxElement(node)
-    ? getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'downstreamConsumer',
-    children: children as BaseBlockNode[],
-  };
-}
-
-/**
- * Transform Methodology component to MethodologyNode
- */
-export function transformMethodology(
-  node: JsxElement | JsxSelfClosingElement,
-  ctx: TransformContext
-): MethodologyNode {
-  const children = Node.isJsxElement(node)
-    ? getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx)
-    : [];
-
-  return {
-    kind: 'methodology',
-    children: children as BaseBlockNode[],
-  };
 }
 
 // ============================================================================
@@ -194,14 +117,13 @@ export function transformStructuredReturns(
 // ============================================================================
 
 /**
- * Check if element name is a contract component
+ * Check if element name is a contract component that needs primitive handling
+ *
+ * Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+ * and are NOT included here. They are handled as custom components.
  */
 export function isContractComponent(name: string): boolean {
   return [
-    'Role',
-    'UpstreamInput',
-    'DownstreamConsumer',
-    'Methodology',
     'StructuredReturns',
     'ReturnStatus',
     'StatusReturn',

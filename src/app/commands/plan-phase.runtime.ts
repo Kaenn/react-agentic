@@ -50,11 +50,6 @@ export interface PlanPhaseContext {
     workflowResearch: boolean;
     workflowPlanCheck: boolean;
   };
-  agentPaths: {
-    researcher: string;
-    planner: string;
-    checker: string;
-  };
   mascot: string;            // Random cat name for this phase
 }
 
@@ -99,7 +94,6 @@ export interface PlanSummary {
 
 export interface PromptResult {
   prompt: string;
-  agentPath: string;
 }
 
 // ============================================================================
@@ -177,12 +171,6 @@ function resolveModels(profile: string): ModelConfig {
   return profiles[profile] || profiles.balanced;
 }
 
-// Default agent paths (can be overridden in config)
-const DEFAULT_AGENT_PATHS = {
-  researcher: '/Users/glenninizan/.claude/agents/gsd-phase-researcher.md',
-  planner: '/Users/glenninizan/.claude/agents/gsd-planner.md',
-  checker: '/Users/glenninizan/.claude/agents/gsd-plan-checker.md',
-};
 
 // ============================================================================
 // Main Runtime Functions
@@ -201,7 +189,6 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     models: { researcher: 'sonnet', planner: 'opus', checker: 'sonnet' },
     modelProfile: 'balanced',
     config: { workflowResearch: true, workflowPlanCheck: true },
-    agentPaths: DEFAULT_AGENT_PATHS,
     mascot: randomCatName(),
   });
 
@@ -284,7 +271,6 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
   // Read config
   let config = { workflowResearch: true, workflowPlanCheck: true };
   let modelProfile = 'balanced';
-  let agentPaths = { ...DEFAULT_AGENT_PATHS };
 
   try {
     const configJson = await readFile('.planning/config.json');
@@ -293,11 +279,6 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
       config.workflowResearch = parsed.workflow?.research !== false;
       config.workflowPlanCheck = parsed.workflow?.plan_check !== false;
       modelProfile = parsed.model_profile || 'balanced';
-
-      // Override agent paths if specified
-      if (parsed.agents?.researcher) agentPaths.researcher = parsed.agents.researcher;
-      if (parsed.agents?.planner) agentPaths.planner = parsed.agents.planner;
-      if (parsed.agents?.checker) agentPaths.checker = parsed.agents.checker;
     }
   } catch {
     // Use defaults
@@ -329,7 +310,6 @@ export async function init(args: { arguments: string }): Promise<PlanPhaseContex
     models: resolveModels(modelProfile),
     modelProfile,
     config,
-    agentPaths,
     mascot: randomCatName(),
   };
 }
@@ -387,7 +367,6 @@ export async function buildResearcherPrompt(args: {
   phaseName: string;
   phaseDir: string;
   phaseDescription: string;
-  agentPath: string;
 }): Promise<PromptResult> {
   // Gather all context files
   const roadmap = await readFile('.planning/ROADMAP.md');
@@ -423,10 +402,7 @@ ${phaseContext}
 Write research findings to: ${args.phaseDir}/${args.phaseId}-RESEARCH.md
 </output>`;
 
-  return {
-    prompt,
-    agentPath: args.agentPath,
-  };
+  return { prompt };
 }
 
 /**
@@ -436,7 +412,6 @@ export async function buildPlannerPrompt(args: {
   phaseId: string;
   phaseName: string;
   phaseDir: string;
-  agentPath: string;
   mode: 'standard' | 'gap_closure' | 'revision';
   issues?: string[];
 }): Promise<PromptResult> {
@@ -538,10 +513,7 @@ Before returning PLANNING COMPLETE:
 </quality_gate>`;
   }
 
-  return {
-    prompt,
-    agentPath: args.agentPath,
-  };
+  return { prompt };
 }
 
 /**

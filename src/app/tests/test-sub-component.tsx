@@ -12,7 +12,7 @@ import {
   If,
   Else,
   XmlBlock,
-} from '../jsx.js';
+} from '../../jsx.js';
 import { ReactNode } from 'react';
 
 // Define runtime function types

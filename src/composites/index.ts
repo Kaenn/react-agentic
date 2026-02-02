@@ -36,3 +36,16 @@ export {
   Preamble,
   type PreambleProps,
 } from './meta-prompting/index.js';
+
+// Agent contract composites
+export {
+  Role,
+  type RoleProps,
+  UpstreamInput,
+  type UpstreamInputProps,
+  DownstreamConsumer,
+  type DownstreamConsumerProps,
+  Methodology,
+  type MethodologyProps,
+  type ContractComponentProps,
+} from './contract/index.js';

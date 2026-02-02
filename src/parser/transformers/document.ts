@@ -36,12 +36,10 @@ import type {
   BlockNode,
   BaseBlockNode,
   TypeReference,
-  RoleNode,
-  UpstreamInputNode,
-  DownstreamConsumerNode,
-  MethodologyNode,
   StructuredReturnsNode,
 } from '../../ir/index.js';
+// Note: RoleNode, UpstreamInputNode, DownstreamConsumerNode, MethodologyNode
+// are no longer needed. Those components are now composites that emit XmlBlockNode.
 import {
   getElementName,
   getAttributeValue,
@@ -290,26 +288,48 @@ export function transformArrowFunctionBody(
 // ============================================================================
 
 /**
- * Contract component kinds in required order
+ * Contract component names in required order.
+ * Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+ * that emit XmlBlockNode with these tag names (snake_case).
+ * StructuredReturns is still a primitive with its own IR node kind.
  */
 const CONTRACT_COMPONENT_ORDER = [
-  'role',
-  'upstreamInput',
-  'downstreamConsumer',
-  'methodology',
-  'structuredReturns',
+  'role',                 // XmlBlockNode.name
+  'upstream_input',       // XmlBlockNode.name
+  'downstream_consumer',  // XmlBlockNode.name
+  'methodology',          // XmlBlockNode.name
+  'structuredReturns',    // StructuredReturnsNode.kind
 ] as const;
 
-type ContractKind = typeof CONTRACT_COMPONENT_ORDER[number];
+type ContractIdentifier = typeof CONTRACT_COMPONENT_ORDER[number];
 
 /**
- * Convert IR node kind to component name for error messages
+ * Get contract identifier for a block node.
+ * Returns the XmlBlock name for composites, or 'structuredReturns' for the primitive.
  */
-function kindToComponentName(kind: ContractKind): string {
-  switch (kind) {
+function getContractIdentifier(child: BaseBlockNode): ContractIdentifier | null {
+  // Check for XmlBlockNode (composites emit these)
+  if (child.kind === 'xmlBlock') {
+    const xmlBlock = child as import('../../ir/nodes.js').XmlBlockNode;
+    if (CONTRACT_COMPONENT_ORDER.includes(xmlBlock.name as ContractIdentifier)) {
+      return xmlBlock.name as ContractIdentifier;
+    }
+  }
+  // Check for StructuredReturnsNode (primitive)
+  if (child.kind === 'structuredReturns') {
+    return 'structuredReturns';
+  }
+  return null;
+}
+
+/**
+ * Convert contract identifier to component name for error messages
+ */
+function identifierToComponentName(id: ContractIdentifier): string {
+  switch (id) {
     case 'role': return 'Role';
-    case 'upstreamInput': return 'UpstreamInput';
-    case 'downstreamConsumer': return 'DownstreamConsumer';
+    case 'upstream_input': return 'UpstreamInput';
+    case 'downstream_consumer': return 'DownstreamConsumer';
     case 'methodology': return 'Methodology';
     case 'structuredReturns': return 'StructuredReturns';
   }
@@ -326,19 +346,19 @@ function validateContractComponents(
   node: Node
 ): void {
   // Count occurrences of each contract component type
-  const counts: Partial<Record<ContractKind, number>> = {};
+  const counts: Partial<Record<ContractIdentifier, number>> = {};
 
   for (const child of children) {
-    const kind = child.kind as ContractKind;
-    if (CONTRACT_COMPONENT_ORDER.includes(kind)) {
-      counts[kind] = (counts[kind] || 0) + 1;
+    const id = getContractIdentifier(child);
+    if (id) {
+      counts[id] = (counts[id] || 0) + 1;
     }
   }
 
   // Check for duplicates
-  for (const [kind, count] of Object.entries(counts)) {
+  for (const [id, count] of Object.entries(counts)) {
     if (count > 1) {
-      const componentName = kindToComponentName(kind as ContractKind);
+      const componentName = identifierToComponentName(id as ContractIdentifier);
       throw ctx.createError(
         `Agent can only have one <${componentName}> component (found ${count})`,
         node
@@ -349,16 +369,18 @@ function validateContractComponents(
   // Check ordering (filter to only contract components, verify they're in order)
   let lastIndex = -1;
   for (const child of children) {
-    const kind = child.kind as ContractKind;
-    const currentIndex = CONTRACT_COMPONENT_ORDER.indexOf(kind);
-    if (currentIndex !== -1) {
-      if (currentIndex < lastIndex) {
+    const id = getContractIdentifier(child);
+    if (id) {
+      const currentIndex = CONTRACT_COMPONENT_ORDER.indexOf(id);
+      if (currentIndex !== -1 && currentIndex < lastIndex) {
         throw ctx.createError(
           'Contract components must appear in order: Role → UpstreamInput → DownstreamConsumer → Methodology → StructuredReturns',
           node
         );
       }
-      lastIndex = currentIndex;
+      if (currentIndex !== -1) {
+        lastIndex = currentIndex;
+      }
     }
   }
 
