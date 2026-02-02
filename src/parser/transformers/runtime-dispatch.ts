@@ -947,49 +947,6 @@ function transformRuntimePreamble(
   } as BlockNode;
 }
 
-// ============================================================================
-// ReadFile Component Transformation
-// ============================================================================
-
-/**
- * Transform ReadFile component to ReadFileNode
- *
- * Supports:
- * - Static path: <ReadFile path=".planning/STATE.md" as="STATE_CONTENT" />
- * - Template path: <ReadFile path={`${ctx.phaseDir}/*-PLAN.md`} as="PLANS" />
- * - Optional flag: <ReadFile path="..." as="..." optional />
- */
-function transformRuntimeReadFile(
-  node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
-): BlockNode {
-  const openingElement = Node.isJsxElement(node)
-    ? node.getOpeningElement()
-    : node;
-
-  // Get path prop - supports string, template literal, or expression
-  const pathValue = extractPathProp(openingElement, 'path', ctx);
-  if (!pathValue) {
-    throw ctx.createError('ReadFile requires path prop', node);
-  }
-
-  // Get as prop (required) - variable name
-  const varName = getAttributeValue(openingElement, 'as');
-  if (!varName) {
-    throw ctx.createError('ReadFile requires as prop', node);
-  }
-
-  // Get optional prop (default: false = required)
-  const optionalAttr = openingElement.getAttribute('optional');
-  const required = !optionalAttr; // Present optional prop means not required
-
-  return {
-    kind: 'readFile',
-    path: pathValue,
-    varName,
-    required,
-  } as BlockNode;
-}
 
 /**
  * Extract path prop value, handling strings, templates, and RuntimeVar references
@@ -1334,11 +1291,6 @@ function transformRuntimeElement(
   // Ref component (reference printing)
   if (name === 'Ref') {
     return transformRef(node, ctx);
-  }
-
-  // ReadFile component (single file reading)
-  if (name === 'ReadFile') {
-    return transformRuntimeReadFile(node, ctx);
   }
 
   // GatherContext - semantic wrapper, passes through children

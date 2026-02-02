@@ -314,8 +314,6 @@ export class RuntimeMarkdownEmitter {
         return node.content;
       case 'indent':
         return this.emitIndent(node as import('../ir/nodes.js').IndentNode);
-      case 'readFile':
-        return this.emitReadFile(node as import('../ir/nodes.js').ReadFileNode);
 
       // V1 nodes that shouldn't appear in runtime documents
       case 'assign':
@@ -908,25 +906,6 @@ Task(
   // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
   // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
 
-  /**
-   * Emit ReadFileNode as bash code block
-   *
-   * Pattern: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
-   *
-   * Smart quoting for paths with variables and globs:
-   * - $CTX.phaseDir/*-PLAN.md -> "$CTX.phaseDir"/*-PLAN.md
-   */
-  private emitReadFile(node: import('../ir/nodes.js').ReadFileNode): string {
-    const quotedPath = this.smartQuotePath(node.path);
-
-    if (node.required) {
-      // Required file - fail loudly if missing
-      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath})\n\`\`\``;
-    } else {
-      // Optional file - suppress errors with 2>/dev/null
-      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath} 2>/dev/null)\n\`\`\``;
-    }
-  }
 
   /**
    * Smart quote path for shell: quote variable parts, leave glob parts unquoted

@@ -66,7 +66,6 @@ import type {
   StepNode,
   StepVariant,
   ReadFilesNode,
-  ReadFileNode,
   ReadFileEntry,
   PromptTemplateNode,
   StructuredReturnsNode,
@@ -589,11 +588,6 @@ export class Transformer {
     // Bash code block primitive
     if (name === 'Bash') {
       return this.transformBash(node);
-    }
-
-    // ReadFile - single file reading
-    if (name === 'ReadFile') {
-      return this.transformReadFile(node);
     }
 
     // ReadFiles - batch file reading
@@ -1534,42 +1528,6 @@ export class Transformer {
     };
   }
 
-  /**
-   * Transform <ReadFile> to ReadFileNode
-   *
-   * Supports multiple path formats:
-   * - Static string: <ReadFile path=".planning/STATE.md" />
-   * - Template literal: <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-RESEARCH.md`} />
-   * - Template with shell vars: <ReadFile path={`\${PHASE_DIR}/*-PLAN.md`} />
-   *
-   * RuntimeVar property access (ctx.phaseDir) is converted to shell syntax ($CTX_phaseDir)
-   */
-  private transformReadFile(node: JsxElement | JsxSelfClosingElement): ReadFileNode {
-    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
-
-    // Get path prop - supports string, template literal, or expression
-    const path = this.extractPathProp(opening, 'path', node);
-    if (!path) {
-      throw this.createError('ReadFile requires path prop', node);
-    }
-
-    // Get as prop (required) - variable name
-    const varName = getAttributeValue(opening, 'as');
-    if (!varName) {
-      throw this.createError('ReadFile requires as prop', node);
-    }
-
-    // Get optional prop (default: false = required)
-    const optionalAttr = opening.getAttribute('optional');
-    const required = !optionalAttr; // Present optional prop means not required
-
-    return {
-      kind: 'readFile',
-      path,
-      varName,
-      required,
-    };
-  }
 
   /**
    * Extract path prop value, handling strings, templates, and RuntimeVar references

@@ -374,20 +374,6 @@ export interface ReadFilesNode {
 }
 
 /**
- * Single file read - emits bash cat command
- * Unlike ReadFilesNode which batches, this emits one bash block per file
- */
-export interface ReadFileNode {
-  kind: 'readFile';
-  /** File path (may contain variable refs like ${VAR}) */
-  path: string;
-  /** Shell variable name from 'as' prop */
-  varName: string;
-  /** Whether file must exist (affects error suppression) */
-  required: boolean;
-}
-
-/**
  * Step output variant
  */
 export type StepVariant = 'heading' | 'bold' | 'xml';
@@ -434,7 +420,6 @@ export type BaseBlockNode =
   | ReadStateNode
   | WriteStateNode
   | ReadFilesNode
-  | ReadFileNode
   | PromptTemplateNode
   | MCPServerNode
   | StepNode

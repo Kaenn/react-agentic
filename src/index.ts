@@ -36,9 +36,6 @@ export {
   StatusReturn,
   StructuredReturns,
 
-  // Meta-prompting components
-  ReadFile,
-
   // Runtime primitives
   useRuntimeVar,
   runtimeFn,
@@ -112,7 +109,6 @@ export {
   type ContractComponentProps,
   type StatusReturnProps,
   type StructuredReturnsProps,
-  type ReadFileProps,
 } from './components/index.js';
 
 // ============================================================================

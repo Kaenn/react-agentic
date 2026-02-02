@@ -31,7 +31,6 @@ import type {
   ParagraphNode,
   ReadStateNode,
   ReadFilesNode,
-  ReadFileNode,
   PromptTemplateNode,
   SkillDocumentNode,
   SkillFileNode,
@@ -259,8 +258,6 @@ export class MarkdownEmitter {
         return this.emitWriteState(node);
       case 'readFiles':
         return this.emitReadFiles(node);
-      case 'readFile':
-        return this.emitReadFile(node);
       case 'promptTemplate':
         return this.emitPromptTemplate(node);
       case 'step':
@@ -787,25 +784,6 @@ export class MarkdownEmitter {
     return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
   }
 
-  /**
-   * Emit single file read as bash code block
-   * Pattern follows GSD: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
-   *
-   * Smart quoting for paths with variables and globs:
-   * - $CTX_phaseDir/*-PLAN.md -> "$CTX_phaseDir"/*-PLAN.md
-   * - Variable parts are quoted, glob parts are not (so glob expands)
-   */
-  private emitReadFile(node: ReadFileNode): string {
-    const quotedPath = this.smartQuotePath(node.path);
-
-    if (node.required) {
-      // Required file - fail loudly if missing
-      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath})\n\`\`\``;
-    } else {
-      // Optional file - suppress errors with 2>/dev/null
-      return `\`\`\`bash\n${node.varName}=$(cat ${quotedPath} 2>/dev/null)\n\`\`\``;
-    }
-  }
 
   /**
    * Smart quote path for shell: quote variable parts, leave glob parts unquoted

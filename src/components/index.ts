@@ -173,7 +173,5 @@ export {
 // Meta-Prompting Components
 // ============================================================================
 
-export {
-  ReadFile,
-  type ReadFileProps,
-} from './meta-prompting.js';
+// Meta-prompting components removed in Phase 38 Plan 04
+// Use Assign with file() source helper instead
