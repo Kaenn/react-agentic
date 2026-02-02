@@ -235,7 +235,8 @@ export interface AssignNode {
     | { type: 'bash'; content: string; }
     | { type: 'value'; content: string; raw?: boolean; }
     | { type: 'env'; content: string; }
-    | { type: 'file'; path: string; optional?: boolean; };
+    | { type: 'file'; path: string; optional?: boolean; }
+    | { type: 'runtimeFn'; fnName: string; args: Record<string, unknown>; };
   comment?: string;        // Optional inline comment (e.g., "Get phase from roadmap")
   blankBefore?: boolean;   // Insert extra blank line before this assignment (from <br/>)
 }
