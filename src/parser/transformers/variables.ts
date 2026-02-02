@@ -5,7 +5,7 @@
  * for shell variable assignment components.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExpression } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExpression, SourceFile, ObjectLiteralExpression } from 'ts-morph';
 import type { AssignNode, AssignGroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { extractTemplateContent } from './shared.js';
@@ -106,6 +106,36 @@ function transformAssignWithFrom(
   const expr = init.getExpression();
   if (!expr) {
     throw ctx.createError('Assign from must contain a source helper call', openingElement);
+  }
+
+  // Check if from prop is an Identifier (RuntimeFnComponent reference)
+  if (Node.isIdentifier(expr)) {
+    const identName = expr.getText();
+    const sourceFile = openingElement.getSourceFile();
+    const fnName = findRuntimeFnName(sourceFile, identName);
+
+    if (fnName) {
+      // Extract args prop (required for runtimeFn)
+      const argsAttr = openingElement.getAttribute('args');
+      let args: Record<string, unknown> = {};
+
+      if (argsAttr && Node.isJsxAttribute(argsAttr)) {
+        const argsInit = argsAttr.getInitializer();
+        if (argsInit && Node.isJsxExpression(argsInit)) {
+          const argsExpr = argsInit.getExpression();
+          if (argsExpr && Node.isObjectLiteralExpression(argsExpr)) {
+            args = extractArgsObject(argsExpr);
+          }
+        }
+      }
+
+      return {
+        kind: 'assign',
+        variableName: variable.envName,
+        assignment: { type: 'runtimeFn', fnName, args },
+        ...(commentProp && { comment: commentProp }),
+      };
+    }
   }
 
   // Check if it's a call expression to a source helper (file, bash, value, env)
@@ -374,4 +404,51 @@ function extractAssignPropValue(
   }
 
   return undefined;
+}
+
+/**
+ * Find the function name from a runtimeFn wrapper declaration
+ * Scans source file for: const WrapperName = runtimeFn(fnName)
+ */
+function findRuntimeFnName(sourceFile: SourceFile, wrapperName: string): string | null {
+  for (const statement of sourceFile.getStatements()) {
+    if (!Node.isVariableStatement(statement)) continue;
+
+    for (const decl of statement.getDeclarationList().getDeclarations()) {
+      if (decl.getName() !== wrapperName) continue;
+
+      const init = decl.getInitializer();
+      if (!init || !Node.isCallExpression(init)) continue;
+
+      const callExpr = init.getExpression();
+      if (!Node.isIdentifier(callExpr) || callExpr.getText() !== 'runtimeFn') continue;
+
+      const args = init.getArguments();
+      if (args.length > 0 && Node.isIdentifier(args[0])) {
+        return args[0].getText();
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract object literal to Record<string, unknown>
+ */
+function extractArgsObject(objExpr: ObjectLiteralExpression): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+  for (const prop of objExpr.getProperties()) {
+    if (Node.isPropertyAssignment(prop)) {
+      const name = prop.getName();
+      const init = prop.getInitializer();
+      if (init) {
+        if (Node.isStringLiteral(init)) args[name] = init.getLiteralValue();
+        else if (Node.isNumericLiteral(init)) args[name] = Number(init.getLiteralValue());
+        else if (init.getText() === 'true') args[name] = true;
+        else if (init.getText() === 'false') args[name] = false;
+        else args[name] = init.getText(); // Fallback to source text
+      }
+    }
+  }
+  return args;
 }
