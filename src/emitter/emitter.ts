@@ -585,24 +585,40 @@ export class MarkdownEmitter {
   private emitAssignmentLine(node: AssignNode): string {
     const { variableName, assignment, comment } = node;
 
-    let line: string = '';
+    let line: string;
     switch (assignment.type) {
       case 'bash':
         // Bash command: VAR=$(command)
         line = `${variableName}=$(${assignment.content})`;
         break;
       case 'value': {
-        // Static value: quote if contains spaces
+        // Static value: quote if contains spaces (unless raw option set)
         const val = assignment.content;
-        line = /\s/.test(val)
-          ? `${variableName}="${val}"`
-          : `${variableName}=${val}`;
+        if (assignment.raw) {
+          // Raw option: emit unquoted
+          line = `${variableName}=${val}`;
+        } else {
+          // Quote by default (safe for spaces)
+          line = /\s/.test(val)
+            ? `${variableName}="${val}"`
+            : `${variableName}=${val}`;
+        }
         break;
       }
       case 'env':
         // Environment variable: VAR=$ENV
         line = `${variableName}=$${assignment.content}`;
         break;
+      case 'file': {
+        // File read: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
+        const quotedPath = this.smartQuotePath(assignment.path);
+        if (assignment.optional) {
+          line = `${variableName}=$(cat ${quotedPath} 2>/dev/null)`;
+        } else {
+          line = `${variableName}=$(cat ${quotedPath})`;
+        }
+        break;
+      }
     }
 
     // Prepend comment if present
