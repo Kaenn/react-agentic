@@ -89,7 +89,7 @@ exports[`Runtime Components > RuntimeCall > emits RuntimeCall with mixed arg typ
 | priority | "high" |
 
 \`\`\`bash
-NOTIFICATION_ID=$(node .claude/runtime/runtime.js sendNotification '{"message": "Task completed", "userId": "$(echo "$USER" | jq -r '.id')", "priority": "high"}')
+NOTIFICATION_ID=$(node .claude/runtime/runtime.js sendNotification '{"message": "Task completed", "userId": $USER.id, "priority": "high"}')
 \`\`\`
 "
 `;
@@ -103,7 +103,7 @@ exports[`Runtime Components > RuntimeCall > emits RuntimeCall with runtime varia
 | config | CONFIG |
 
 \`\`\`bash
-RESULT=$(node .claude/runtime/runtime.js processData '{"input": "$(echo "$CTX" | jq -r '.data')", "config": "$(echo "$CONFIG" | jq -r '.')"}')
+RESULT=$(node .claude/runtime/runtime.js processData '{"input": $CTX.data, "config": $CONFIG}')
 \`\`\`
 "
 `;
@@ -169,9 +169,7 @@ Store the agent's result in \`$RESEARCH_RESULT\`.
 exports[`Runtime Components > SpawnAgent > emits SpawnAgent with runtime variable reference in input 1`] = `
 "\`\`\`
 Task(
-  prompt="<dataPath>
-$(echo \\"$CTX\\" | jq -r '.filePath')
-</dataPath>",
+  prompt="" + $CTX.filePath,
   subagent_type="analyzer",
   model="claude-sonnet-4",
   description="Analyze data"

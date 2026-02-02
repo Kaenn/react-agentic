@@ -10,7 +10,7 @@ exports[`Control Flow Components > Break > emits Loop containing Break 1`] = `
 
 Searching...
 
-**If found:**
+**If $FOUND:**
 
 **Break loop:** Item found.
 "
@@ -22,7 +22,7 @@ exports[`Control Flow Components > Break > emits standalone Break without messag
 `;
 
 exports[`Control Flow Components > If + Else > emits If-Else pair 1`] = `
-"**If ready:**
+"**If $READY:**
 
 System is ready.
 
@@ -33,7 +33,7 @@ System is not ready.
 `;
 
 exports[`Control Flow Components > If + SpawnAgent nesting > emits If containing SpawnAgent 1`] = `
-"**If needs_review:**
+"**If $NEEDS_REVIEW:**
 
 Starting code review...
 
@@ -51,7 +51,7 @@ Store the agent's result in \`$REVIEW_RESULT\`.
 `;
 
 exports[`Control Flow Components > If > emits If with equality condition 1`] = `
-"**If status === "complete":**
+"**If $STATUS === "complete":**
 
 Status is complete.
 "
@@ -65,7 +65,7 @@ Always executes.
 `;
 
 exports[`Control Flow Components > If > emits If with nested content 1`] = `
-"**If result.success:**
+"**If $RESULT.success:**
 
 ## Success
 
@@ -77,7 +77,7 @@ Operation completed.
 `;
 
 exports[`Control Flow Components > If > emits If with runtime variable reference condition 1`] = `
-"**If ctx.error:**
+"**If $CTX.error:**
 
 Error occurred.
 "
@@ -95,7 +95,7 @@ exports[`Control Flow Components > Loop > emits Loop with nested If 1`] = `
 
 Processing item...
 
-**If item.valid:**
+**If $ITEM.valid:**
 
 Valid item found.
 "

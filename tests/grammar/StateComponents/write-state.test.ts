@@ -89,12 +89,13 @@ describe('<WriteState>', () => {
 
     it('handles variable references', () => {
       const tsx = `
+        import { bash } from 'react-agentic';
         const state = useStateRef("state");
         const timestamp = useVariable("TIMESTAMP");
         export default function Doc() {
           return (
             <Agent name="test" description="Test">
-              <Assign var={timestamp} bash="date +%s" />
+              <Assign var={timestamp} from={bash("date +%s")} />
               <WriteState
                 state={state}
                 field="lastUpdate"
