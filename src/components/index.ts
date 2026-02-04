@@ -77,6 +77,7 @@ export {
 
 export {
   useRuntimeVar,
+  useVariable,
   isRuntimeVar,
   getRuntimeVarInfo,
   toJqExpression,

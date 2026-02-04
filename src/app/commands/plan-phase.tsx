@@ -28,7 +28,10 @@ import {
   ExecutionContext,
   Table,
   Markdown,
-  ReadFile,
+  Assign,
+  file,
+  useVariable,
+  Ref,
 } from '../../jsx.js';
 
 import {
@@ -67,8 +70,8 @@ const ReadAndDisplayPlans = runtimeFn(readAndDisplayPlans);
 
 export default (
   <Command
-    name="gsd:plan-phase"
-    description="Create detailed execution plan for a phase (PLAN.md) with verification loop"
+    name="gsd:plan-phase-ra"
+    description="RA: Create detailed execution plan for a phase (PLAN.md) with verification loop"
     argumentHint="[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
     agent="gsd-planner"
     allowedTools={["Read", "Write", "Bash", "Glob", "Grep", "Task", "WebFetch", "mcp__context7__*"]}
@@ -83,6 +86,17 @@ export default (
       const iteration = useRuntimeVar<number>('ITERATION');
       const plansDisplay = useRuntimeVar<string>('PLANS_DISPLAY');
       const _void = useRuntimeVar<void>('_VOID'); // Placeholder for void returns
+
+      // File content variables (use useVariable for Assign compatibility)
+      const roadmapContent = useVariable<string>('ROADMAP_CONTENT');
+      const requirementsContent = useVariable<string>('REQUIREMENTS_CONTENT');
+      const stateContent = useVariable<string>('STATE_CONTENT');
+      const phaseContext = useVariable<string>('PHASE_CONTEXT');
+      const researchContent = useVariable<string>('RESEARCH_CONTENT');
+      const verificationContent = useVariable<string>('VERIFICATION_CONTENT');
+      const uatContent = useVariable<string>('UAT_CONTENT');
+      const plansContent = useVariable<string>('PLANS_CONTENT');
+      const currentPlans = useVariable<string>('CURRENT_PLANS');
 
       return (
         <>
@@ -174,20 +188,28 @@ export default (
                   <p>◆ Gathering research context...</p>
 
                   <GatherContext>
-                    <ReadFile path=".planning/ROADMAP.md" as="ROADMAP_CONTENT" />
-                    <ReadFile path=".planning/REQUIREMENTS.md" as="REQUIREMENTS_CONTENT" optional />
-                    <ReadFile path=".planning/STATE.md" as="STATE_CONTENT" />
-                    <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-CONTEXT.md`} as="PHASE_CONTEXT" optional />
+                    <Assign var={roadmapContent} from={file('.planning/ROADMAP.md')} />
+                    <Assign var={requirementsContent} from={file('.planning/REQUIREMENTS.md', { optional: true })} />
+                    <Assign var={stateContent} from={file('.planning/STATE.md')} />
+                    <Assign var={phaseContext} from={file(`${ctx.phaseDir}/${ctx.phaseId}-CONTEXT.md`, { optional: true })} />
                   </GatherContext>
 
                   <ComposeContext name="research_context">
                     <Preamble>Research how to implement this phase. Answer: "What do I need to know to PLAN this phase well?"</Preamble>
-                    <Markdown>**Phase:** {ctx.phaseId} - {ctx.phaseName}</Markdown>
-                    <Markdown>**Phase description:** {ctx.phaseDescription}</Markdown>
-                    <Markdown>**Requirements:** $REQUIREMENTS_CONTENT</Markdown>
-                    <Markdown>**Prior decisions:** $STATE_CONTENT</Markdown>
-                    <Markdown>**Phase context:** $PHASE_CONTEXT</Markdown>
-                    <Markdown>**Output:** Write to: {ctx.phaseDir}/{ctx.phaseId}-RESEARCH.md</Markdown>
+                    <Markdown>
+                      **Phase:** {ctx.phaseId} - {ctx.phaseName}
+                      **Phase description:** {ctx.phaseDescription}
+                      <XmlBlock name="requirements">
+                        {requirementsContent}
+                      </XmlBlock>
+                      <XmlBlock name="state">
+                        {stateContent}
+                      </XmlBlock>
+                      <XmlBlock name="phase_context">
+                        {phaseContext}
+                      </XmlBlock>
+                      **Output:** Write to: {ctx.phaseDir}/{ctx.phaseId}-RESEARCH.md
+                    </Markdown>
                   </ComposeContext>
 
                   <p>◆ Spawning researcher agent...</p>
@@ -314,17 +336,17 @@ export default (
             <p>◆ Gathering planning context...</p>
 
             <GatherContext>
-              <ReadFile path=".planning/STATE.md" as="STATE_CONTENT" />
-              <ReadFile path=".planning/ROADMAP.md" as="ROADMAP_CONTENT" />
-              <ReadFile path=".planning/REQUIREMENTS.md" as="REQUIREMENTS_CONTENT" optional />
-              <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-CONTEXT.md`} as="PHASE_CONTEXT" optional />
-              <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-RESEARCH.md`} as="RESEARCH_CONTENT" optional />
+              <Assign var={stateContent} from={file('.planning/STATE.md')} />
+              <Assign var={roadmapContent} from={file('.planning/ROADMAP.md')} />
+              <Assign var={requirementsContent} from={file('.planning/REQUIREMENTS.md', { optional: true })} />
+              <Assign var={phaseContext} from={file(`${ctx.phaseDir}/${ctx.phaseId}-CONTEXT.md`, { optional: true })} />
+              <Assign var={researchContent} from={file(`${ctx.phaseDir}/${ctx.phaseId}-RESEARCH.md`, { optional: true })} />
             </GatherContext>
 
             <If condition={ctx.flags.gaps}>
               <GatherContext>
-                <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-VERIFICATION.md`} as="VERIFICATION_CONTENT" optional />
-                <ReadFile path={`${ctx.phaseDir}/${ctx.phaseId}-UAT.md`} as="UAT_CONTENT" optional />
+                <Assign var={verificationContent} from={file(`${ctx.phaseDir}/${ctx.phaseId}-VERIFICATION.md`, { optional: true })} />
+                <Assign var={uatContent} from={file(`${ctx.phaseDir}/${ctx.phaseId}-UAT.md`, { optional: true })} />
               </GatherContext>
             </If>
 
@@ -456,9 +478,9 @@ export default (
                   <p>◆ Iteration {iteration}/3: Gathering verification context...</p>
 
                   <GatherContext>
-                    <ReadFile path={`${ctx.phaseDir}/*-PLAN.md`} as="PLANS_CONTENT" />
-                    <ReadFile path=".planning/REQUIREMENTS.md" as="REQUIREMENTS_CONTENT" optional />
-                    <ReadFile path=".planning/ROADMAP.md" as="ROADMAP_CONTENT" />
+                    <Assign var={plansContent} from={file(`${ctx.phaseDir}/*-PLAN.md`)} />
+                    <Assign var={requirementsContent} from={file('.planning/REQUIREMENTS.md', { optional: true })} />
+                    <Assign var={roadmapContent} from={file('.planning/ROADMAP.md')} />
                   </GatherContext>
 
                   <ComposeContext name="verification_context">
@@ -527,7 +549,7 @@ export default (
                       <p>Sending back to planner for revision... (iteration {iteration}/3)</p>
 
                       <GatherContext>
-                        <ReadFile path={`${ctx.phaseDir}/*-PLAN.md`} as="CURRENT_PLANS" />
+                        <Assign var={currentPlans} from={file(`${ctx.phaseDir}/*-PLAN.md`)} />
                       </GatherContext>
 
                       <ComposeContext name="revision_context">

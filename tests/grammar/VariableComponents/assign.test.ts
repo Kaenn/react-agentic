@@ -220,4 +220,43 @@ describe('<Assign>', () => {
       expectAgentTransformError(tsx, /from must be a JSX expression/);
     });
   });
+
+  describe('unified useVariable API (RuntimeVarProxy)', () => {
+    it('compiles Assign with useRuntimeVar (unified API)', () => {
+      const tsx = `
+        import { useRuntimeVar, bash } from 'react-agentic';
+        const DATA = useRuntimeVar<string>('DATA');
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={DATA} from={bash("echo hello")} />
+            </Agent>
+          );
+        }
+      `;
+      const output = transformAgentContent(tsx, true);
+      expect(output).toContain('DATA=$(echo hello)');
+    });
+
+    it('compiles Assign with typed useRuntimeVar for complex types', () => {
+      const tsx = `
+        import { useRuntimeVar, bash } from 'react-agentic';
+        interface Context {
+          status: string;
+          data: { count: number };
+        }
+        const CTX = useRuntimeVar<Context>('CTX');
+        export default function Doc() {
+          return (
+            <Agent name="test" description="Test">
+              <Assign var={CTX} from={bash("get_context")} />
+            </Agent>
+          );
+        }
+      `;
+      const output = transformAgentContent(tsx, true);
+      // Assign works with complex typed RuntimeVarProxy
+      expect(output).toContain('CTX=$(get_context)');
+    });
+  });
 });

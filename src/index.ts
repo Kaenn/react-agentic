@@ -38,6 +38,7 @@ export {
 
   // Runtime primitives
   useRuntimeVar,
+  useVariable,
   runtimeFn,
   Ref,
 

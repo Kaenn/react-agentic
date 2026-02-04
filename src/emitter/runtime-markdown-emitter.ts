@@ -28,6 +28,8 @@ import type {
   RuntimeVarDeclNode,
   InputValue,
   RuntimeCallArgValue,
+  AssignNode,
+  AssignGroupNode,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
@@ -315,9 +317,13 @@ export class RuntimeMarkdownEmitter {
       case 'indent':
         return this.emitIndent(node as import('../ir/nodes.js').IndentNode);
 
-      // V1 nodes that shouldn't appear in runtime documents
+      // Assign nodes (supported in V3 via unified variable API)
       case 'assign':
+        return this.emitAssign(node as AssignNode);
       case 'assignGroup':
+        return this.emitAssignGroup(node as AssignGroupNode);
+
+      // V1 nodes that shouldn't appear in runtime documents
       case 'onStatus':
       case 'onStatusDefault':
       case 'readState':
@@ -906,6 +912,84 @@ Task(
   // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
   // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
 
+  // ===========================================================================
+  // Assign Node Emitters (unified variable API support)
+  // ===========================================================================
+
+  /**
+   * Emit Assign node as bash code block with variable assignment
+   */
+  private emitAssign(node: AssignNode): string {
+    const line = this.emitAssignmentLine(node);
+    return `\`\`\`bash\n${line}\n\`\`\``;
+  }
+
+  /**
+   * Emit AssignGroup node as single bash code block
+   */
+  private emitAssignGroup(node: AssignGroupNode): string {
+    const lines: string[] = [];
+
+    for (let i = 0; i < node.assignments.length; i++) {
+      const assign = node.assignments[i];
+      const isFirst = i === 0;
+
+      // Add blank line before if not first AND (has comment OR has blankBefore)
+      if (!isFirst && (assign.comment || assign.blankBefore)) {
+        lines.push('');
+      }
+
+      lines.push(this.emitAssignmentLine(assign));
+    }
+
+    return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
+  }
+
+  /**
+   * Generate assignment line for a single AssignNode (without code fence)
+   */
+  private emitAssignmentLine(node: AssignNode): string {
+    const { variableName, assignment, comment } = node;
+
+    let line: string;
+    switch (assignment.type) {
+      case 'bash':
+        line = `${variableName}=$(${assignment.content})`;
+        break;
+      case 'value': {
+        const val = assignment.content;
+        if (assignment.raw) {
+          line = `${variableName}=${val}`;
+        } else {
+          line = `${variableName}="${val}"`;
+        }
+        break;
+      }
+      case 'env':
+        line = `${variableName}=$${assignment.content}`;
+        break;
+      case 'file': {
+        const quotedPath = this.smartQuotePath(assignment.path);
+        if (assignment.optional) {
+          line = `${variableName}=$(cat ${quotedPath} 2>/dev/null)`;
+        } else {
+          line = `${variableName}=$(cat ${quotedPath})`;
+        }
+        break;
+      }
+      case 'runtimeFn': {
+        const argsJson = JSON.stringify(assignment.args);
+        const escapedJson = argsJson.replace(/'/g, "'\\''");
+        line = `${variableName}=$(node .claude/runtime/runtime.js ${assignment.fnName} '${escapedJson}')`;
+        break;
+      }
+    }
+
+    if (comment) {
+      return `# ${comment}\n${line}`;
+    }
+    return line;
+  }
 
   /**
    * Smart quote path for shell: quote variable parts, leave glob parts unquoted

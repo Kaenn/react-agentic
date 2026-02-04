@@ -521,6 +521,11 @@ export function extractRuntimeCallArg(
     return { type: 'literal', value: expr.getLiteralValue() };
   }
 
+  // Template literal with substitution - convert RuntimeVars to shell format
+  if (Node.isTemplateExpression(expr)) {
+    return { type: 'literal', value: extractTemplateContentWithRuntimeVars(expr, ctx) };
+  }
+
   // Nested object
   if (Node.isObjectLiteralExpression(expr)) {
     const nested: Record<string, RuntimeCallArgValue> = {};
@@ -671,6 +676,35 @@ export function getArrayWithRuntimeVars(
     }
   }
   return results.length > 0 ? results : undefined;
+}
+
+/**
+ * Extract template literal content with RuntimeVar interpolation
+ * Converts RuntimeVar references to {$VARNAME.path} format for readability
+ */
+export function extractTemplateContentWithRuntimeVars(
+  expr: import('ts-morph').TemplateExpression,
+  ctx: RuntimeTransformContext
+): string {
+  const parts: string[] = [];
+  parts.push(expr.getHead().getLiteralText());
+
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    const ref = parseRuntimeVarRef(spanExpr, ctx);
+    if (ref) {
+      const pathStr = ref.path.length === 0
+        ? ''
+        : ref.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+      parts.push(`{$${ref.varName}${pathStr}}`);
+    } else {
+      // Preserve as shell variable syntax for non-RuntimeVar expressions
+      parts.push(`\${${spanExpr.getText()}}`);
+    }
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
 }
 
 // ============================================================================

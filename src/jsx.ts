@@ -43,6 +43,7 @@ export {
 
   // Runtime primitives
   useRuntimeVar,
+  useVariable,
   runtimeFn,
   Ref,
 
@@ -136,3 +137,13 @@ export {
   type EnvSource,
   type AssignSource,
 } from './primitives/sources.js';
+
+export {
+  // Note: useVariable is exported from components (unified API from runtime-var.ts)
+  // Legacy useVariable from primitives is deprecated
+  Assign,
+  AssignGroup,
+  type VariableRef,
+  type AssignProps,
+  type AssignGroupProps,
+} from './primitives/variables.js';

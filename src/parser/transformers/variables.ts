@@ -8,7 +8,9 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExpression, SourceFile, ObjectLiteralExpression } from 'ts-morph';
 import type { AssignNode, AssignGroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
+import type { RuntimeTransformContext } from './runtime-types.js';
 import { extractTemplateContent } from './shared.js';
+import { extractTemplateContentWithRuntimeVars } from './runtime-utils.js';
 
 /**
  * Transform an Assign element to AssignNode
@@ -166,7 +168,12 @@ function transformAssignWithFrom(
         } else if (Node.isNoSubstitutionTemplateLiteral(pathArg)) {
           path = pathArg.getLiteralValue();
         } else if (Node.isTemplateExpression(pathArg)) {
-          path = extractTemplateContent(pathArg);
+          // Check if ctx has runtimeVars (V3 context)
+          if ('runtimeVars' in ctx && ctx.runtimeVars) {
+            path = extractTemplateContentWithRuntimeVars(pathArg, ctx as unknown as RuntimeTransformContext);
+          } else {
+            path = extractTemplateContent(pathArg);
+          }
         } else {
           throw ctx.createError('file() path must be a string or template literal', openingElement);
         }
@@ -206,7 +213,12 @@ function transformAssignWithFrom(
         } else if (Node.isNoSubstitutionTemplateLiteral(cmdArg)) {
           content = cmdArg.getLiteralValue();
         } else if (Node.isTemplateExpression(cmdArg)) {
-          content = extractTemplateContent(cmdArg);
+          // Check if ctx has runtimeVars (V3 context)
+          if ('runtimeVars' in ctx && ctx.runtimeVars) {
+            content = extractTemplateContentWithRuntimeVars(cmdArg, ctx as unknown as RuntimeTransformContext);
+          } else {
+            content = extractTemplateContent(cmdArg);
+          }
         } else {
           throw ctx.createError('bash() command must be a string or template literal', openingElement);
         }
@@ -232,7 +244,12 @@ function transformAssignWithFrom(
         } else if (Node.isNoSubstitutionTemplateLiteral(valArg)) {
           content = valArg.getLiteralValue();
         } else if (Node.isTemplateExpression(valArg)) {
-          content = extractTemplateContent(valArg);
+          // Check if ctx has runtimeVars (V3 context)
+          if ('runtimeVars' in ctx && ctx.runtimeVars) {
+            content = extractTemplateContentWithRuntimeVars(valArg, ctx as unknown as RuntimeTransformContext);
+          } else {
+            content = extractTemplateContent(valArg);
+          }
         } else {
           throw ctx.createError('value() must be a string or template literal', openingElement);
         }

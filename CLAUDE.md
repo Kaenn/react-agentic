@@ -2,6 +2,23 @@
 
 A TSX-to-Markdown compiler for authoring Claude Code commands and agents with full TypeScript support.
 
+## GSD Style Guide
+
+This project uses [GSD (Get Shit Done)](GSD-STYLE.md) as its primary style and convention reference. All contributions must follow GSD conventions.
+
+**Key constraints from GSD:**
+
+- **Imperative voice** — "Execute tasks", not "Execution is performed"
+- **No filler** — Avoid "Let me", "Just", "Simply", "Basically"
+- **No sycophancy** — No "Great!", "Awesome!", "I'd be happy to help"
+- **Semantic XML tags** — Use `<objective>`, `<process>`, not generic `<section>`, `<item>`
+- **Temporal language banned** — Describe current state only (except changelogs/commits)
+- **No enterprise patterns** — No story points, sprint ceremonies, time estimates
+- **Context engineering** — Keep plans small (2-3 tasks), split aggressively
+- **Atomic commits** — One commit per task, stage files individually
+
+See [GSD-STYLE.md](GSD-STYLE.md) for complete conventions including file structure, naming, task structure, commit format, and anti-patterns.
+
 ## Documentation
 
 > **IMPORTANT:** Keep documentation up to date when features change. These docs teach patterns that users follow — outdated docs lead to incorrect usage.

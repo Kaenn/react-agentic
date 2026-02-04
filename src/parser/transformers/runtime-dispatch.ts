@@ -26,6 +26,7 @@ import { transformRuntimeInlineChildren } from './runtime-inline.js';
 import { transformList, transformBlockquote, transformCodeBlock } from './html.js';
 import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
+import { transformAssign, transformAssignGroup } from './variables.js';
 import type { TransformContext } from './types.js';
 import type { GroupNode } from '../../ir/nodes.js';
 
@@ -147,15 +148,26 @@ function transformRuntimeBlockChildrenWrapper(
  * a compatible adapter that maps V3 fields.
  */
 function adaptToSharedContext(runtimeCtx: RuntimeTransformContext): TransformContext {
+  // Convert V3 runtimeVars to V1 variables format for shared transformers
+  const variables = new Map<string, { localName: string; envName: string }>();
+  for (const [identifierName, info] of runtimeCtx.runtimeVars.entries()) {
+    variables.set(identifierName, {
+      localName: identifierName,
+      envName: info.varName,
+    });
+  }
+
+  // Include runtimeVars for V3-aware template extraction in variables.ts
   return {
     sourceFile: runtimeCtx.sourceFile,
     visitedPaths: runtimeCtx.visitedPaths,
-    variables: new Map(), // V3 uses runtimeVars, not variables
+    variables,
     outputs: new Map(),
     stateRefs: new Map(),
     renderPropsContext: undefined,
     createError: runtimeCtx.createError,
-  };
+    runtimeVars: runtimeCtx.runtimeVars,
+  } as TransformContext;
 }
 
 // ============================================================================
@@ -1296,6 +1308,16 @@ function transformRuntimeElement(
   // GatherContext - semantic wrapper, passes through children
   if (name === 'GatherContext') {
     return transformRuntimeGatherContext(node, ctx);
+  }
+
+  // Assign - variable assignment with from prop
+  if (name === 'Assign') {
+    return transformAssign(node, adaptToSharedContext(ctx));
+  }
+
+  // AssignGroup - grouped variable assignments
+  if (name === 'AssignGroup') {
+    return transformAssignGroup(node, adaptToSharedContext(ctx));
   }
 
   // ComposeContext - wraps children in named XML block

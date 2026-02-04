@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Ref, REF_MARKER, type RefProps, type RuntimeVar, type RuntimeVarProxy } from '../../src/jsx.js';
+import { Ref, REF_MARKER, useRuntimeVar, useVariable, isRuntimeVar, getRuntimeVarInfo, type RefProps, type RuntimeVar, type RuntimeVarProxy } from '../../src/jsx.js';
 
 describe('Ref component', () => {
   describe('component stub', () => {
@@ -119,6 +119,64 @@ describe('Ref component', () => {
       expect(mockFn.call).toBe('initProject()');
       expect(mockFn.input).toBe('args');
       expect(mockFn.output).toBe('unknown');
+    });
+  });
+
+  describe('unified variable API', () => {
+    describe('useRuntimeVar', () => {
+      it('creates proxy with __varName and __path', () => {
+        const ctx = useRuntimeVar<{ status: string }>('CTX');
+        expect(isRuntimeVar(ctx)).toBe(true);
+
+        const info = getRuntimeVarInfo(ctx);
+        expect(info.varName).toBe('CTX');
+        expect(info.path).toEqual([]);
+      });
+
+      it('tracks property access paths', () => {
+        const ctx = useRuntimeVar<{ user: { name: string } }>('CTX');
+        // Access properties and verify they're RuntimeVar proxies
+        const user = ctx.user;
+        expect(isRuntimeVar(user)).toBe(true);
+
+        // Verify path is tracked
+        const userInfo = getRuntimeVarInfo(user as RuntimeVar<unknown>);
+        expect(userInfo.varName).toBe('CTX');
+        expect(userInfo.path).toEqual(['user']);
+      });
+
+      it('provides name getter for VariableRef compatibility', () => {
+        const ctx = useRuntimeVar<string>('MY_VAR');
+        expect(ctx.name).toBe('MY_VAR');
+      });
+
+      it('provides ref getter for VariableRef compatibility', () => {
+        const ctx = useRuntimeVar<string>('MY_VAR');
+        expect(ctx.ref).toBe('MY_VAR');
+      });
+
+      it('name and ref getters return same value', () => {
+        const ctx = useRuntimeVar<string>('TEST_VAR');
+        expect(ctx.name).toBe(ctx.ref);
+        expect(ctx.name).toBe('TEST_VAR');
+      });
+    });
+
+    describe('useVariable (unified alias)', () => {
+      it('is an alias for useRuntimeVar', () => {
+        expect(useVariable).toBe(useRuntimeVar);
+      });
+
+      it('creates proxy with same behavior as useRuntimeVar', () => {
+        const ctx = useVariable<{ data: number }>('CTX');
+        expect(isRuntimeVar(ctx)).toBe(true);
+        expect(ctx.name).toBe('CTX');
+        expect(ctx.ref).toBe('CTX');
+
+        const data = ctx.data;
+        const info = getRuntimeVarInfo(data as RuntimeVar<unknown>);
+        expect(info.path).toEqual(['data']);
+      });
     });
   });
 });

@@ -44,8 +44,31 @@ interface RuntimeVarMeta<T> {
 export type RuntimeVar<T> = string & RuntimeVarMeta<T>;
 
 /**
+ * VariableRef compatibility interface for RuntimeVarProxy
+ * Provides name/ref getters for use with Assign component
+ */
+interface RuntimeVarRefCompat {
+  /** Shell variable name (VariableRef compatibility) */
+  readonly name: string;
+  /** Same as name - for interpolation (VariableRef compatibility) */
+  readonly ref: string;
+}
+
+/**
+ * Mapped type for property access tracking
+ */
+type RuntimeVarPropertyAccess<T> = {
+  readonly [K in keyof T]: T[K] extends object
+    ? RuntimeVarProxy<T[K]>
+    : RuntimeVar<T[K]>;
+};
+
+/**
  * RuntimeVarProxy enables deep property access tracking
  * Each property access returns a new proxy with extended path
+ *
+ * Also provides VariableRef compatibility via `name` and `ref` getters,
+ * enabling unified usage with both Assign and meta-prompting components.
  *
  * @example
  * const ctx = useRuntimeVar<{user: {name: string}}>('CTX');
@@ -58,12 +81,12 @@ export type RuntimeVar<T> = string & RuntimeVarMeta<T>;
  *
  * // Works in comparisons:
  * if (ctx.status === 'SUCCESS') { ... }
+ *
+ * // VariableRef compatibility:
+ * ctx.name // 'CTX'
+ * ctx.ref  // 'CTX'
  */
-export type RuntimeVarProxy<T> = RuntimeVar<T> & {
-  readonly [K in keyof T]: T[K] extends object
-    ? RuntimeVarProxy<T[K]>
-    : RuntimeVar<T[K]>;
-};
+export type RuntimeVarProxy<T> = RuntimeVar<T> & RuntimeVarRefCompat & RuntimeVarPropertyAccess<T>;
 
 // ============================================================================
 // Internal Proxy Creation
@@ -97,6 +120,9 @@ function createRuntimeVarProxy<T>(varName: string, path: string[]): RuntimeVarPr
       if (prop === '__varName') return varName;
       if (prop === '__path') return path;
       if (prop === RUNTIME_VAR_MARKER) return true;
+
+      // VariableRef compatibility - return varName for name/ref access
+      if (prop === 'name' || prop === 'ref') return varName;
 
       // Handle symbol properties (like Symbol.toStringTag)
       if (typeof prop === 'symbol') return undefined;
@@ -239,4 +265,32 @@ export type OrRuntimeVar<T> = T | RuntimeVar<T> | RuntimeVarProxy<T>;
 export type AllowRuntimeVars<T> = T extends object
   ? { [K in keyof T]: OrRuntimeVar<T[K]> }
   : OrRuntimeVar<T>;
+
+// ============================================================================
+// Unified Variable API
+// ============================================================================
+
+/**
+ * Unified variable hook - creates a typed runtime variable reference
+ *
+ * This is the recommended way to create variables in react-agentic.
+ * It works with both:
+ * - Assign component (via name/ref compatibility)
+ * - Meta-prompting components (Ref, If, interpolation)
+ *
+ * @param name - Shell variable name (should be UPPER_SNAKE_CASE)
+ * @returns RuntimeVarProxy that tracks property access
+ *
+ * @example
+ * const ctx = useVariable<MyContext>('CTX');
+ *
+ * // Works with Assign:
+ * <Assign var={ctx} from={file('data.json')} />
+ *
+ * // Works with meta-prompting:
+ * <If condition={ctx.error}>...</If>
+ * <Ref value={ctx.data} />
+ * <p>Status: {ctx.status}</p>
+ */
+export const useVariable = useRuntimeVar;
 

@@ -21,20 +21,24 @@ export interface VariableRef<T = string> {
 /**
  * Declare a shell variable reference
  *
- * This is a compile-time hook that creates a reference to a shell variable.
- * The actual assignment is specified on <Assign> where you emit it.
+ * @deprecated Use `useVariable` from 'react-agentic' (exported from components/runtime-var.ts)
+ * which provides unified support for both Assign and meta-prompting components.
+ *
+ * This legacy version only works with Assign component and bash interpolation.
+ * The new unified `useVariable` works with Assign, Ref, If, and JSX interpolation.
  *
  * @param name - Shell variable name (e.g., "PHASE_DIR")
  * @returns VariableRef for use in Assign and string interpolation
  *
  * @example
+ * // Old pattern (deprecated):
+ * import { useVariable } from './primitives/variables.js';
  * const phaseDir = useVariable("PHASE_DIR");
  *
- * // In JSX - assignment specified at emission point:
- * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`} />
- *
- * // For interpolation:
- * <If test={`[ -z ${phaseDir.ref} ]`}>
+ * // New unified pattern:
+ * import { useVariable } from 'react-agentic';
+ * const phaseDir = useVariable<string>("PHASE_DIR");
+ * // Works with both Assign AND meta-prompting
  */
 export function useVariable<T = string>(name: string): VariableRef<T> {
   return { name, ref: name };
@@ -42,13 +46,14 @@ export function useVariable<T = string>(name: string): VariableRef<T> {
 
 import type { AssignSource } from './sources.js';
 import type { RuntimeFnComponent } from '../components/runtime-fn.js';
+import type { RuntimeVarProxy } from '../components/runtime-var.js';
 
 /**
  * Props for the Assign component
  */
 export interface AssignProps {
-  /** Variable reference from useVariable */
-  var: VariableRef;
+  /** Variable reference from useVariable (supports both VariableRef and RuntimeVarProxy) */
+  var: VariableRef | RuntimeVarProxy<unknown>;
   /** Data source - file, bash, value, env, or runtimeFn */
   from: AssignSource | RuntimeFnComponent<any, any>;
   /** For runtimeFn sources: arguments to pass */
