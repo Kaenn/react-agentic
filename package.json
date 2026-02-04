@@ -21,6 +21,10 @@
     "./composites": {
       "types": "./dist/composites/index.d.ts",
       "import": "./dist/composites/index.js"
+    },
+    "./swarm": {
+      "types": "./dist/components/swarm/index.d.ts",
+      "import": "./dist/components/swarm/index.js"
     }
   },
   "repository": {

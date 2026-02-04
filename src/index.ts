@@ -239,3 +239,29 @@ export {
   type EnvSource,
   type AssignSource,
 } from './primitives/sources.js';
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export {
+  // Enums
+  AgentType,
+  PluginAgentType,
+  Model,
+
+  // Factories
+  defineTask,
+  defineWorker,
+  defineTeam,
+
+  // Guards
+  isTaskRef,
+  isWorkerRef,
+  isTeamRef,
+
+  // Types
+  type TaskRef,
+  type WorkerRef,
+  type TeamRef,
+} from './components/swarm/index.js';

@@ -176,3 +176,9 @@ export {
 
 // Meta-prompting components removed in Phase 38 Plan 04
 // Use Assign with file() source helper instead
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export * from './swarm/index.js';

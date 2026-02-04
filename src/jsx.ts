@@ -147,3 +147,9 @@ export {
   type AssignProps,
   type AssignGroupProps,
 } from './primitives/variables.js';
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export * from './components/swarm/index.js';
