@@ -42,13 +42,15 @@ import type {
   TableNode,
   TaskDefNode,
   TaskPipelineNode,
+  TeamNode,
+  TeammateNode,
   TypeReference,
   WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
 import { resolveTypeImport, extractInterfaceProperties } from '../parser/parser.js';
 import { assertNever } from './utils.js';
-import { TaskIdResolver, emitTaskDef, emitTaskPipeline } from './swarm-emitter.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam } from './swarm-emitter.js';
 
 /**
  * Context for emission state that persists across emitBlock calls
@@ -290,6 +292,10 @@ export class MarkdownEmitter {
       case 'taskPipeline':
         this.emitCtx.taskResolver ??= new TaskIdResolver();
         return emitTaskPipeline(node, this.emitCtx.taskResolver);
+      case 'team':
+        return emitTeam(node);
+      case 'teammate':
+        throw new Error('TeammateNode should be emitted via Team parent, not directly');
       // Runtime-specific nodes - use V3 emitter for these
       case 'spawnAgent':
       case 'if':

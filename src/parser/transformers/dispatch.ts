@@ -26,7 +26,7 @@ import {
   transformStructuredReturns,
   isContractComponent,
 } from './contract.js';
-import { transformTaskDef, transformTaskPipeline } from './swarm.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam } from './swarm.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -356,6 +356,15 @@ function transformElement(
   }
   if (name === 'TaskPipeline') {
     return transformTaskPipeline(node, ctx);
+  }
+  if (name === 'Team') {
+    return transformTeam(node, ctx);
+  }
+  if (name === 'Teammate') {
+    throw ctx.createError('Teammate must be used inside a Team component', node);
+  }
+  if (name === 'Prompt') {
+    throw ctx.createError('Prompt must be used inside a Teammate component', node);
   }
 
   // Custom component composition

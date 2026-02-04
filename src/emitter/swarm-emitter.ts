@@ -7,7 +7,7 @@
  * - Dependency setup via TaskUpdate
  */
 
-import type { TaskDefNode, TaskPipelineNode } from '../ir/swarm-nodes.js';
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode } from '../ir/swarm-nodes.js';
 
 /**
  * TaskIdResolver - Maps UUID task IDs to sequential numeric IDs
@@ -224,6 +224,96 @@ export function emitTaskPipeline(
   // Summary table
   if (node.children.length > 0) {
     sections.push(emitSummaryTable(node.children, resolver));
+  }
+
+  return sections.join('\n\n');
+}
+
+// =============================================================================
+// Team + Teammate Emitters
+// =============================================================================
+
+/**
+ * Emit a single Teammate node within a Team context
+ */
+function emitTeammate(node: TeammateNode, teamName: string): string {
+  const sections: string[] = [];
+
+  // Worker heading
+  sections.push(`#### ${node.workerName}`);
+
+  // Build Task properties
+  const props: string[] = [
+    `team_name: "${escapeString(teamName)}"`,
+    `name: "${escapeString(node.workerName)}"`,
+    `subagent_type: "${escapeString(node.workerType)}"`,
+    `description: "${escapeString(node.description)}"`,
+  ];
+
+  // Add prompt (use template literal for multi-line support)
+  const promptEscaped = node.prompt
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$/g, '\\$');
+  props.push(`prompt: \`${promptEscaped}\``);
+
+  // Add model if specified (prop override takes precedence)
+  const effectiveModel = node.model || node.workerModel;
+  if (effectiveModel) {
+    props.push(`model: "${escapeString(effectiveModel)}"`);
+  }
+
+  // Add run_in_background
+  props.push(`run_in_background: ${node.background}`);
+
+  // Format as JavaScript code block
+  const jsCode = `Task({
+  ${props.join(',\n  ')}
+})`;
+
+  sections.push('```javascript\n' + jsCode + '\n```');
+
+  return sections.join('\n\n');
+}
+
+/**
+ * Emit a Team node
+ *
+ * Output structure:
+ * 1. Team heading with name
+ * 2. Optional description as blockquote
+ * 3. Teammate spawnTeam call
+ * 4. "Members" section with each Teammate
+ */
+export function emitTeam(node: TeamNode): string {
+  const sections: string[] = [];
+
+  // Team heading
+  sections.push(`## Team: ${node.teamName}`);
+
+  // Description as blockquote (optional)
+  if (node.description) {
+    sections.push(`> ${node.description}`);
+  }
+
+  // SpawnTeam call
+  const spawnTeamProps: string[] = [
+    `operation: "spawnTeam"`,
+    `team_name: "${escapeString(node.teamName)}"`,
+  ];
+  if (node.description) {
+    spawnTeamProps.push(`description: "${escapeString(node.description)}"`);
+  }
+
+  const spawnTeamCode = `Teammate({ ${spawnTeamProps.join(', ')} })`;
+  sections.push('```javascript\n' + spawnTeamCode + '\n```');
+
+  // Members section
+  sections.push('### Members');
+
+  // Emit each teammate
+  for (const teammate of node.children) {
+    sections.push(emitTeammate(teammate, node.teamName));
   }
 
   return sections.join('\n\n');

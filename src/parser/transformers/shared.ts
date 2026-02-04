@@ -101,7 +101,7 @@ export const SPECIAL_COMPONENTS = new Set([
   // Agent contract composites (emit as XmlBlock directly, no import needed)
   'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
   // Swarm components
-  'TaskDef', 'TaskPipeline',
+  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt',
 ]);
 
 /**

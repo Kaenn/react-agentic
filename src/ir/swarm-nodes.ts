@@ -44,3 +44,51 @@ export interface TaskPipelineNode {
   /** TaskDef children */
   children: TaskDefNode[];
 }
+
+// =============================================================================
+// Team Orchestration Nodes
+// =============================================================================
+
+/**
+ * TeammateNode IR node - represents a single team member spawn
+ *
+ * Emits as Task({...}) call within a team context.
+ */
+export interface TeammateNode {
+  kind: 'teammate';
+  /** WorkerRef.__id for identity resolution */
+  workerId: string;
+  /** WorkerRef.name - worker identifier */
+  workerName: string;
+  /** WorkerRef.type - Claude Code subagent_type */
+  workerType: string;
+  /** WorkerRef.model - default model */
+  workerModel?: string;
+  /** Short description for Task.description */
+  description: string;
+  /** Full prompt content (from prop or <Prompt> child) */
+  prompt: string;
+  /** Override model from prop (takes precedence over workerModel) */
+  model?: string;
+  /** Run in background (default true) */
+  background: boolean;
+}
+
+/**
+ * TeamNode IR node - represents a team spawn with members
+ *
+ * Emits as:
+ * 1. Teammate({ operation: "spawnTeam", ... }) call
+ * 2. Task() calls for each member
+ */
+export interface TeamNode {
+  kind: 'team';
+  /** TeamRef.__id for identity resolution */
+  teamId: string;
+  /** TeamRef.name - team identifier */
+  teamName: string;
+  /** Team description (optional) */
+  description?: string;
+  /** Nested teammate definitions */
+  children: TeammateNode[];
+}

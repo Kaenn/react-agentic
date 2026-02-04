@@ -27,7 +27,7 @@ import { transformList, transformBlockquote, transformCodeBlock } from './html.j
 import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
-import { transformTaskDef, transformTaskPipeline } from './swarm.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam } from './swarm.js';
 import type { TransformContext } from './types.js';
 import type { GroupNode } from '../../ir/nodes.js';
 
@@ -1442,6 +1442,15 @@ function transformRuntimeElement(
   }
   if (name === 'TaskPipeline') {
     return transformTaskPipeline(node, adaptToSharedContext(ctx));
+  }
+  if (name === 'Team') {
+    return transformTeam(node, adaptToSharedContext(ctx));
+  }
+  if (name === 'Teammate') {
+    throw ctx.createError('Teammate must be used inside a Team component', node);
+  }
+  if (name === 'Prompt') {
+    throw ctx.createError('Prompt must be used inside a Teammate component', node);
   }
 
   // Check for local component (same-file function components)
