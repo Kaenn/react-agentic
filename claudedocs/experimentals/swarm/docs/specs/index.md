@@ -24,10 +24,10 @@ import {
   defineTask,
   resetTaskIds,
 
-  // Agent Reference System
-  AgentRef,
-  defineAgent,
-  resetAgentIds,
+  // Worker Reference System
+  WorkerRef,
+  defineWorker,
+  resetWorkerIds,
 
   // Team Reference System
   TeamRef,
@@ -78,11 +78,11 @@ import {
 
   // Iteration Helpers
   mapToTasks,
-  mapToAgents,
+  mapToWorkers,
 
   // Batch Operations
   batchTasks,
-  batchAgents,
+  batchWorkers,
 
   // Reset All
   resetAllIds
@@ -115,14 +115,14 @@ import {
 | `createFileReviewPoolWithDeps(files)` | File pool with deps | `TaskPoolWithDeps` |
 | `resetTaskIds()` | Reset ID counter | `void` |
 
-### Agent & Team Helpers
+### Worker & Team Helpers
 
 | Helper | Purpose | Returns |
 |--------|---------|---------|
-| `defineAgent(name, type, model?)` | Create agent with auto-ID | `AgentRef` |
+| `defineWorker(name, type, model?)` | Create worker with auto-ID | `WorkerRef` |
 | `defineTeam(name, members?)` | Create team with auto-ID | `TeamRef` |
-| `addToTeam(team, agent)` | Add agent to team | `TeamRef` |
-| `resetAgentIds()` | Reset agent ID counter | `void` |
+| `addToTeam(team, worker)` | Add worker to team | `TeamRef` |
+| `resetWorkerIds()` | Reset worker ID counter | `void` |
 | `resetTeamIds()` | Reset team ID counter | `void` |
 | `resetAllIds()` | Reset all ID counters | `void` |
 
@@ -155,7 +155,7 @@ import {
 | Helper | Purpose | Returns |
 |--------|---------|---------|
 | `createReviewWorkflow(config)` | Complete review workflow | `ReviewWorkflowResult` |
-| `createPipelineWorkflow(config)` | Pipeline with agents | `PipelineWorkflowResult` |
+| `createPipelineWorkflow(config)` | Pipeline with workers | `PipelineWorkflowResult` |
 | `createSwarmWorkflow(config)` | Swarm with workers | `SwarmWorkflowResult` |
 
 ### Dependency Combinators
@@ -172,9 +172,9 @@ import {
 | Helper | Purpose | Returns |
 |--------|---------|---------|
 | `mapToTasks(items, mapper)` | Map items to tasks | `TaskRef[]` |
-| `mapToAgents(items, mapper)` | Map items to agents | `AgentRef[]` |
+| `mapToWorkers(items, mapper)` | Map items to workers | `WorkerRef[]` |
 | `batchTasks(prefix, configs)` | Create related tasks | `BatchTaskResult` |
-| `batchAgents(prefix, configs)` | Create related agents | `BatchAgentResult` |
+| `batchWorkers(prefix, configs)` | Create related workers | `BatchWorkerResult` |
 
 ---
 
@@ -354,25 +354,25 @@ Workflows compose multiple components:
 
 ## Dynamic Patterns
 
-### Agent & Team References
+### Worker & Team References
 
-Define agents and teams with auto-generated IDs:
+Define workers and teams with auto-generated IDs:
 
 ```tsx
-// Define agents
-const SecurityAgent = defineAgent('security', PluginAgentType.SecuritySentinel);
-const PerfAgent = defineAgent('perf', PluginAgentType.PerformanceOracle);
+// Define workers
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
 
 // Define team with members
-const ReviewTeam = defineTeam('reviewers', [SecurityAgent, PerfAgent]);
+const ReviewTeam = defineTeam('reviewers', [Security, Perf]);
 
 // Type-safe usage
 <Team ref={ReviewTeam}>
-  <Teammate ref={SecurityAgent} description="..." />
-  <Teammate ref={PerfAgent} description="..." />
+  <Teammate worker={Security} description="..." />
+  <Teammate worker={Perf} description="..." />
 </Team>
 
-<Message from={SecurityAgent} to={PerfAgent} content="Found issue" />
+<Message from={Security} to={Perf} content="Found issue" />
 ```
 
 ### Conditional Rendering
@@ -434,7 +434,7 @@ const workflow = createReviewWorkflow({
 });
 
 // workflow.team - TeamRef
-// workflow.agents - AgentRef[]
+// workflow.workers - WorkerRef[]
 // workflow.taskPool - TaskPoolResult
 
 // Pipeline workflow
@@ -507,8 +507,8 @@ const { tasks, refs } = batchTasks('review', [
 
 // Access: refs.security, refs.perf, refs.arch
 
-// Batch agents
-const { agents, refs: agentRefs } = batchAgents('reviewer', [
+// Batch workers
+const { workers, refs: workerRefs } = batchWorkers('reviewer', [
   { suffix: 'security', type: PluginAgentType.SecuritySentinel },
   { suffix: 'perf', type: PluginAgentType.PerformanceOracle }
 ]);
@@ -526,9 +526,9 @@ const tasks = mapToTasks(files, (file) => ({
   subject: `Review ${file}`
 }));
 
-// Map types to agents
+// Map types to workers
 const reviewTypes = ['security', 'performance'];
-const agents = mapToAgents(reviewTypes, (type) => ({
+const workers = mapToWorkers(reviewTypes, (type) => ({
   name: type,
   type: PluginAgentType[type.charAt(0).toUpperCase() + type.slice(1)]
 }));

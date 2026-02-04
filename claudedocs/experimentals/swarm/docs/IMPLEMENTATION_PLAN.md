@@ -245,9 +245,9 @@ expect(md).toContain('| 1 | a |');
 
 **Deliverables:**
 ```tsx
-const SecurityAgent = defineAgent('security', PluginAgentType.SecuritySentinel);
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
 
-<Teammate ref={SecurityAgent}>
+<Teammate worker={Security}>
   <Prompt>Review for vulnerabilities</Prompt>
 </Teammate>
 ```
@@ -268,8 +268,8 @@ Task({
 
 **Test:**
 ```typescript
-const agent = defineAgent('x', AgentType.GeneralPurpose);
-const md = render(<Teammate ref={agent}><Prompt>Do work</Prompt></Teammate>);
+const worker = defineWorker('x', AgentType.GeneralPurpose);
+const md = render(<Teammate worker={worker}><Prompt>Do work</Prompt></Teammate>);
 expect(md).toContain('name: "x"');
 expect(md).toContain('Do work');
 ```
@@ -287,11 +287,11 @@ expect(md).toContain('Do work');
 
 **Deliverables:**
 ```tsx
-const ReviewTeam = defineTeam('reviewers', [Agent1, Agent2]);
+const ReviewTeam = defineTeam('reviewers', [Worker1, Worker2]);
 
 <Team ref={ReviewTeam} description="Code review team">
-  <Teammate ref={Agent1}>...</Teammate>
-  <Teammate ref={Agent2}>...</Teammate>
+  <Teammate worker={Worker1}>...</Teammate>
+  <Teammate worker={Worker2}>...</Teammate>
 </Team>
 ```
 
@@ -307,10 +307,10 @@ Teammate({ operation: "spawnTeam", team_name: "reviewers" })
 
 ### Members
 
-#### agent-1
+#### worker-1
 ...
 
-#### agent-2
+#### worker-2
 ...
 ```
 
@@ -335,7 +335,7 @@ expect(md).toContain('## Team: t');
 
 **Deliverables:**
 ```tsx
-<Message type={MessageType.Text} from={Agent1} to={Agent2}>
+<Message type={MessageType.Text} from={Worker1} to={Worker2}>
   Please review the auth module
 </Message>
 
@@ -346,8 +346,8 @@ expect(md).toContain('## Team: t');
 
 **Test:**
 ```typescript
-const a1 = defineAgent('a1', AgentType.GeneralPurpose);
-const a2 = defineAgent('a2', AgentType.GeneralPurpose);
+const a1 = defineWorker('a1', AgentType.GeneralPurpose);
+const a2 = defineWorker('a2', AgentType.GeneralPurpose);
 const md = render(<Message type={MessageType.Text} from={a1} to={a2}>Hi</Message>);
 expect(md).toContain('from `a1`');
 expect(md).toContain('to `a2`');

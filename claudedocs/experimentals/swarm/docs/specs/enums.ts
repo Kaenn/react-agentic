@@ -430,53 +430,56 @@ export function createFileReviewPool(
 }
 
 // =============================================================================
-// AGENT REFERENCE SYSTEM
+// WORKER REFERENCE SYSTEM
 // =============================================================================
 
 /**
- * A reference to an agent that can be used in from/to props
+ * A reference to a worker that can be used in Teammate and Message components
+ *
+ * Workers are Claude Code's built-in subagent types (Explore, Plan, etc.)
+ * This is distinct from file-based Agents which you define with <Agent> component.
  */
-export interface AgentRef {
+export interface WorkerRef {
   /** Auto-generated unique ID */
   readonly id: string;
   /** Human-readable name */
   readonly name: string;
-  /** Agent type */
+  /** Claude Code subagent_type */
   readonly type: AgentType | PluginAgentType | string;
   /** Model preference */
   readonly model?: Model;
 }
 
 /**
- * Counter for auto-generating agent IDs
+ * Counter for auto-generating worker IDs
  */
-let agentIdCounter = 0;
+let workerIdCounter = 0;
 
 /**
- * Resets the agent ID counter
+ * Resets the worker ID counter
  */
-export function resetAgentIds(): void {
-  agentIdCounter = 0;
+export function resetWorkerIds(): void {
+  workerIdCounter = 0;
 }
 
 /**
- * Creates a new agent reference with auto-generated ID
+ * Creates a new worker reference with auto-generated ID
  *
  * @example
- * const SecurityAgent = defineAgent('security', PluginAgentType.SecuritySentinel);
- * const PerfAgent = defineAgent('perf', PluginAgentType.PerformanceOracle);
+ * const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+ * const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
  *
- * <Teammate ref={SecurityAgent} ... />
- * <Message from={SecurityAgent} to={PerfAgent} content="..." />
+ * <Teammate worker={Security} ... />
+ * <Message from={Security} to={Perf} content="..." />
  */
-export function defineAgent(
+export function defineWorker(
   name: string,
   type: AgentType | PluginAgentType | string,
   model?: Model
-): AgentRef {
-  agentIdCounter++;
+): WorkerRef {
+  workerIdCounter++;
   return {
-    id: `agent-${agentIdCounter}`,
+    id: `worker-${workerIdCounter}`,
     name,
     type,
     model
@@ -496,7 +499,7 @@ export interface TeamRef {
   /** Team name */
   readonly name: string;
   /** Team members */
-  readonly members: AgentRef[];
+  readonly members: WorkerRef[];
 }
 
 /**
@@ -515,13 +518,13 @@ export function resetTeamIds(): void {
  * Creates a new team reference with auto-generated ID
  *
  * @example
- * const ReviewTeam = defineTeam('reviewers', [SecurityAgent, PerfAgent]);
+ * const ReviewTeam = defineTeam('reviewers', [Security, Perf]);
  *
  * <Team ref={ReviewTeam}>
- *   <Teammate ref={SecurityAgent} ... />
+ *   <Teammate worker={Security} ... />
  * </Team>
  */
-export function defineTeam(name: string, members: AgentRef[] = []): TeamRef {
+export function defineTeam(name: string, members: WorkerRef[] = []): TeamRef {
   teamIdCounter++;
   return {
     id: `team-${teamIdCounter}`,
@@ -531,12 +534,12 @@ export function defineTeam(name: string, members: AgentRef[] = []): TeamRef {
 }
 
 /**
- * Add an agent to a team (returns new TeamRef)
+ * Add a worker to a team (returns new TeamRef)
  */
-export function addToTeam(team: TeamRef, agent: AgentRef): TeamRef {
+export function addToTeam(team: TeamRef, worker: WorkerRef): TeamRef {
   return {
     ...team,
-    members: [...team.members, agent]
+    members: [...team.members, worker]
   };
 }
 
@@ -726,12 +729,12 @@ export interface ReviewWorkflowConfig {
 
 export interface ReviewWorkflowResult {
   team: TeamRef;
-  agents: AgentRef[];
+  workers: WorkerRef[];
   taskPool: TaskPoolResult;
 }
 
 /**
- * Creates a complete review workflow with team, agents, and tasks
+ * Creates a complete review workflow with team, workers, and tasks
  *
  * @example
  * const workflow = createReviewWorkflow({
@@ -740,28 +743,28 @@ export interface ReviewWorkflowResult {
  * });
  *
  * // workflow.team - TeamRef
- * // workflow.agents - AgentRef[]
+ * // workflow.workers - WorkerRef[]
  * // workflow.taskPool - TaskPoolResult
  */
 export function createReviewWorkflow(
   config: ReviewWorkflowConfig
 ): ReviewWorkflowResult {
-  resetAgentIds();
+  resetWorkerIds();
   resetTaskIds();
 
-  // Create agents for each reviewer
-  const agents = config.reviewers.map((type, i) => {
+  // Create workers for each reviewer
+  const workers = config.reviewers.map((type, i) => {
     const name = typeof type === 'string' ? type.split(':').pop()! : type;
-    return defineAgent(`reviewer-${i + 1}`, type);
+    return defineWorker(`reviewer-${i + 1}`, type);
   });
 
   // Create team
-  const team = defineTeam(config.teamName ?? 'review-team', agents);
+  const team = defineTeam(config.teamName ?? 'review-team', workers);
 
   // Create task pool for files
   const taskPool = createFileReviewPool(config.files);
 
-  return { team, agents, taskPool };
+  return { team, workers, taskPool };
 }
 
 export interface PipelineWorkflowConfig {
@@ -776,11 +779,11 @@ export interface PipelineWorkflowConfig {
 
 export interface PipelineWorkflowResult {
   pipeline: Pipeline;
-  agents: Record<string, AgentRef>;
+  workers: Record<string, WorkerRef>;
 }
 
 /**
- * Creates a pipeline workflow with agents for each stage
+ * Creates a pipeline workflow with workers for each stage
  *
  * @example
  * const workflow = createPipelineWorkflow({
@@ -795,22 +798,22 @@ export interface PipelineWorkflowResult {
 export function createPipelineWorkflow(
   config: PipelineWorkflowConfig
 ): PipelineWorkflowResult {
-  resetAgentIds();
+  resetWorkerIds();
 
   // Create pipeline
   let builder = createPipeline(config.title);
-  const agents: Record<string, AgentRef> = {};
+  const workers: Record<string, WorkerRef> = {};
 
   for (const stage of config.stages) {
     builder = builder.task(stage.name, stage.subject, stage.description);
     if (stage.agentType) {
-      agents[stage.name] = defineAgent(stage.name, stage.agentType);
+      workers[stage.name] = defineWorker(stage.name, stage.agentType);
     }
   }
 
   return {
     pipeline: builder.build(),
-    agents
+    workers
   };
 }
 
@@ -826,20 +829,20 @@ export interface SwarmWorkflowConfig {
 
 export interface SwarmWorkflowResult {
   team: TeamRef;
-  workers: AgentRef[];
+  workers: WorkerRef[];
   taskPool: TaskPoolResult;
 }
 
 export function createSwarmWorkflow(
   config: SwarmWorkflowConfig
 ): SwarmWorkflowResult {
-  resetAgentIds();
+  resetWorkerIds();
   resetTaskIds();
 
   // Create workers
-  const workers: AgentRef[] = [];
+  const workers: WorkerRef[] = [];
   for (let i = 0; i < config.workerCount; i++) {
-    workers.push(defineAgent(`worker-${i + 1}`, config.workerType));
+    workers.push(defineWorker(`worker-${i + 1}`, config.workerType));
   }
 
   // Create team
@@ -1036,23 +1039,23 @@ export function mapToTasks<T>(
 }
 
 /**
- * Maps over items to create agents
+ * Maps over items to create workers
  *
  * @example
  * const reviewTypes = ['security', 'performance', 'architecture'];
- * const agents = mapToAgents(reviewTypes, (type) => ({
+ * const workers = mapToWorkers(reviewTypes, (type) => ({
  *   name: type,
  *   type: `compound-engineering:review:${type}` as PluginAgentType
  * }));
  */
-export function mapToAgents<T>(
+export function mapToWorkers<T>(
   items: T[],
   mapper: (item: T, index: number) => { name: string; type: AgentType | PluginAgentType | string; model?: Model }
-): AgentRef[] {
-  resetAgentIds();
+): WorkerRef[] {
+  resetWorkerIds();
   return items.map((item, i) => {
     const { name, type, model } = mapper(item, i);
-    return defineAgent(name, type, model);
+    return defineWorker(name, type, model);
   });
 }
 
@@ -1101,41 +1104,41 @@ export function batchTasks(
 }
 
 /**
- * Creates multiple related agents at once
+ * Creates multiple related workers at once
  *
  * @example
- * const { agents, refs } = batchAgents('reviewer', [
+ * const { workers, refs } = batchWorkers('reviewer', [
  *   { suffix: 'security', type: PluginAgentType.SecuritySentinel },
  *   { suffix: 'perf', type: PluginAgentType.PerformanceOracle }
  * ]);
  */
-export interface BatchAgentConfig {
+export interface BatchWorkerConfig {
   suffix: string;
   type: AgentType | PluginAgentType | string;
   model?: Model;
 }
 
-export interface BatchAgentResult {
-  agents: AgentRef[];
-  refs: Record<string, AgentRef>;
+export interface BatchWorkerResult {
+  workers: WorkerRef[];
+  refs: Record<string, WorkerRef>;
 }
 
-export function batchAgents(
+export function batchWorkers(
   prefix: string,
-  configs: BatchAgentConfig[]
-): BatchAgentResult {
-  resetAgentIds();
-  const agents: AgentRef[] = [];
-  const refs: Record<string, AgentRef> = {};
+  configs: BatchWorkerConfig[]
+): BatchWorkerResult {
+  resetWorkerIds();
+  const workers: WorkerRef[] = [];
+  const refs: Record<string, WorkerRef> = {};
 
   for (const config of configs) {
     const name = `${prefix}-${config.suffix}`;
-    const ref = defineAgent(name, config.type, config.model);
-    agents.push(ref);
+    const ref = defineWorker(name, config.type, config.model);
+    workers.push(ref);
     refs[config.suffix] = ref;
   }
 
-  return { agents, refs };
+  return { workers, refs };
 }
 
 // =============================================================================
@@ -1143,11 +1146,11 @@ export function batchAgents(
 // =============================================================================
 
 /**
- * Resets all ID counters (tasks, agents, teams)
+ * Resets all ID counters (tasks, workers, teams)
  * Call this at the start of each new workflow definition
  */
 export function resetAllIds(): void {
   resetTaskIds();
-  resetAgentIds();
+  resetWorkerIds();
   resetTeamIds();
 }

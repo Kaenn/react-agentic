@@ -1,14 +1,14 @@
 /**
  * @component Teammate
- * @description Defines a team member agent that joins a team
+ * @description Defines a team member worker that joins a team
  */
 
 import {
   AgentType,
   PluginAgentType,
   Model,
-  AgentRef,
-  defineAgent,
+  WorkerRef,
+  defineWorker,
   createReviewDefaults,
   createImplementDefaults
 } from './enums';
@@ -17,7 +17,7 @@ import {
 // RE-EXPORTS (for convenience)
 // =============================================================================
 
-export { AgentRef, defineAgent };
+export { WorkerRef, defineWorker };
 
 // =============================================================================
 // PROPS INTERFACE
@@ -25,15 +25,15 @@ export { AgentRef, defineAgent };
 
 interface TeammateProps {
   /**
-   * Agent reference - use defineAgent() for type-safe refs
+   * Worker reference - use defineWorker() for type-safe refs
    * If provided, name/type/model are extracted from ref
    * @optional
    */
-  ref?: AgentRef;
+  worker?: WorkerRef;
 
   /**
    * Unique name for this teammate within the team
-   * @optional if ref is provided
+   * @optional if worker is provided
    */
   name?: string;
 
@@ -76,26 +76,26 @@ export function Teammate({ name, type, model, background = true, children }: Tea
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// Pattern 1: Using AgentRef for type-safe references (RECOMMENDED)
+// Pattern 1: Using WorkerRef for type-safe references (RECOMMENDED)
 // -----------------------------------------------------------------------------
 
-// Define agents with auto-IDs
-const SecurityAuditor = defineAgent('security', PluginAgentType.SecuritySentinel, Model.Sonnet);
-const PerformanceAnalyst = defineAgent('perf', PluginAgentType.PerformanceOracle, Model.Sonnet);
-const ArchitectReviewer = defineAgent('arch', PluginAgentType.ArchitectureStrategist, Model.Opus);
+// Define workers with auto-IDs
+const SecurityAuditor = defineWorker('security', PluginAgentType.SecuritySentinel, Model.Sonnet);
+const PerformanceAnalyst = defineWorker('perf', PluginAgentType.PerformanceOracle, Model.Sonnet);
+const ArchitectReviewer = defineWorker('arch', PluginAgentType.ArchitectureStrategist, Model.Opus);
 
 // Use refs in components
-const AgentRefExample = () => (
+const WorkerRefExample = () => (
   <>
-    <Teammate ref={SecurityAuditor}>
+    <Teammate worker={SecurityAuditor}>
       <Prompt>Review code for security vulnerabilities</Prompt>
     </Teammate>
 
-    <Teammate ref={PerformanceAnalyst}>
+    <Teammate worker={PerformanceAnalyst}>
       <Prompt>Analyze performance bottlenecks</Prompt>
     </Teammate>
 
-    <Teammate ref={ArchitectReviewer}>
+    <Teammate worker={ArchitectReviewer}>
       <Prompt>Review architectural decisions</Prompt>
     </Teammate>
   </>

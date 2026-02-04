@@ -1,0 +1,562 @@
+# Swarm Golden Path Implementation
+
+Core components that deliver 80% of swarm authoring value.
+
+**Source of truth:** `swarm-claude-code.md` (Claude Code v2.1.19)
+
+---
+
+## Phase 1: Type-Safe References
+
+### `defineTask(subject)`
+
+```tsx
+import { defineTask } from 'react-agentic/swarm';
+
+const Research = defineTask('Research best practices');
+const Plan = defineTask('Create implementation plan');
+const Implement = defineTask('Build the feature');
+
+// Research.subject = "Research best practices"
+// Minimal interface: only subject (maps to TaskCreate.subject)
+// No .id or .name - IDs assigned at emit time using object identity
+// Cross-file safe: import tasks from other files, order in JSX determines IDs
+```
+
+### `defineWorker(name, type, model?)`
+
+```tsx
+import { defineWorker, AgentType, PluginAgentType, Model } from 'react-agentic/swarm';
+
+// Built-in types
+const Explorer = defineWorker('explorer', AgentType.Explore, Model.Haiku);
+const Planner = defineWorker('planner', AgentType.Plan);
+const Builder = defineWorker('builder', AgentType.GeneralPurpose);
+
+// Plugin types (compound-engineering)
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+```
+
+**AgentType enum (built-in):**
+| Value | Maps to `subagent_type` |
+|-------|------------------------|
+| `AgentType.Bash` | `"Bash"` |
+| `AgentType.Explore` | `"Explore"` |
+| `AgentType.Plan` | `"Plan"` |
+| `AgentType.GeneralPurpose` | `"general-purpose"` |
+
+**PluginAgentType enum (compound-engineering):**
+| Value | Maps to `subagent_type` |
+|-------|------------------------|
+| `PluginAgentType.SecuritySentinel` | `"compound-engineering:review:security-sentinel"` |
+| `PluginAgentType.PerformanceOracle` | `"compound-engineering:review:performance-oracle"` |
+| `PluginAgentType.ArchitectureStrategist` | `"compound-engineering:review:architecture-strategist"` |
+| `PluginAgentType.BestPracticesResearcher` | `"compound-engineering:research:best-practices-researcher"` |
+
+### `defineTeam(name, members?)`
+
+```tsx
+import { defineTeam } from 'react-agentic/swarm';
+
+const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
+
+// ReviewTeam.name = "pr-review"
+// ReviewTeam.members = [Security, Perf]
+```
+
+### `resetAllIds()`
+
+```tsx
+// Reset counters between test runs or separate workflows
+resetAllIds();
+```
+
+---
+
+## Phase 2: TaskDef + TaskPipeline
+
+### `<TaskDef>`
+
+**Props:**
+| Prop | Type | Required | Maps to |
+|------|------|----------|---------|
+| `task` | `TaskRef` | Yes | `subject` from defineTask |
+| `description` | `string` | Yes | `TaskCreate.description` |
+| `activeForm` | `string` | No | `TaskCreate.activeForm` |
+| `blockedBy` | `TaskRef[]` | No | `TaskUpdate.addBlockedBy` |
+
+**Usage:**
+```tsx
+<TaskDef
+  task={Research}
+  description="Research OAuth2 best practices and compare providers"
+  activeForm="Researching OAuth..."
+/>
+
+<TaskDef
+  task={Plan}
+  description="Create implementation plan based on research findings"
+  activeForm="Planning..."
+  blockedBy={[Research]}
+/>
+```
+
+**Output:**
+```markdown
+#### Task #1: Research best practices
+
+```javascript
+TaskCreate({
+  subject: "Research best practices",
+  description: "Research OAuth2 best practices and compare providers",
+  activeForm: "Researching OAuth..."
+})
+```
+
+#### Task #2: Create implementation plan
+
+```javascript
+TaskCreate({
+  subject: "Create implementation plan",
+  description: "Create implementation plan based on research findings",
+  activeForm: "Planning..."
+})
+
+TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
+```
+
+**Blocked by:** #1 (research)
+```
+
+---
+
+### `<TaskPipeline>`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `title` | `string` | No | Pipeline title |
+| `autoChain` | `boolean` | No | Auto-add `blockedBy` to each subsequent task |
+| `children` | `TaskDef[]` | Yes | Tasks in sequence |
+
+**Usage:**
+```tsx
+<TaskPipeline title="OAuth Implementation" autoChain>
+  <TaskDef task={Research} description="Research OAuth2 providers" activeForm="Researching..." />
+  <TaskDef task={Plan} description="Design implementation approach" activeForm="Planning..." />
+  <TaskDef task={Implement} description="Build OAuth2 integration" activeForm="Implementing..." />
+  <TaskDef task={Test} description="Write and run tests" activeForm="Testing..." />
+</TaskPipeline>
+```
+
+**Output:**
+```markdown
+### OAuth Implementation
+
+```mermaid
+flowchart LR
+    T1[research] --> T2[plan] --> T3[implement] --> T4[test]
+```
+
+```javascript
+// Create tasks
+TaskCreate({ subject: "Research best practices", description: "Research OAuth2 providers", activeForm: "Researching..." })
+TaskCreate({ subject: "Create implementation plan", description: "Design implementation approach", activeForm: "Planning..." })
+TaskCreate({ subject: "Build the feature", description: "Build OAuth2 integration", activeForm: "Implementing..." })
+TaskCreate({ subject: "Write tests", description: "Write and run tests", activeForm: "Testing..." })
+
+// Set up dependencies (autoChain)
+TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
+TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })
+TaskUpdate({ taskId: "4", addBlockedBy: ["3"] })
+```
+
+| ID | Subject | Blocked By |
+|----|---------|------------|
+| 1 | Research best practices | - |
+| 2 | Create implementation plan | #1 |
+| 3 | Build the feature | #2 |
+| 4 | Write tests | #3 |
+```
+
+---
+
+## Phase 3: Team + Teammate
+
+### `<Team>`
+
+**Props:**
+| Prop | Type | Required | Maps to |
+|------|------|----------|---------|
+| `team` | `TeamRef` | Yes | `Teammate.team_name` |
+| `description` | `string` | No | `Teammate.description` |
+| `children` | `Teammate[]` | Yes | Team members |
+
+**Usage:**
+```tsx
+<Team team={ReviewTeam} description="Code review specialists">
+  <Teammate worker={Security} ... />
+  <Teammate worker={Perf} ... />
+</Team>
+```
+
+**Output:**
+```markdown
+## Team: pr-review
+
+> Code review specialists
+
+```javascript
+Teammate({ operation: "spawnTeam", team_name: "pr-review", description: "Code review specialists" })
+```
+
+### Members
+
+{children}
+```
+
+---
+
+### `<Teammate>`
+
+**Props:**
+| Prop | Type | Required | Maps to |
+|------|------|----------|---------|
+| `worker` | `WorkerRef` | Yes | `Task.name` + `Task.subagent_type` |
+| `description` | `string` | Yes | `Task.description` |
+| `prompt` | `string` | Yes | `Task.prompt` |
+| `model` | `Model` | No | `Task.model` |
+| `background` | `boolean` | No | `Task.run_in_background` (default: true) |
+
+**Usage:**
+```tsx
+<Teammate
+  worker={Security}
+  description="Security audit"
+  prompt={`Review for security vulnerabilities.
+
+Focus on:
+- SQL injection
+- XSS
+- Auth bypass
+
+Send findings to team-lead via:
+Teammate({ operation: "write", target_agent_id: "team-lead", value: "..." })`}
+/>
+```
+
+**Output:**
+```markdown
+#### security
+
+```javascript
+Task({
+  team_name: "pr-review",
+  name: "security",
+  subagent_type: "compound-engineering:review:security-sentinel",
+  description: "Security audit",
+  prompt: `Review for security vulnerabilities.
+
+Focus on:
+- SQL injection
+- XSS
+- Auth bypass
+
+Send findings to team-lead via:
+Teammate({ operation: "write", target_agent_id: "team-lead", value: "..." })`,
+  run_in_background: true
+})
+```
+```
+
+**With model:**
+```tsx
+<Teammate
+  worker={Explorer}
+  description="Find auth files"
+  prompt="Find all authentication-related files"
+  model={Model.Haiku}
+/>
+```
+
+**Output:**
+```javascript
+Task({
+  team_name: "pr-review",
+  name: "explorer",
+  subagent_type: "Explore",
+  description: "Find auth files",
+  prompt: `Find all authentication-related files`,
+  model: "haiku",
+  run_in_background: true
+})
+```
+
+---
+
+## Phase 4: ShutdownSequence
+
+### `<ShutdownSequence>`
+
+**Props:**
+| Prop | Type | Required | Maps to |
+|------|------|----------|---------|
+| `workers` | `WorkerRef[]` | Yes | `Teammate.target_agent_id` |
+| `reason` | `string` | No | `Teammate.reason` |
+
+**Usage:**
+```tsx
+<ShutdownSequence
+  workers={[Security, Perf]}
+  reason="All reviews complete"
+/>
+```
+
+**Output:**
+```markdown
+## Shutdown
+
+```javascript
+// 1. Request shutdown for all workers
+Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "All reviews complete" })
+Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "All reviews complete" })
+
+// 2. Wait for shutdown_approved messages
+// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:
+// {"type": "shutdown_approved", "from": "security", ...}
+// {"type": "shutdown_approved", "from": "perf", ...}
+
+// 3. Cleanup team resources
+Teammate({ operation: "cleanup" })
+```
+```
+
+---
+
+## Phase 5: Workflow
+
+### `<Workflow>`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | Yes | Workflow name |
+| `team` | `TeamRef` | Yes | Primary team |
+| `description` | `string` | No | Workflow description |
+| `children` | `ReactNode` | Yes | Team, Pipeline, Shutdown |
+
+**Usage:**
+```tsx
+const Research = defineTask('Research');
+const Plan = defineTask('Plan');
+const Implement = defineTask('Implement');
+
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+const ReviewTeam = defineTeam('feature-x', [Security, Perf]);
+
+<Workflow name="Feature X" team={ReviewTeam} description="Build feature with review">
+  <Team team={ReviewTeam} description="Feature X team">
+    <Teammate
+      worker={Security}
+      description="Security review"
+      prompt="Review implementation for security vulnerabilities. Send findings to team-lead."
+    />
+    <Teammate
+      worker={Perf}
+      description="Performance review"
+      prompt="Review implementation for performance issues. Send findings to team-lead."
+    />
+  </Team>
+
+  <TaskPipeline title="Implementation" autoChain>
+    <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
+    <TaskDef task={Plan} description="Create plan" activeForm="Planning..." />
+    <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
+  </TaskPipeline>
+
+  <ShutdownSequence workers={[Security, Perf]} reason="Feature complete" />
+</Workflow>
+```
+
+**Output:**
+```markdown
+# Workflow: Feature X
+
+> Build feature with review
+
+---
+
+## Team: feature-x
+
+> Feature X team
+
+```javascript
+Teammate({ operation: "spawnTeam", team_name: "feature-x", description: "Feature X team" })
+```
+
+### Members
+
+#### security
+
+```javascript
+Task({
+  team_name: "feature-x",
+  name: "security",
+  subagent_type: "compound-engineering:review:security-sentinel",
+  description: "Security review",
+  prompt: `Review implementation for security vulnerabilities. Send findings to team-lead.`,
+  run_in_background: true
+})
+```
+
+#### perf
+
+```javascript
+Task({
+  team_name: "feature-x",
+  name: "perf",
+  subagent_type: "compound-engineering:review:performance-oracle",
+  description: "Performance review",
+  prompt: `Review implementation for performance issues. Send findings to team-lead.`,
+  run_in_background: true
+})
+```
+
+---
+
+### Implementation
+
+```mermaid
+flowchart LR
+    T1[research] --> T2[plan] --> T3[implement]
+```
+
+```javascript
+TaskCreate({ subject: "Research", description: "Research approach", activeForm: "Researching..." })
+TaskCreate({ subject: "Plan", description: "Create plan", activeForm: "Planning..." })
+TaskCreate({ subject: "Implement", description: "Build feature", activeForm: "Building..." })
+
+TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
+TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })
+```
+
+---
+
+## Shutdown
+
+```javascript
+Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "Feature complete" })
+Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "Feature complete" })
+
+// Wait for shutdown_approved messages...
+
+Teammate({ operation: "cleanup" })
+```
+```
+
+---
+
+## Complete Example
+
+```tsx
+import {
+  // Refs
+  defineTask,
+  defineWorker,
+  defineTeam,
+  resetAllIds,
+
+  // Enums
+  AgentType,
+  PluginAgentType,
+  Model,
+
+  // Components
+  Workflow,
+  Team,
+  Teammate,
+  TaskPipeline,
+  TaskDef,
+  ShutdownSequence
+} from 'react-agentic/swarm';
+
+// Define task refs (no IDs needed - assigned at emit time)
+const Research = defineTask('Research OAuth providers');
+const Plan = defineTask('Create implementation plan');
+const Implement = defineTask('Implement OAuth');
+const Test = defineTask('Write tests');
+
+// Define worker refs
+const Researcher = defineWorker('researcher', PluginAgentType.BestPracticesResearcher);
+const Planner = defineWorker('planner', AgentType.Plan);
+const Builder = defineWorker('builder', AgentType.GeneralPurpose);
+const Tester = defineWorker('tester', AgentType.GeneralPurpose);
+
+// Define team
+const DevTeam = defineTeam('oauth-feature', [Researcher, Planner, Builder, Tester]);
+
+// Compose workflow
+export const OAuthWorkflow = () => (
+  <Workflow name="OAuth Implementation" team={DevTeam} description="Implementing OAuth2 authentication">
+    <Team team={DevTeam} description="OAuth development team">
+      <Teammate
+        worker={Researcher}
+        description="Research OAuth providers"
+        prompt="Research OAuth2 providers and best practices. Send summary to team-lead."
+      />
+      <Teammate
+        worker={Planner}
+        description="Create implementation plan"
+        prompt="Wait for research. Create detailed implementation plan. Send to team-lead."
+      />
+      <Teammate
+        worker={Builder}
+        description="Implement OAuth"
+        prompt="Wait for plan. Implement OAuth2 authentication. Notify team-lead when done."
+      />
+      <Teammate
+        worker={Tester}
+        description="Write tests"
+        prompt="Wait for implementation. Write comprehensive tests. Report results to team-lead."
+      />
+    </Team>
+
+    <TaskPipeline title="OAuth Pipeline" autoChain>
+      <TaskDef task={Research} description="Research OAuth2 providers and best practices" activeForm="Researching..." />
+      <TaskDef task={Plan} description="Design implementation approach" activeForm="Planning..." />
+      <TaskDef task={Implement} description="Build OAuth2 integration" activeForm="Building..." />
+      <TaskDef task={Test} description="Write and run tests" activeForm="Testing..." />
+    </TaskPipeline>
+
+    <ShutdownSequence workers={[Researcher, Planner, Builder, Tester]} reason="OAuth implementation complete" />
+  </Workflow>
+);
+```
+
+---
+
+## API Mapping Reference
+
+| TSX | Claude Code API |
+|-----|-----------------|
+| `<Team team={ref}>` | `Teammate({ operation: "spawnTeam", team_name: ref.name })` |
+| `<Teammate worker={ref} prompt={...}>` | `Task({ team_name, name: ref.name, subagent_type: ref.type, prompt, run_in_background: true })` |
+| `<TaskDef task={ref} description={...}>` | `TaskCreate({ subject: ref.subject, description })` |
+| `blockedBy={[ref1, ref2]}` | `TaskUpdate({ taskId, addBlockedBy: ["1", "2"] })` (IDs resolved via object identity at emit time) |
+| `<ShutdownSequence workers={[...]}>` | `Teammate({ operation: "requestShutdown", target_agent_id })` then `Teammate({ operation: "cleanup" })` |
+
+---
+
+## Summary
+
+| Phase | Components | Emits |
+|-------|------------|-------|
+| 1 | `defineTask`, `defineWorker`, `defineTeam` | (refs only) |
+| 2 | `<TaskDef>`, `<TaskPipeline>` | `TaskCreate`, `TaskUpdate` |
+| 3 | `<Team>`, `<Teammate>` | `Teammate(spawnTeam)`, `Task` |
+| 4 | `<ShutdownSequence>` | `Teammate(requestShutdown)`, `Teammate(cleanup)` |
+| 5 | `<Workflow>` | Full orchestration |
+
+**Total: 5 components + 3 helper functions**

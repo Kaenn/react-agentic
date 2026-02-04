@@ -7,13 +7,13 @@ import {
   AgentType,
   PluginAgentType,
   Model,
-  AgentRef,
+  WorkerRef,
   TeamRef,
-  defineAgent,
+  defineWorker,
   defineTeam,
   addToTeam,
   createReviewWorkflow,
-  batchAgents
+  batchWorkers
 } from './enums';
 
 // =============================================================================
@@ -67,26 +67,26 @@ export function Team({ name, description, children }: TeamProps) {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// Pattern 1: Using TeamRef and AgentRef (RECOMMENDED)
+// Pattern 1: Using TeamRef and WorkerRef (RECOMMENDED)
 // -----------------------------------------------------------------------------
 
-// Define agents first
-const SecurityAgent = defineAgent('security', PluginAgentType.SecuritySentinel, Model.Sonnet);
-const PerfAgent = defineAgent('perf', PluginAgentType.PerformanceOracle, Model.Sonnet);
-const ArchAgent = defineAgent('arch', PluginAgentType.ArchitectureStrategist, Model.Opus);
+// Define workers first
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel, Model.Sonnet);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle, Model.Sonnet);
+const Arch = defineWorker('arch', PluginAgentType.ArchitectureStrategist, Model.Opus);
 
 // Define team with members
-const ReviewTeam = defineTeam('pr-review', [SecurityAgent, PerfAgent, ArchAgent]);
+const ReviewTeam = defineTeam('pr-review', [Security, Perf, Arch]);
 
 const TeamRefExample = () => (
   <Team ref={ReviewTeam} description="Comprehensive PR review">
-    <Teammate ref={SecurityAgent}>
+    <Teammate worker={Security}>
       <Prompt>Review for security vulnerabilities</Prompt>
     </Teammate>
-    <Teammate ref={PerfAgent}>
+    <Teammate worker={Perf}>
       <Prompt>Review for performance issues</Prompt>
     </Teammate>
-    <Teammate ref={ArchAgent}>
+    <Teammate worker={Arch}>
       <Prompt>Review architectural decisions</Prompt>
     </Teammate>
   </Team>
@@ -104,8 +104,8 @@ const workflow = createReviewWorkflow({
 
 const WorkflowTeamExample = () => (
   <Team ref={workflow.team}>
-    {workflow.agents.map((agent) => (
-      <Teammate key={agent.id} ref={agent}>
+    {workflow.workers.map((worker) => (
+      <Teammate key={worker.id} worker={worker}>
         <Prompt>Review assigned files</Prompt>
       </Teammate>
     ))}
@@ -113,10 +113,10 @@ const WorkflowTeamExample = () => (
 );
 
 // -----------------------------------------------------------------------------
-// Pattern 3: Using batchAgents for multiple similar agents
+// Pattern 3: Using batchWorkers for multiple similar workers
 // -----------------------------------------------------------------------------
 
-const { agents: reviewers, refs } = batchAgents('reviewer', [
+const { workers: reviewers, refs } = batchWorkers('reviewer', [
   { suffix: 'security', type: PluginAgentType.SecuritySentinel },
   { suffix: 'perf', type: PluginAgentType.PerformanceOracle },
   { suffix: 'arch', type: PluginAgentType.ArchitectureStrategist }
@@ -126,13 +126,13 @@ const BatchTeam = defineTeam('batch-review', reviewers);
 
 const BatchTeamExample = () => (
   <Team ref={BatchTeam}>
-    <Teammate ref={refs.security}>
+    <Teammate worker={refs.security}>
       <Prompt>Security review</Prompt>
     </Teammate>
-    <Teammate ref={refs.perf}>
+    <Teammate worker={refs.perf}>
       <Prompt>Performance review</Prompt>
     </Teammate>
-    <Teammate ref={refs.arch}>
+    <Teammate worker={refs.arch}>
       <Prompt>Architecture review</Prompt>
     </Teammate>
   </Team>

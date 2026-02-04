@@ -120,6 +120,78 @@ claudedocs/        # Internal/future documentation
 |-----------|---------|---------|
 | `<ExecutionContext>` | @ file references | `<ExecutionContext paths={["file.md"]} />` |
 
+## Design Pattern: Components vs Factory Functions
+
+When adding new features, choose between JSX components and factory functions based on what the feature represents:
+
+### Components — For Content Definition
+
+Use JSX components when the feature **creates a file** with markdown content:
+
+```tsx
+// <Agent> creates .claude/agents/reviewer.md with body content
+<Agent name="reviewer" description="Code reviewer">
+  Review the code for security issues...
+</Agent>
+
+// <Command> creates .claude/commands/deploy.md with body content
+<Command name="deploy" description="Deploy to production">
+  Execute deployment steps...
+</Command>
+```
+
+**Characteristics:**
+- Has children (content body)
+- Creates an output file
+- Defines structure AND content
+
+### Factory Functions — For References
+
+Use factory functions when the feature **creates a reference** to something defined elsewhere or to a Claude Code primitive:
+
+```tsx
+// defineAgent() creates a reference to an agent file
+const Reviewer = defineAgent({ name: 'reviewer', path: './reviewer.md' });
+<SpawnAgent agent={Reviewer} ... />
+
+// defineTask() creates a reference to a Claude Code task primitive
+const Research = defineTask('research', 'Research best practices');
+<TaskDef task={Research} description="..." />
+```
+
+**Characteristics:**
+- Returns a typed ref object (e.g., `AgentRef`, `TaskRef`)
+- No content body — metadata only
+- Used as prop value in components
+- Enables cross-file type safety
+
+### Decision Matrix
+
+| Question | Component | Factory |
+|----------|-----------|---------|
+| Does it have markdown content? | ✅ | ❌ |
+| Does it create a file? | ✅ | ❌ |
+| Is it a reference to something else? | ❌ | ✅ |
+| Is it a Claude Code primitive (Task, Team)? | ❌ | ✅ |
+| Does it need cross-file type safety? | Maybe | ✅ |
+
+### Examples by Feature
+
+| Feature | Component | Factory | Rationale |
+|---------|-----------|---------|-----------|
+| Agent definition | `<Agent>` | — | Has content, creates file |
+| Agent reference | — | `defineAgent()` | Reference for spawning |
+| Command | `<Command>` | — | Has content, creates file |
+| Task reference | — | `defineTask()` | Claude Code primitive, no content |
+| Team reference | — | `defineTeam()` | Claude Code primitive, no content |
+| Task display | `<TaskDef>` | — | Renders task in markdown |
+| Runtime variable | — | `useRuntimeVar()` | Reference to runtime value |
+
+### Naming Conventions
+
+- **Components**: PascalCase, noun-based (`<Agent>`, `<TaskDef>`, `<Team>`)
+- **Factories**: camelCase, verb-prefixed (`defineAgent()`, `defineTask()`, `useRuntimeVar()`)
+
 ## Claude Code Variable Patterns
 
 When emitting markdown for Claude Code, use simple variable reference patterns instead of explicit bash/jq commands. Claude Code understands variable filling patterns directly from its context (memory) and will resolve them without needing functional bash commands.

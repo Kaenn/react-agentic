@@ -5,8 +5,8 @@
 
 import {
   MessageType,
-  AgentRef,
-  defineAgent,
+  WorkerRef,
+  defineWorker,
   AgentType,
   PluginAgentType,
   Model
@@ -16,7 +16,7 @@ import {
 // ENUMS (re-export for convenience)
 // =============================================================================
 
-export { MessageType, AgentRef, defineAgent };
+export { MessageType, WorkerRef, defineWorker };
 
 // =============================================================================
 // PROPS INTERFACE
@@ -30,17 +30,17 @@ interface MessageProps {
   type: MessageType;
 
   /**
-   * Sender agent - accepts AgentRef or string name
+   * Sender agent - accepts WorkerRef or string name
    * @required
    */
-  from: AgentRef | string;
+  from: WorkerRef | string;
 
   /**
-   * Recipient agent - accepts AgentRef or string name
+   * Recipient agent - accepts WorkerRef or string name
    * (required for 'text' type)
    * @optional
    */
-  to?: AgentRef | string;
+  to?: WorkerRef | string;
 
   /**
    * Request ID for structured messages
@@ -74,12 +74,12 @@ export function Message({ type, from, to, requestId, metadata, children }: Messa
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// Pattern 1: Using AgentRef for type-safe messaging (RECOMMENDED)
+// Pattern 1: Using WorkerRef for type-safe messaging (RECOMMENDED)
 // -----------------------------------------------------------------------------
 
-const TeamLead = defineAgent('team-lead', AgentType.GeneralPurpose, Model.Opus);
-const SecurityWorker = defineAgent('security', PluginAgentType.SecuritySentinel);
-const PerfWorker = defineAgent('perf', PluginAgentType.PerformanceOracle);
+const TeamLead = defineWorker('team-lead', AgentType.GeneralPurpose, Model.Opus);
+const SecurityWorker = defineWorker('security', PluginAgentType.SecuritySentinel);
+const PerfWorker = defineWorker('perf', PluginAgentType.PerformanceOracle);
 
 const TypeSafeMessage = () => (
   <Message type={MessageType.Text} from={TeamLead} to={SecurityWorker}>
