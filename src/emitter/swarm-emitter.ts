@@ -7,7 +7,8 @@
  * - Dependency setup via TaskUpdate
  */
 
-import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode } from '../ir/swarm-nodes.js';
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode, WorkflowNode } from '../ir/swarm-nodes.js';
+import type { BlockNode } from '../ir/index.js';
 
 /**
  * TaskIdResolver - Maps UUID task IDs to sequential numeric IDs
@@ -359,4 +360,41 @@ export function emitShutdownSequence(node: ShutdownSequenceNode): string {
   lines.push('```');
 
   return lines.join('\n');
+}
+
+/**
+ * Emit Workflow to markdown
+ *
+ * Output structure:
+ * 1. Workflow heading (h2)
+ * 2. Optional description as blockquote
+ * 3. Children with separators and heading level adjustment
+ */
+export function emitWorkflow(
+  node: WorkflowNode,
+  emitBlock: (block: BlockNode) => string
+): string {
+  const sections: string[] = [];
+
+  // Workflow heading (h2)
+  sections.push(`## Workflow: ${node.name}`);
+
+  // Description as blockquote (optional)
+  if (node.description) {
+    sections.push(`> ${node.description}`);
+  }
+
+  // Children with separators and heading level adjustment
+  for (const child of node.children) {
+    // Add separator before each child
+    sections.push('---');
+
+    // Emit child and adjust heading levels (## -> ###, ### -> ####, etc.)
+    let childOutput = emitBlock(child);
+    childOutput = childOutput.replace(/^(#{2,})/gm, '#$1');
+
+    sections.push(childOutput);
+  }
+
+  return sections.join('\n\n');
 }

@@ -117,3 +117,29 @@ export interface ShutdownSequenceNode {
   /** Section title */
   title: string;
 }
+
+// =============================================================================
+// Workflow Node
+// =============================================================================
+
+/**
+ * WorkflowNode IR node - represents a complete workflow orchestration
+ *
+ * Emits as:
+ * 1. Workflow heading with name
+ * 2. Optional description as blockquote
+ * 3. Children with separators and adjusted heading levels
+ */
+export interface WorkflowNode {
+  kind: 'workflow';
+  /** Workflow name */
+  name: string;
+  /** Team reference ID */
+  teamId?: string;
+  /** Team name for context propagation */
+  teamName?: string;
+  /** Workflow description */
+  description?: string;
+  /** Child nodes (Team, TaskPipeline, ShutdownSequence, etc.) */
+  children: import('./nodes.js').BaseBlockNode[];
+}

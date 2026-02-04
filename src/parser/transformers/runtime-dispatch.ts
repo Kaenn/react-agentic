@@ -27,7 +27,7 @@ import { transformList, transformBlockquote, transformCodeBlock } from './html.j
 import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
-import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence } from './swarm.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence, transformWorkflow } from './swarm.js';
 import type { TransformContext } from './types.js';
 import type { GroupNode } from '../../ir/nodes.js';
 
@@ -1454,6 +1454,9 @@ function transformRuntimeElement(
   }
   if (name === 'ShutdownSequence') {
     return transformShutdownSequence(node, adaptToSharedContext(ctx));
+  }
+  if (name === 'Workflow') {
+    return transformWorkflow(node, adaptToSharedContext(ctx));
   }
 
   // Check for local component (same-file function components)

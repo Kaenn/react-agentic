@@ -21,6 +21,7 @@ export { Team, type TeamProps } from './Team.js';
 export { Teammate, type TeammateProps } from './Teammate.js';
 export { Prompt, type PromptProps } from './Prompt.js';
 export { ShutdownSequence, type ShutdownSequenceProps } from './ShutdownSequence.js';
+export { Workflow, type WorkflowProps } from './Workflow.js';
 
 // Pipeline Builder
 export { createPipeline, type Pipeline, type PipelineBuilder, type PipelineStage } from './pipeline-builder.js';

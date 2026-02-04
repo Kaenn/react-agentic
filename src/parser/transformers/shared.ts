@@ -90,7 +90,7 @@ export const SPECIAL_COMPONENTS = new Set([
   // Semantic workflow components
   'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
   // Swarm components
-  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt', 'ShutdownSequence',
+  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt', 'ShutdownSequence', 'Workflow',
   'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
   // Step workflow primitive
   'Step',

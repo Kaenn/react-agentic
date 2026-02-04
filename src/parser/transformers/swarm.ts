@@ -5,7 +5,8 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement } from 'ts-morph';
-import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode } from '../../ir/swarm-nodes.js';
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode, WorkflowNode } from '../../ir/swarm-nodes.js';
+import type { BaseBlockNode } from '../../ir/nodes.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, getBooleanAttribute } from '../utils/index.js';
 import { transformBlockChildren } from './dispatch.js';
@@ -782,9 +783,9 @@ export function transformShutdownSequence(
   const cleanupAttr = getBooleanAttribute(openingElement, 'cleanup');
   const includeCleanup = cleanupAttr ?? true;
 
-  // Extract team (optional)
+  // Extract team (optional, can fall back to workflow context)
   const teamRef = extractTeamRefFromAttribute(openingElement, 'team', ctx);
-  const teamName = teamRef?.teamName;
+  const teamName = teamRef?.teamName ?? ctx.workflowTeam?.teamName;
 
   // Extract title (optional, default "Shutdown")
   const title = getAttributeValue(openingElement, 'title') ?? 'Shutdown';
@@ -796,5 +797,111 @@ export function transformShutdownSequence(
     includeCleanup,
     teamName,
     title,
+  };
+}
+
+// =============================================================================
+// Workflow Transformer
+// =============================================================================
+
+/**
+ * Transform Workflow component to WorkflowNode IR
+ *
+ * Workflow orchestrates Team, TaskPipeline, and ShutdownSequence
+ * with team context propagation to children.
+ */
+export function transformWorkflow(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext
+): WorkflowNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Extract name prop (required)
+  const name = getAttributeValue(openingElement, 'name');
+  if (!name) {
+    throw ctx.createError('Workflow requires a name prop', node);
+  }
+
+  // Extract team prop (required)
+  const teamRef = extractTeamRefFromAttribute(openingElement, 'team', ctx);
+  if (!teamRef) {
+    throw ctx.createError('Workflow requires a team prop with a defineTeam() reference', node);
+  }
+
+  // Extract description prop (optional)
+  const description = getAttributeValue(openingElement, 'description');
+
+  // Create child context with workflow team for propagation
+  const childCtx: TransformContext = {
+    ...ctx,
+    workflowTeam: {
+      teamId: teamRef.teamId,
+      teamName: teamRef.teamName,
+    },
+  };
+
+  // Transform children with team context
+  const children: BaseBlockNode[] = [];
+  let teamCount = 0;
+  let firstTeamId: string | undefined;
+  let firstTeamName: string | undefined;
+
+  if (Node.isJsxElement(node)) {
+    for (const child of node.getJsxChildren()) {
+      // Skip whitespace text nodes
+      if (Node.isJsxText(child)) {
+        continue;
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = Node.isJsxElement(child)
+          ? child.getOpeningElement().getTagNameNode().getText()
+          : child.getTagNameNode().getText();
+
+        // Track Team children for validation
+        if (childName === 'Team') {
+          teamCount++;
+          if (teamCount === 1) {
+            // Extract first team's name for validation
+            const childOpeningElement = Node.isJsxElement(child)
+              ? child.getOpeningElement()
+              : child;
+            const childTeamRef = extractTeamRefFromAttribute(childOpeningElement, 'team', ctx);
+            firstTeamId = childTeamRef?.teamId;
+            firstTeamName = childTeamRef?.teamName;
+          }
+        }
+
+        // Use dispatch to transform child (transformBlockChildren handles all component types)
+        // Cast to BaseBlockNode[] since Workflow doesn't support runtime nodes
+        const childBlocks = transformBlockChildren([child], childCtx) as BaseBlockNode[];
+        children.push(...childBlocks);
+      }
+    }
+  }
+
+  // Validation: only one Team child allowed
+  if (teamCount > 1) {
+    throw ctx.createError('Workflow can only contain one Team child', node);
+  }
+
+  // Validation: team prop must match first Team child (if present)
+  // Use teamId for comparison (unique per defineTeam call) but show teamName in error
+  if (firstTeamId && firstTeamId !== teamRef.teamId) {
+    throw ctx.createError(
+      `Workflow team prop (${teamRef.teamName}) must match Team child (${firstTeamName ?? 'unknown'})`,
+      node
+    );
+  }
+
+  return {
+    kind: 'workflow',
+    name,
+    teamId: teamRef.teamId,
+    teamName: teamRef.teamName,
+    description: description || undefined,
+    children,
   };
 }

@@ -35,10 +35,11 @@ import type {
   TeamNode,
   TeammateNode,
   ShutdownSequenceNode,
+  WorkflowNode,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
-import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam, emitShutdownSequence } from './swarm-emitter.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam, emitShutdownSequence, emitWorkflow } from './swarm-emitter.js';
 
 // ============================================================================
 // jq Expression Generation
@@ -360,6 +361,8 @@ export class RuntimeMarkdownEmitter {
         throw new Error('TeammateNode should be emitted via Team parent, not directly');
       case 'shutdownSequence':
         return emitShutdownSequence(node);
+      case 'workflow':
+        return emitWorkflow(node, (block) => this.emitBlock(block));
 
       default:
         return assertNever(node);

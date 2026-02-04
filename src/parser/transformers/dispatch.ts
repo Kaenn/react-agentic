@@ -26,7 +26,7 @@ import {
   transformStructuredReturns,
   isContractComponent,
 } from './contract.js';
-import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence } from './swarm.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence, transformWorkflow } from './swarm.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -368,6 +368,9 @@ function transformElement(
   }
   if (name === 'ShutdownSequence') {
     return transformShutdownSequence(node, ctx);
+  }
+  if (name === 'Workflow') {
+    return transformWorkflow(node, ctx);
   }
 
   // Custom component composition

@@ -54,4 +54,9 @@ export interface TransformContext {
   localComponents?: Map<string, { declaration: Node; propNames: string[]; jsx?: Node }>;
   /** Component expansion stack for circular reference detection */
   componentExpansionStack?: Set<string>;
+  /** Workflow team context for child components (ShutdownSequence) */
+  workflowTeam?: {
+    teamId: string;
+    teamName: string;
+  };
 }
