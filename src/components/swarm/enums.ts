@@ -29,3 +29,9 @@ export const Model = {
   Opus: 'opus',
 } as const;
 export type Model = (typeof Model)[keyof typeof Model];
+
+// TaskMode - Task execution modes
+export const TaskMode = {
+  Plan: 'plan',
+} as const;
+export type TaskMode = (typeof TaskMode)[keyof typeof TaskMode];

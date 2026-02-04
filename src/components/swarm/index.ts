@@ -5,7 +5,7 @@
  */
 
 // Enums
-export { AgentType, PluginAgentType, Model } from './enums.js';
+export { AgentType, PluginAgentType, Model, TaskMode } from './enums.js';
 
 // Refs + Factories
 export { defineTask, defineWorker, defineTeam } from './refs.js';

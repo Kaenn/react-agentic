@@ -7,7 +7,7 @@
 
 import type { ReactNode } from 'react';
 import type { WorkerRef } from './refs.js';
-import type { Model } from './enums.js';
+import type { Model, TaskMode } from './enums.js';
 
 /**
  * Props for Teammate component
@@ -21,6 +21,8 @@ export interface TeammateProps {
   prompt?: string;
   /** Override model (takes precedence over WorkerRef.model) */
   model?: Model | string;
+  /** Task execution mode (e.g., 'plan' for plan approval) */
+  mode?: TaskMode | string;
   /** Run in background (default true) */
   background?: boolean;
   /** Optional children - can contain <Prompt> for multi-line prompts */

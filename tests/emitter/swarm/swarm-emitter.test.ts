@@ -296,7 +296,7 @@ describe('emitShutdownSequence', () => {
     expect(output).toContain('Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "All reviews complete" })');
   });
 
-  it('emits wait instructions with inbox path', () => {
+  it('emits wait instructions with inbox path and jq command', () => {
     const node: ShutdownSequenceNode = {
       kind: 'shutdownSequence',
       workers: [
@@ -312,9 +312,11 @@ describe('emitShutdownSequence', () => {
     const output = emitShutdownSequence(node);
 
     expect(output).toContain('// 2. Wait for shutdown_approved messages');
-    expect(output).toContain('// Check ~/.claude/teams/pr-review/inboxes/team-lead.json for:');
-    expect(output).toContain('// {"type": "shutdown_approved", "from": "security", ...}');
-    expect(output).toContain('// {"type": "shutdown_approved", "from": "perf", ...}');
+    expect(output).toContain('// Poll inbox until all workers approve:');
+    expect(output).toContain('// cat ~/.claude/teams/pr-review/inboxes/team-lead.json | jq');
+    expect(output).toContain('// {"type": "shutdown_approved", "from": "security", "requestId": "shutdown-xxx", ...}');
+    expect(output).toContain('// {"type": "shutdown_approved", "from": "perf", "requestId": "shutdown-xxx", ...}');
+    expect(output).toContain('// Once all 2 shutdown_approved messages received, proceed to cleanup');
   });
 
   it('uses {team} placeholder when teamName not provided', () => {
@@ -328,7 +330,7 @@ describe('emitShutdownSequence', () => {
 
     const output = emitShutdownSequence(node);
 
-    expect(output).toContain('// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:');
+    expect(output).toContain('// cat ~/.claude/teams/{team}/inboxes/team-lead.json | jq');
   });
 
   it('emits cleanup step by default', () => {

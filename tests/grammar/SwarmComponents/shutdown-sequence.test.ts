@@ -171,8 +171,8 @@ describe('<ShutdownSequence>', () => {
           );
         }
       `, true);
-      expect(output).toContain('// Check ~/.claude/teams/pr-review/inboxes/team-lead.json for:');
-      expect(output).toContain('// {"type": "shutdown_approved", "from": "security", ...}');
+      expect(output).toContain('// cat ~/.claude/teams/pr-review/inboxes/team-lead.json | jq');
+      expect(output).toContain('// {"type": "shutdown_approved", "from": "security", "requestId": "shutdown-xxx", ...}');
     });
 
     it('uses {team} placeholder when team not provided', () => {
@@ -189,7 +189,7 @@ describe('<ShutdownSequence>', () => {
           );
         }
       `, true);
-      expect(output).toContain('// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:');
+      expect(output).toContain('// cat ~/.claude/teams/{team}/inboxes/team-lead.json | jq');
     });
 
     it('emits cleanup step by default', () => {
@@ -275,9 +275,10 @@ describe('<ShutdownSequence>', () => {
       expect(output).toContain('Teammate({ operation: "requestShutdown"');
       expect(output).toContain('target_agent_id: "security"');
       expect(output).toContain('target_agent_id: "perf"');
-      expect(output).toContain('// Check ~/.claude/teams/pr-review/inboxes/team-lead.json for:');
-      expect(output).toContain('// {"type": "shutdown_approved", "from": "security", ...}');
-      expect(output).toContain('// {"type": "shutdown_approved", "from": "perf", ...}');
+      expect(output).toContain('// cat ~/.claude/teams/pr-review/inboxes/team-lead.json | jq');
+      expect(output).toContain('// {"type": "shutdown_approved", "from": "security", "requestId": "shutdown-xxx", ...}');
+      expect(output).toContain('// {"type": "shutdown_approved", "from": "perf", "requestId": "shutdown-xxx", ...}');
+      expect(output).toContain('// Once all 2 shutdown_approved messages received, proceed to cleanup');
     });
   });
 });

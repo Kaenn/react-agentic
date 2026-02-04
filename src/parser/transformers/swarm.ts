@@ -261,6 +261,9 @@ const ENUM_VALUES: Record<string, Record<string, string>> = {
     Sonnet: 'sonnet',
     Opus: 'opus',
   },
+  TaskMode: {
+    Plan: 'plan',
+  },
 };
 
 /**
@@ -593,6 +596,9 @@ function transformTeammate(
   // Extract model prop (optional override) - handles both strings and enum values
   const modelProp = getEnumAttributeValue(openingElement, 'model');
 
+  // Extract mode prop (optional) - handles both strings and enum values
+  const modeProp = getEnumAttributeValue(openingElement, 'mode');
+
   // Extract background prop (default true)
   const backgroundProp = getBooleanAttribute(openingElement, 'background');
   const background = backgroundProp ?? true;
@@ -606,6 +612,7 @@ function transformTeammate(
     description,
     prompt,
     model: modelProp || undefined,
+    mode: modeProp || undefined,
     background,
   };
 }

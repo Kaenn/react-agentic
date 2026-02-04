@@ -249,6 +249,7 @@ export {
   AgentType,
   PluginAgentType,
   Model,
+  TaskMode,
 
   // Factories
   defineTask,

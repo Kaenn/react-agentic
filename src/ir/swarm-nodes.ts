@@ -70,6 +70,8 @@ export interface TeammateNode {
   prompt: string;
   /** Override model from prop (takes precedence over workerModel) */
   model?: string;
+  /** Task execution mode (e.g., 'plan' for plan approval) */
+  mode?: string;
   /** Run in background (default true) */
   background: boolean;
 }

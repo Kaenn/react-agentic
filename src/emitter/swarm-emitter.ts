@@ -264,6 +264,11 @@ function emitTeammate(node: TeammateNode, teamName: string): string {
     props.push(`model: "${escapeString(effectiveModel)}"`);
   }
 
+  // Add mode if specified
+  if (node.mode) {
+    props.push(`mode: "${escapeString(node.mode)}"`);
+  }
+
   // Add run_in_background
   props.push(`run_in_background: ${node.background}`);
 
@@ -345,10 +350,17 @@ export function emitShutdownSequence(node: ShutdownSequenceNode): string {
   // Step 2: Wait for shutdown_approved messages
   lines.push('');
   lines.push('// 2. Wait for shutdown_approved messages');
-  lines.push(`// Check ~/.claude/teams/${teamPlaceholder}/inboxes/team-lead.json for:`);
+  lines.push('// Poll inbox until all workers approve:');
+  lines.push('');
+  lines.push('// Check inbox:');
+  lines.push(`// cat ~/.claude/teams/${teamPlaceholder}/inboxes/team-lead.json | jq '.[] | select(.type == "shutdown_approved")'`);
+  lines.push('');
+  lines.push('// Expected messages:');
   for (const worker of node.workers) {
-    lines.push(`// {"type": "shutdown_approved", "from": "${worker.workerName}", ...}`);
+    lines.push(`// {"type": "shutdown_approved", "from": "${worker.workerName}", "requestId": "shutdown-xxx", ...}`);
   }
+  lines.push('');
+  lines.push(`// Once all ${node.workers.length} shutdown_approved messages received, proceed to cleanup`);
 
   // Step 3: Cleanup (if enabled)
   if (node.includeCleanup) {

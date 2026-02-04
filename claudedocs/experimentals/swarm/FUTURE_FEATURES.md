@@ -155,7 +155,7 @@ Task({ team_name: "pr-review", name: "arch", subagent_type: "compound-engineerin
 
 ---
 
-## Phase 8: Message + Broadcast
+## Phase 8: TeammateTool Operations
 
 ### `<Message>`
 
@@ -221,6 +221,127 @@ Teammate({
 })
 ```
 ```
+
+---
+
+### Plan Approval Operations (Runtime)
+
+Operations for plan approval workflow. These are typically interactive/runtime.
+
+| Operation | Component | Notes |
+|-----------|-----------|-------|
+| `approvePlan` | Runtime | Leader approves teammate plan |
+| `rejectPlan` | Runtime | Leader rejects with feedback |
+
+**Runtime usage (not TSX component):**
+```javascript
+// When teammate sends plan_approval_request
+Teammate({ operation: "approvePlan", target_agent_id: "architect", request_id: "plan-123" })
+Teammate({ operation: "rejectPlan", target_agent_id: "architect", request_id: "plan-123", feedback: "Add error handling" })
+```
+
+---
+
+### Team Discovery Operations (Runtime)
+
+Dynamic team formation operations. These are runtime-only, not compile-time.
+
+| Operation | Component | Notes |
+|-----------|-----------|-------|
+| `discoverTeams` | Runtime | List available teams |
+| `requestJoin` | Runtime | Request to join team |
+| `approveJoin` | Runtime | Leader accepts join |
+| `rejectJoin` | Runtime | Leader declines join |
+
+---
+
+### Teammate-Side Operations (Runtime)
+
+Operations executed by teammates, not authored in commands.
+
+| Operation | Component | Notes |
+|-----------|-----------|-------|
+| `approveShutdown` | Runtime | Teammate accepts shutdown |
+| `rejectShutdown` | Runtime | Teammate declines shutdown |
+
+---
+
+## Phase 8.5: Task Lifecycle Operations
+
+Runtime task operations for complex workflows where workers claim and update tasks.
+
+### `<TaskClaim>`
+
+Claim a task for a specific worker.
+
+**Props:**
+| Prop | Type | Maps to |
+|------|------|---------|
+| `task` | `TaskRef` | `TaskUpdate.taskId` |
+| `worker` | `WorkerRef \| string` | `TaskUpdate.owner` |
+
+**Usage:**
+```tsx
+<TaskClaim task={Research} worker={Researcher} />
+```
+
+**Output:**
+```javascript
+TaskUpdate({ taskId: "1", owner: "researcher" })
+```
+
+---
+
+### `<TaskStart>`
+
+Mark a task as in progress.
+
+**Props:**
+| Prop | Type | Maps to |
+|------|------|---------|
+| `task` | `TaskRef` | `TaskUpdate.taskId` |
+
+**Usage:**
+```tsx
+<TaskStart task={Research} />
+```
+
+**Output:**
+```javascript
+TaskUpdate({ taskId: "1", status: "in_progress" })
+```
+
+---
+
+### `<TaskComplete>`
+
+Mark a task as completed.
+
+**Props:**
+| Prop | Type | Maps to |
+|------|------|---------|
+| `task` | `TaskRef` | `TaskUpdate.taskId` |
+
+**Usage:**
+```tsx
+<TaskComplete task={Research} />
+```
+
+**Output:**
+```javascript
+TaskUpdate({ taskId: "1", status: "completed" })
+```
+
+---
+
+### Runtime-Only Operations
+
+These are query operations used during execution, not compile-time:
+
+| Operation | Purpose | Notes |
+|-----------|---------|-------|
+| `TaskList()` | See all tasks | Runtime query |
+| `TaskGet({ taskId })` | Get task details | Runtime query |
 
 ---
 

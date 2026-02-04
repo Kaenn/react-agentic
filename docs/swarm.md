@@ -213,6 +213,7 @@ Defines a worker within a team.
 | `description` | `string` | Yes | Short description for `Task.description` |
 | `prompt` | `string` | No* | Full prompt instructions |
 | `model` | `Model` | No | Override worker's model |
+| `mode` | `TaskMode` | No | Task execution mode (e.g., `"plan"` for plan approval) |
 | `background` | `boolean` | No | Run in background (default: true) |
 | `children` | `<Prompt>` | No* | Alternative to `prompt` prop for complex prompts |
 
@@ -411,6 +412,16 @@ Claude model options.
 | `Model.Haiku` | `"haiku"` |
 | `Model.Sonnet` | `"sonnet"` |
 | `Model.Opus` | `"opus"` |
+
+### TaskMode
+
+Task execution modes.
+
+| Value | Maps to `mode` |
+|-------|----------------|
+| `TaskMode.Plan` | `"plan"` |
+
+Use `mode="plan"` to require plan approval before execution.
 
 ---
 
