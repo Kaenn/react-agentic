@@ -263,31 +263,32 @@ export enum CodeLanguage {
  * A reference to a task that can be used in blockedBy
  */
 export interface TaskRef {
-  /** Auto-generated unique ID */
-  readonly id: string;
-  /** Human-readable name */
-  readonly name: string;
-  /** The task subject */
+  /** Human-readable title (maps to TaskCreate.subject) */
   readonly subject: string;
+  /** Short label for mermaid diagrams (derived from subject if not provided) */
+  readonly name: string;
+  /** UUID for cross-file identity resolution */
+  readonly __id: string;
+  /** Type guard marker */
+  readonly __isTaskRef: true;
 }
 
 /**
- * Counter for auto-generating task IDs
+ * Derives a short name from a subject string.
+ * Truncates to 15 chars, lowercases, replaces spaces with hyphens.
+ */
+function deriveNameFromSubject(subject: string): string {
+  return subject
+    .slice(0, 15)
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/-+$/, ''); // Remove trailing hyphens
+}
+
+/**
+ * Counter for auto-generating task IDs (used for sequential numbering in output)
  */
 let taskIdCounter = 0;
-
-/**
- * Creates a new task reference with auto-generated ID
- * @internal Use defineTask() instead
- */
-export function createTaskRef(name: string, subject: string): TaskRef {
-  taskIdCounter++;
-  return {
-    id: String(taskIdCounter),
-    name,
-    subject
-  };
-}
 
 /**
  * Resets the task ID counter (useful for new pipelines/pools)
@@ -299,15 +300,26 @@ export function resetTaskIds(): void {
 /**
  * Helper to define a task and get its reference
  *
+ * @param subject - Human-readable title for the task
+ * @param name - Optional short label for mermaid diagrams (derived if not provided)
+ *
  * @example
- * const Research = defineTask('research', 'Research best practices');
- * const Plan = defineTask('plan', 'Create implementation plan');
+ * // Simple usage (name derived from subject)
+ * const Research = defineTask('Research best practices');
+ *
+ * // Explicit name for cleaner mermaid labels
+ * const Research = defineTask('Research best practices', 'research');
  *
  * <TaskDef task={Research} description="..." />
- * <TaskDef task={Plan} description="..." blockedBy={[Research]} />
  */
-export function defineTask(name: string, subject: string): TaskRef {
-  return createTaskRef(name, subject);
+export function defineTask(subject: string, name?: string): TaskRef {
+  taskIdCounter++;
+  return {
+    subject,
+    name: name ?? deriveNameFromSubject(subject),
+    __id: `task-${taskIdCounter}`,
+    __isTaskRef: true
+  };
 }
 
 // =============================================================================
@@ -327,7 +339,7 @@ export interface Pipeline {
 }
 
 export interface PipelineBuilder {
-  task(name: string, subject: string, description?: string): PipelineBuilder;
+  task(subject: string, name?: string, description?: string): PipelineBuilder;
   build(): Pipeline;
 }
 
@@ -336,9 +348,9 @@ export interface PipelineBuilder {
  *
  * @example
  * const pipeline = createPipeline('OAuth Implementation')
- *   .task('research', 'Research best practices')
- *   .task('plan', 'Create implementation plan')
- *   .task('implement', 'Build OAuth endpoints')
+ *   .task('Research best practices', 'research')
+ *   .task('Create implementation plan', 'plan')
+ *   .task('Build OAuth endpoints', 'implement')
  *   .build();
  *
  * // Access tasks: pipeline.tasks.research, pipeline.tasks.plan
@@ -350,9 +362,10 @@ export function createPipeline(title: string): PipelineBuilder {
   let previousTask: TaskRef | null = null;
 
   return {
-    task(name: string, subject: string, description?: string) {
-      const taskRef = defineTask(name, subject);
-      tasks[name] = taskRef;
+    task(subject: string, name?: string, description?: string) {
+      const taskRef = defineTask(subject, name);
+      const taskName = taskRef.name;
+      tasks[taskName] = taskRef;
       stages.push({
         task: taskRef,
         description,
@@ -382,23 +395,23 @@ export interface TaskPoolResult {
  *
  * @example
  * const pool = createTaskPool([
- *   { name: 'auth', subject: 'Review auth module' },
- *   { name: 'payment', subject: 'Review payment module' }
+ *   { subject: 'Review auth module', name: 'auth' },
+ *   { subject: 'Review payment module', name: 'payment' }
  * ]);
  *
  * pool.byName.auth  // TaskRef
  */
 export function createTaskPool(
-  items: Array<{ name: string; subject: string }>
+  items: Array<{ subject: string; name?: string }>
 ): TaskPoolResult {
   resetTaskIds();
   const tasks: TaskRef[] = [];
   const byName: Record<string, TaskRef> = {};
 
   for (const item of items) {
-    const ref = defineTask(item.name, item.subject);
+    const ref = defineTask(item.subject, item.name);
     tasks.push(ref);
-    byName[item.name] = ref;
+    byName[ref.name] = ref;
   }
 
   return { tasks, byName };
@@ -440,14 +453,16 @@ export function createFileReviewPool(
  * This is distinct from file-based Agents which you define with <Agent> component.
  */
 export interface WorkerRef {
-  /** Auto-generated unique ID */
-  readonly id: string;
-  /** Human-readable name */
+  /** Worker identifier */
   readonly name: string;
   /** Claude Code subagent_type */
-  readonly type: AgentType | PluginAgentType | string;
+  readonly type: string;
   /** Model preference */
-  readonly model?: Model;
+  readonly model?: string;
+  /** UUID for identity resolution */
+  readonly __id: string;
+  /** Type guard marker */
+  readonly __isWorkerRef: true;
 }
 
 /**
@@ -475,14 +490,15 @@ export function resetWorkerIds(): void {
 export function defineWorker(
   name: string,
   type: AgentType | PluginAgentType | string,
-  model?: Model
+  model?: Model | string
 ): WorkerRef {
   workerIdCounter++;
   return {
-    id: `worker-${workerIdCounter}`,
     name,
     type,
-    model
+    model,
+    __id: `worker-${workerIdCounter}`,
+    __isWorkerRef: true
   };
 }
 
@@ -494,12 +510,14 @@ export function defineWorker(
  * A reference to a team
  */
 export interface TeamRef {
-  /** Auto-generated unique ID */
-  readonly id: string;
-  /** Team name */
+  /** Team identifier */
   readonly name: string;
   /** Team members */
-  readonly members: WorkerRef[];
+  readonly members?: WorkerRef[];
+  /** UUID for identity resolution */
+  readonly __id: string;
+  /** Type guard marker */
+  readonly __isTeamRef: true;
 }
 
 /**
@@ -520,16 +538,17 @@ export function resetTeamIds(): void {
  * @example
  * const ReviewTeam = defineTeam('reviewers', [Security, Perf]);
  *
- * <Team ref={ReviewTeam}>
+ * <Team team={ReviewTeam}>
  *   <Teammate worker={Security} ... />
  * </Team>
  */
-export function defineTeam(name: string, members: WorkerRef[] = []): TeamRef {
+export function defineTeam(name: string, members?: WorkerRef[]): TeamRef {
   teamIdCounter++;
   return {
-    id: `team-${teamIdCounter}`,
     name,
-    members
+    members,
+    __id: `team-${teamIdCounter}`,
+    __isTeamRef: true
   };
 }
 
@@ -539,7 +558,7 @@ export function defineTeam(name: string, members: WorkerRef[] = []): TeamRef {
 export function addToTeam(team: TeamRef, worker: WorkerRef): TeamRef {
   return {
     ...team,
-    members: [...team.members, worker]
+    members: [...(team.members ?? []), worker]
   };
 }
 
@@ -881,9 +900,9 @@ export interface TaskPoolWithDeps extends TaskPoolResult {
  *
  * @example
  * const pool = createTaskPoolWithDeps([
- *   { name: 'review-1', subject: 'Review file 1' },
- *   { name: 'review-2', subject: 'Review file 2' },
- *   { name: 'review-3', subject: 'Review file 3' }
+ *   { subject: 'Review file 1', name: 'review-1' },
+ *   { subject: 'Review file 2', name: 'review-2' },
+ *   { subject: 'Review file 3', name: 'review-3' }
  * ]);
  *
  * // Wait for ALL tasks
@@ -893,7 +912,7 @@ export interface TaskPoolWithDeps extends TaskPoolResult {
  * <TaskDef task={QuickCheck} blockedBy={pool.first(2)} />
  */
 export function createTaskPoolWithDeps(
-  items: Array<{ name: string; subject: string }>
+  items: Array<{ subject: string; name?: string }>
 ): TaskPoolWithDeps {
   const basePool = createTaskPool(items);
 
@@ -932,8 +951,8 @@ export function createFileReviewPoolWithDeps(
     files.map((file) => {
       const name = file.replace(/[\/\.]/g, '-');
       return {
-        name,
-        subject: `${reviewType} ${file}`
+        subject: `${reviewType} ${file}`,
+        name
       };
     })
   );
@@ -1022,19 +1041,18 @@ export function atLeast(required: number, tasks: TaskRef[]): QuorumDependency {
  * @example
  * const files = ['user.rb', 'payment.rb', 'api.rb'];
  * const tasks = mapToTasks(files, (file) => ({
- *   name: file.replace('.rb', ''),
  *   subject: `Review ${file}`,
- *   description: `Security review of ${file}`
+ *   name: file.replace('.rb', '')
  * }));
  */
 export function mapToTasks<T>(
   items: T[],
-  mapper: (item: T, index: number) => { name: string; subject: string }
+  mapper: (item: T, index: number) => { subject: string; name?: string }
 ): TaskRef[] {
   resetTaskIds();
   return items.map((item, i) => {
-    const { name, subject } = mapper(item, i);
-    return defineTask(name, subject);
+    const { subject, name } = mapper(item, i);
+    return defineTask(subject, name);
   });
 }
 
@@ -1095,7 +1113,7 @@ export function batchTasks(
 
   for (const config of configs) {
     const name = `${prefix}-${config.suffix}`;
-    const ref = defineTask(name, config.subject);
+    const ref = defineTask(config.subject, name);
     tasks.push(ref);
     refs[config.suffix] = ref;
   }

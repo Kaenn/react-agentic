@@ -8,8 +8,11 @@ Quick reference showing TSX input and expected markdown output.
 
 ### TSX
 ```tsx
-<Team name="reviewers" description="Code review team">
-  <Teammate name="security" type={PluginAgentType.SecuritySentinel}>
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const ReviewTeam = defineTeam('reviewers', [Security]);
+
+<Team team={ReviewTeam} description="Code review team">
+  <Teammate worker={Security} description="Security review">
     <Prompt>Review for vulnerabilities</Prompt>
   </Teammate>
 </Team>
@@ -33,7 +36,8 @@ Teammate({ operation: "spawnTeam", team_name: "reviewers" })
 Task({
   team_name: "reviewers",
   name: "security",
-  subagent_type: "security-sentinel",
+  subagent_type: "compound-engineering:review:security-sentinel",
+  description: "Security review",
   prompt: `Review for vulnerabilities`,
   run_in_background: true
 })
@@ -46,10 +50,14 @@ Task({
 
 ### TSX
 ```tsx
+const Research = defineTask('Research', 'research');
+const Implement = defineTask('Implement', 'implement');
+const Test = defineTask('Test', 'test');
+
 <TaskPipeline title="OAuth Flow" autoChain>
-  <TaskDef name="research" subject="Research" description="Find best practices" />
-  <TaskDef name="implement" subject="Implement" description="Build endpoints" />
-  <TaskDef name="test" subject="Test" description="Write tests" />
+  <TaskDef task={Research} description="Find best practices" />
+  <TaskDef task={Implement} description="Build endpoints" />
+  <TaskDef task={Test} description="Write tests" />
 </TaskPipeline>
 ```
 
@@ -197,25 +205,30 @@ Teammate({
 
 ### TSX
 ```tsx
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+
 <ShutdownSequence
-  teammates={['security', 'perf']}
+  workers={[Security, Perf]}
   reason="Work complete"
 />
 ```
 
 ### Output
 ```markdown
-### Graceful Shutdown
+### Shutdown
 
 ```javascript
-// 1. Request shutdown
+// 1. Request shutdown for all workers
 Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "Work complete" })
 Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "Work complete" })
 
-// 2. Wait for approvals
-// Check for {"type": "shutdown_approved"} messages
+// 2. Wait for shutdown_approved messages
+// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:
+// {"type": "shutdown_approved", "from": "security", ...}
+// {"type": "shutdown_approved", "from": "perf", ...}
 
-// 3. Cleanup
+// 3. Cleanup team resources
 Teammate({ operation: "cleanup" })
 ```
 ```
@@ -226,31 +239,52 @@ Teammate({ operation: "cleanup" })
 
 ### TSX
 ```tsx
-<ParallelWorkers teamName="review" workers={[
-  { name: 'security', type: PluginAgentType.SecuritySentinel },
-  { name: 'perf', type: PluginAgentType.PerformanceOracle }
-]}>
-  <Prompt name="security">Check vulnerabilities</Prompt>
-  <Prompt name="perf">Check performance</Prompt>
-</ParallelWorkers>
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+const ReviewTeam = defineTeam('review', [Security, Perf]);
+
+<Team team={ReviewTeam} description="Parallel reviewers">
+  <Teammate worker={Security} description="Security check" prompt="Check vulnerabilities" />
+  <Teammate worker={Perf} description="Performance check" prompt="Check performance" />
+</Team>
 ```
 
 ### Output
 ```markdown
-### Parallel Workers
+### Team: review
 
-```mermaid
-flowchart LR
-    subgraph Parallel
-        A[security]
-        B[perf]
-    end
-```
+> Parallel reviewers
 
 ```javascript
-// Spawn in parallel (single message, multiple calls)
-Task({ team_name: "review", name: "security", subagent_type: "security-sentinel", prompt: `Check vulnerabilities`, run_in_background: true })
-Task({ team_name: "review", name: "perf", subagent_type: "performance-oracle", prompt: `Check performance`, run_in_background: true })
+Teammate({ operation: "spawnTeam", team_name: "review", description: "Parallel reviewers" })
+```
+
+#### Members
+
+##### security
+
+```javascript
+Task({
+  team_name: "review",
+  name: "security",
+  subagent_type: "compound-engineering:review:security-sentinel",
+  description: "Security check",
+  prompt: `Check vulnerabilities`,
+  run_in_background: true
+})
+```
+
+##### perf
+
+```javascript
+Task({
+  team_name: "review",
+  name: "perf",
+  subagent_type: "compound-engineering:review:performance-oracle",
+  description: "Performance check",
+  prompt: `Check performance`,
+  run_in_background: true
+})
 ```
 ```
 
@@ -370,10 +404,10 @@ Review user.rb for security issues
 
 ### TSX
 ```tsx
-const Research = defineTask('research', 'Research');
-const Frontend = defineTask('frontend', 'Frontend');
-const Backend = defineTask('backend', 'Backend');
-const Deploy = defineTask('deploy', 'Deploy');
+const Research = defineTask('Research', 'research');
+const Frontend = defineTask('Frontend', 'frontend');
+const Backend = defineTask('Backend', 'backend');
+const Deploy = defineTask('Deploy', 'deploy');
 
 <TaskPipeline title="Full Stack">
   <TaskDef task={Research} description="Requirements" />

@@ -61,9 +61,9 @@ export function TaskPipeline({ title = 'Task Pipeline', children }: TaskPipeline
 // Pattern 1: Using defineTask with type-safe references (RECOMMENDED)
 // -----------------------------------------------------------------------------
 
-const Research = defineTask('research', 'Research');
-const Implement = defineTask('implement', 'Implement');
-const Test = defineTask('test', 'Test');
+const Research = defineTask('Research', 'research');
+const Implement = defineTask('Implement', 'implement');
+const Test = defineTask('Test', 'test');
 
 const TypeSafePipeline = () => (
   <TaskPipeline>
@@ -105,11 +105,11 @@ const AutoChainPipeline = () => (
 // -----------------------------------------------------------------------------
 
 const pipeline = createPipeline('OAuth Implementation')
-  .task('research', 'Research OAuth providers', 'Compare Google, GitHub, Auth0')
-  .task('design', 'Design auth flow', 'Create sequence diagrams')
-  .task('implement', 'Implement endpoints', 'Build OAuth endpoints')
-  .task('test', 'Write tests', 'Integration tests')
-  .task('review', 'Security review', 'Final audit')
+  .task('Research OAuth providers', 'research', 'Compare Google, GitHub, Auth0')
+  .task('Design auth flow', 'design', 'Create sequence diagrams')
+  .task('Implement endpoints', 'implement', 'Build OAuth endpoints')
+  .task('Write tests', 'test', 'Integration tests')
+  .task('Security review', 'review', 'Final audit')
   .build();
 
 // Access individual task refs
@@ -120,7 +120,7 @@ const BuilderPipeline = () => (
   <TaskPipeline title={pipeline.title}>
     {pipeline.stages.map((stage) => (
       <TaskDef
-        key={stage.task.id}
+        key={stage.task.__id}
         task={stage.task}
         description={stage.description || ''}
         blockedBy={stage.blockedBy}
@@ -133,12 +133,12 @@ const BuilderPipeline = () => (
 // Pattern 4: Complex pipeline with parallel stages
 // -----------------------------------------------------------------------------
 
-const ResearchPhase = defineTask('research', 'Research');
-const FrontendImpl = defineTask('frontend', 'Frontend Implementation');
-const BackendImpl = defineTask('backend', 'Backend Implementation');
-const DatabaseSetup = defineTask('database', 'Database Setup');
-const Integration = defineTask('integration', 'Integration Testing');
-const Deploy = defineTask('deploy', 'Deploy');
+const ResearchPhase = defineTask('Research', 'research');
+const FrontendImpl = defineTask('Frontend Implementation', 'frontend');
+const BackendImpl = defineTask('Backend Implementation', 'backend');
+const DatabaseSetup = defineTask('Database Setup', 'database');
+const Integration = defineTask('Integration Testing', 'integration');
+const Deploy = defineTask('Deploy', 'deploy');
 
 const ComplexPipeline = () => (
   <TaskPipeline title="Full Stack Feature">
@@ -263,12 +263,12 @@ const ComplexPipeline = () => (
 /**
  * How auto-IDs work:
  *
- * const Research = defineTask('research', 'Research');  // id: "1"
- * const Implement = defineTask('implement', 'Implement'); // id: "2"
- * const Test = defineTask('test', 'Test');               // id: "3"
+ * const Research = defineTask('Research', 'research');    // __id: UUID
+ * const Implement = defineTask('Implement', 'implement'); // __id: UUID
+ * const Test = defineTask('Test', 'test');               // __id: UUID
  *
- * blockedBy={[Research]} → blockedBy: ["1"]
- * blockedBy={[Research, Implement]} → blockedBy: ["1", "2"]
+ * blockedBy={[Research]} → resolved at emit time via __id
+ * blockedBy={[Research, Implement]} → both resolved via __id
  *
  * Benefits:
  * - No manual ID management

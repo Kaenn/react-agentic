@@ -93,6 +93,7 @@ const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
 const Research = defineTask('Research approach', 'research');
 const Plan = defineTask('Create plan', 'plan');
 const Implement = defineTask('Build feature', 'implement');
+// Note: defineTask(subject, name?) - subject first, optional name second
 
 // -----------------------------------------------------------------------------
 // Example 1: Complete Workflow

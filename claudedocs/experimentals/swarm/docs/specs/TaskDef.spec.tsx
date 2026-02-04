@@ -85,11 +85,11 @@ export function TaskDef({ id, subject, description, activeForm, blockedBy }: Tas
 // -----------------------------------------------------------------------------
 
 // Define tasks with auto-generated IDs
-const Research = defineTask('research', 'Research OAuth providers');
-const Plan = defineTask('plan', 'Create implementation plan');
-const Implement = defineTask('implement', 'Implement OAuth');
-const Test = defineTask('test', 'Write tests');
-const Review = defineTask('review', 'Final review');
+const Research = defineTask('Research OAuth providers', 'research');
+const Plan = defineTask('Create implementation plan', 'plan');
+const Implement = defineTask('Implement OAuth', 'implement');
+const Test = defineTask('Write tests', 'test');
+const Review = defineTask('Final review', 'review');
 
 // Use TaskRef in blockedBy for type-safe dependencies
 const TypeSafeExample = () => (
@@ -134,10 +134,10 @@ const TypeSafeExample = () => (
 // Pattern 2: Multiple dependencies with type-safe refs
 // -----------------------------------------------------------------------------
 
-const Frontend = defineTask('frontend', 'Implement frontend');
-const Backend = defineTask('backend', 'Implement backend');
-const Database = defineTask('database', 'Setup database');
-const Integration = defineTask('integration', 'Integration testing');
+const Frontend = defineTask('Implement frontend', 'frontend');
+const Backend = defineTask('Implement backend', 'backend');
+const Database = defineTask('Setup database', 'database');
+const Integration = defineTask('Integration testing', 'integration');
 
 const MultipleDepsExample = () => (
   <>

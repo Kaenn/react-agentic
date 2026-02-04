@@ -105,7 +105,7 @@ const workflow = createReviewWorkflow({
 const WorkflowTeamExample = () => (
   <Team team={workflow.team}>
     {workflow.workers.map((worker) => (
-      <Teammate key={worker.id} worker={worker} description={`Review by ${worker.name}`}>
+      <Teammate key={worker.__id} worker={worker} description={`Review by ${worker.name}`}>
         <Prompt>Review assigned files</Prompt>
       </Teammate>
     ))}

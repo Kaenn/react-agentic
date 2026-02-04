@@ -107,7 +107,7 @@ import {
 
 | Helper | Purpose | Returns |
 |--------|---------|---------|
-| `defineTask(name, subject)` | Create a task with auto-ID | `TaskRef` |
+| `defineTask(subject, name?)` | Create a task with auto-ID | `TaskRef` |
 | `createPipeline(title)` | Builder for sequential tasks | `PipelineBuilder` |
 | `createTaskPool(items)` | Pool of independent tasks | `TaskPoolResult` |
 | `createFileReviewPool(files)` | Pool for file reviews | `TaskPoolResult` |
@@ -271,9 +271,9 @@ Use `defineTask()` for type-safe references:
 // ✅ Type-safe, auto-generated IDs
 import { defineTask } from './TaskDef.spec';
 
-const Research = defineTask('research', 'Research');
-const Plan = defineTask('plan', 'Create plan');
-const Implement = defineTask('implement', 'Implement');
+const Research = defineTask('Research', 'research');
+const Plan = defineTask('Create plan', 'plan');
+const Implement = defineTask('Implement', 'implement');
 
 <TaskDef task={Research} description="..." />
 <TaskDef task={Plan} description="..." blockedBy={[Research]} />  // Type-safe!
@@ -299,10 +299,10 @@ Most concise for simple pipelines:
 
 ```tsx
 const pipeline = createPipeline('OAuth Feature')
-  .task('research', 'Research OAuth')
-  .task('plan', 'Create plan')
-  .task('implement', 'Build OAuth')
-  .task('test', 'Write tests')
+  .task('Research OAuth', 'research')
+  .task('Create plan', 'plan')
+  .task('Build OAuth', 'implement')
+  .task('Write tests', 'test')
   .build();
 
 // Access tasks: pipeline.tasks.research, pipeline.tasks.plan, etc.
@@ -372,7 +372,7 @@ const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
 const ReviewTeam = defineTeam('reviewers', [Security, Perf]);
 
 // Type-safe usage
-<Team ref={ReviewTeam}>
+<Team team={ReviewTeam}>
   <Teammate worker={Security} description="..." />
   <Teammate worker={Perf} description="..." />
 </Team>
@@ -446,8 +446,8 @@ const workflow = createReviewWorkflow({
 const pipelineWorkflow = createPipelineWorkflow({
   title: 'Feature Development',
   stages: [
-    { name: 'research', subject: 'Research', agentType: AgentType.Explore },
-    { name: 'implement', subject: 'Implement', agentType: AgentType.GeneralPurpose }
+    { subject: 'Research', name: 'research', agentType: AgentType.Explore },
+    { subject: 'Implement', name: 'implement', agentType: AgentType.GeneralPurpose }
   ]
 });
 ```
@@ -458,9 +458,9 @@ Use pool helpers for complex dependencies:
 
 ```tsx
 const pool = createTaskPoolWithDeps([
-  { name: 'review-1', subject: 'Review file 1' },
-  { name: 'review-2', subject: 'Review file 2' },
-  { name: 'review-3', subject: 'Review file 3' }
+  { subject: 'Review file 1', name: 'review-1' },
+  { subject: 'Review file 2', name: 'review-2' },
+  { subject: 'Review file 3', name: 'review-3' }
 ]);
 
 // Wait for ALL tasks
@@ -527,8 +527,8 @@ Transform data into refs:
 // Map files to tasks
 const files = ['user.rb', 'payment.rb', 'api.rb'];
 const tasks = mapToTasks(files, (file) => ({
-  name: file.replace('.rb', ''),
-  subject: `Review ${file}`
+  subject: `Review ${file}`,
+  name: file.replace('.rb', '')
 }));
 
 // Map types to workers
