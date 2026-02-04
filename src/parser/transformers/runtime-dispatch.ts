@@ -27,6 +27,7 @@ import { transformList, transformBlockquote, transformCodeBlock } from './html.j
 import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
+import { transformTaskDef, transformTaskPipeline } from './swarm.js';
 import type { TransformContext } from './types.js';
 import type { GroupNode } from '../../ir/nodes.js';
 
@@ -1433,6 +1434,14 @@ function transformRuntimeElement(
   // Indent component - indents children by specified spaces
   if (name === 'Indent') {
     return transformRuntimeIndent(node, ctx);
+  }
+
+  // Swarm components
+  if (name === 'TaskDef') {
+    return transformTaskDef(node, adaptToSharedContext(ctx));
+  }
+  if (name === 'TaskPipeline') {
+    return transformTaskPipeline(node, adaptToSharedContext(ctx));
   }
 
   // Check for local component (same-file function components)

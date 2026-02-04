@@ -180,9 +180,27 @@ export function getElementName(
 }
 
 /**
- * Check if a name looks like a custom component (PascalCase)
+ * Built-in components that should not be treated as custom user components
+ */
+const BUILTIN_COMPONENTS = new Set([
+  'Command', 'Agent', 'SpawnAgent', 'Markdown', 'XmlBlock', 'Assign', 'AssignGroup',
+  'If', 'Else', 'Loop', 'Break', 'Return', 'AskUser', 'OnStatus', 'OnStatusDefault',
+  'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
+  'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation',
+  'Table', 'List', 'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
+  'Step', 'Bash', 'ReadFiles', 'PromptTemplate', 'Indent',
+  'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
+  'StructuredReturns', 'StatusReturn', 'ReturnStatus',
+  // Swarm components
+  'TaskDef', 'TaskPipeline',
+]);
+
+/**
+ * Check if a name looks like a custom component (PascalCase) but NOT a builtin
  */
 export function isCustomComponent(name: string): boolean {
+  if (BUILTIN_COMPONENTS.has(name)) return false;
   return /^[A-Z]/.test(name);
 }
 

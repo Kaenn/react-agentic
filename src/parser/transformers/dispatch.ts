@@ -26,6 +26,7 @@ import {
   transformStructuredReturns,
   isContractComponent,
 } from './contract.js';
+import { transformTaskDef, transformTaskPipeline } from './swarm.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -347,6 +348,14 @@ function transformElement(
   // Markdown passthrough
   if (name === 'Markdown') {
     return transformMarkdown(node, ctx);
+  }
+
+  // Swarm components
+  if (name === 'TaskDef') {
+    return transformTaskDef(node, ctx);
+  }
+  if (name === 'TaskPipeline') {
+    return transformTaskPipeline(node, ctx);
   }
 
   // Custom component composition

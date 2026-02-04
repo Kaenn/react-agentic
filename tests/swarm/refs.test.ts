@@ -19,9 +19,9 @@ describe('Swarm Refs', () => {
       expect(task.__isTaskRef).toBe(true);
     });
 
-    it('has minimal interface (subject + marker only)', () => {
+    it('has expected interface fields', () => {
       const task = defineTask('Research');
-      expect(Object.keys(task).sort()).toEqual(['__isTaskRef', 'subject']);
+      expect(Object.keys(task).sort()).toEqual(['__id', '__isTaskRef', 'name', 'subject']);
     });
 
     it('creates unique objects for same subject', () => {

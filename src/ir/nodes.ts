@@ -5,6 +5,11 @@
  * enabling exhaustive type checking in switch statements.
  */
 
+import type { TaskDefNode, TaskPipelineNode } from './swarm-nodes.js';
+
+// Re-export swarm nodes for convenience
+export type { TaskDefNode, TaskPipelineNode };
+
 // ============================================================================
 // Inline Nodes (within paragraphs, headings, etc.)
 // ============================================================================
@@ -424,7 +429,9 @@ export type BaseBlockNode =
   | PromptTemplateNode
   | MCPServerNode
   | StepNode
-  | StructuredReturnsNode;
+  | StructuredReturnsNode
+  | TaskDefNode
+  | TaskPipelineNode;
   // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
   // that wrap XmlBlock. They emit XmlBlockNode instead of dedicated IR nodes.
 

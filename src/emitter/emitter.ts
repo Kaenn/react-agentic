@@ -40,12 +40,23 @@ import type {
   StepNode,
   StepVariant,
   TableNode,
+  TaskDefNode,
+  TaskPipelineNode,
   TypeReference,
   WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
 import { resolveTypeImport, extractInterfaceProperties } from '../parser/parser.js';
 import { assertNever } from './utils.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline } from './swarm-emitter.js';
+
+/**
+ * Context for emission state that persists across emitBlock calls
+ */
+export interface EmitContext {
+  /** Resolver for mapping task UUIDs to sequential numeric IDs */
+  taskResolver?: TaskIdResolver;
+}
 
 /**
  * Context for tracking nested list state
@@ -63,6 +74,7 @@ interface ListContext {
  */
 export class MarkdownEmitter {
   private listStack: ListContext[] = [];
+  private emitCtx: EmitContext = {};
 
   /**
    * Main entry point - emit a complete document
@@ -271,6 +283,13 @@ export class MarkdownEmitter {
       // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
       case 'structuredReturns':
         return this.emitStructuredReturns(node);
+      // Swarm nodes
+      case 'taskDef':
+        this.emitCtx.taskResolver ??= new TaskIdResolver();
+        return emitTaskDef(node, this.emitCtx.taskResolver);
+      case 'taskPipeline':
+        this.emitCtx.taskResolver ??= new TaskIdResolver();
+        return emitTaskPipeline(node, this.emitCtx.taskResolver);
       // Runtime-specific nodes - use V3 emitter for these
       case 'spawnAgent':
       case 'if':

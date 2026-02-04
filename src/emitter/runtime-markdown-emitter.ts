@@ -30,9 +30,12 @@ import type {
   RuntimeCallArgValue,
   AssignNode,
   AssignGroupNode,
+  TaskDefNode,
+  TaskPipelineNode,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline } from './swarm-emitter.js';
 
 // ============================================================================
 // jq Expression Generation
@@ -342,6 +345,12 @@ export class RuntimeMarkdownEmitter {
       // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
       case 'structuredReturns':
         return this.emitStructuredReturns(node);
+
+      // Swarm nodes - delegate to swarm emitter
+      case 'taskDef':
+        return this.emitTaskDef(node);
+      case 'taskPipeline':
+        return this.emitTaskPipeline(node);
 
       default:
         return assertNever(node);
@@ -1052,6 +1061,25 @@ Task(
     }).join('\n\n');
 
     return `<structured_returns>\n\n${sections}\n\n</structured_returns>`;
+  }
+
+  /** Task ID resolver for swarm nodes - lazily initialized */
+  private taskResolver?: TaskIdResolver;
+
+  /**
+   * Emit TaskDefNode using swarm emitter
+   */
+  private emitTaskDef(node: TaskDefNode): string {
+    this.taskResolver ??= new TaskIdResolver();
+    return emitTaskDef(node, this.taskResolver);
+  }
+
+  /**
+   * Emit TaskPipelineNode using swarm emitter
+   */
+  private emitTaskPipeline(node: TaskPipelineNode): string {
+    this.taskResolver ??= new TaskIdResolver();
+    return emitTaskPipeline(node, this.taskResolver);
   }
 }
 

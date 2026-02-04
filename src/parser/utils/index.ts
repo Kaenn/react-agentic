@@ -18,6 +18,7 @@ export {
   getJsxChildren,
   getAttributeValue,
   getArrayAttributeValue,
+  getBooleanAttribute,
   getTestAttributeValue,
   findRootJsxElement,
   type JsxChild

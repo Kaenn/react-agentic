@@ -260,8 +260,20 @@ export {
   isWorkerRef,
   isTeamRef,
 
+  // Components
+  TaskDef,
+  TaskPipeline,
+
+  // Pipeline Builder
+  createPipeline,
+
   // Types
   type TaskRef,
   type WorkerRef,
   type TeamRef,
+  type TaskDefProps,
+  type TaskPipelineProps,
+  type Pipeline,
+  type PipelineBuilder,
+  type PipelineStage,
 } from './components/swarm/index.js';

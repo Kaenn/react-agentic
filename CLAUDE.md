@@ -83,6 +83,47 @@ claudedocs/        # Internal/future documentation
 └── agents/        # Generated agent markdown
 ```
 
+## Transformer Architecture: V1 vs V3
+
+The compiler uses two transformer systems based on feature requirements:
+
+### V1 (Static) Transformer
+
+- **Location**: `src/parser/transformer.ts` (the `Transformer` class)
+- **Purpose**: Static content transformation without runtime logic
+- **Used for**: `<Agent>` documents and simple `<Command>` documents without runtime features
+- **Capabilities**: HTML elements, markdown, XML blocks, tables, lists, semantic components
+- **Limitations**:
+  - Control flow (`If`, `Else`, `Loop`) throws deprecation errors
+  - No `useRuntimeVar` support
+  - No `runtimeFn` support
+  - Component props not supported (parameterless composition only)
+
+### V3 (Runtime) Transformer
+
+- **Location**: `src/parser/transformers/runtime-dispatch.ts` and `runtime-*.ts` files
+- **Purpose**: Full-featured transformation with runtime capabilities
+- **Used for**: `<Command>` documents with runtime features (auto-detected)
+- **Capabilities**: Everything V1 supports PLUS:
+  - `useRuntimeVar<T>()` — typed runtime variables
+  - `runtimeFn()` / `.Call` — function extraction and invocation
+  - Control flow: `<If>`, `<Else>`, `<Loop>`, `<Break>`, `<Return>`
+  - `<AskUser>` — interactive prompts
+  - RuntimeVar interpolation in templates
+  - Component prop substitution
+
+### Auto-Detection
+
+V3 features are automatically detected when TSX uses:
+- `useRuntimeVar<T>()` hook
+- `runtimeFn()` wrapper
+- Control flow components (`If`, `Else`, `Loop`, `Break`, `Return`)
+- `AskUser` component
+
+### Context Bridging
+
+The `adaptToSharedContext()` function in `runtime-dispatch.ts` bridges V3 contexts back to V1 for shared transformers (headings, lists, tables) that work identically in both systems.
+
 ## Component Summary
 
 ### Core Components

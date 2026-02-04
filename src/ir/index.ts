@@ -6,6 +6,7 @@
 
 export * from './nodes.js';
 export * from './runtime-nodes.js';
+export * from './swarm-nodes.js';
 export {
   isPrimitive,
   getPrimitives,

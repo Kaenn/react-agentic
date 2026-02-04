@@ -84,6 +84,10 @@ import {
 } from './transformers/document.js';
 import type { TransformContext } from './transformers/types.js';
 
+// Swarm transformers
+import { transformTaskDef, transformTaskPipeline } from './transformers/swarm.js';
+import type { TaskDefNode, TaskPipelineNode } from '../ir/swarm-nodes.js';
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -142,6 +146,8 @@ const SPECIAL_COMPONENTS = new Set([
   'ReadFiles',
   // Template primitives
   'PromptTemplate',
+  // Swarm components
+  'TaskDef', 'TaskPipeline',
 ]);
 
 /**
@@ -598,6 +604,14 @@ export class Transformer {
     // PromptTemplate - wrap content in markdown code fence
     if (name === 'PromptTemplate') {
       return this.transformPromptTemplate(node);
+    }
+
+    // Swarm components
+    if (name === 'TaskDef') {
+      return transformTaskDef(node, this.buildContext());
+    }
+    if (name === 'TaskPipeline') {
+      return transformTaskPipeline(node, this.buildContext());
     }
 
     // Contract components (inside Agent)

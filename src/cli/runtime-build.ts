@@ -120,6 +120,16 @@ function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
           traversal.stop();
           return;
         }
+        // Handle arrow functions: export default () => (<Command>...</Command>)
+        if (Node.isArrowFunction(unwrapped)) {
+          const body = unwrapped.getBody();
+          const unwrappedBody = unwrapParens(body);
+          if (Node.isJsxElement(unwrappedBody) || Node.isJsxSelfClosingElement(unwrappedBody)) {
+            result = unwrappedBody;
+            traversal.stop();
+            return;
+          }
+        }
       }
     }
   });

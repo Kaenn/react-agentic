@@ -13,3 +13,10 @@ export type { TaskRef, WorkerRef, TeamRef } from './refs.js';
 
 // Guards
 export { isTaskRef, isWorkerRef, isTeamRef } from './guards.js';
+
+// Components
+export { TaskDef, type TaskDefProps } from './TaskDef.js';
+export { TaskPipeline, type TaskPipelineProps } from './TaskPipeline.js';
+
+// Pipeline Builder
+export { createPipeline, type Pipeline, type PipelineBuilder, type PipelineStage } from './pipeline-builder.js';
