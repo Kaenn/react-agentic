@@ -629,6 +629,279 @@ export const OAuthWorkflow = () => (
 
 ---
 
+## Phase 6: Documentation + Examples
+
+### Goal
+
+Complete user-facing documentation and real-world examples for the swarm system.
+
+### Documentation: `docs/swarm.md`
+
+Create comprehensive documentation covering:
+
+```markdown
+# Swarm System
+
+Type-safe task orchestration for Claude Code's swarm capabilities.
+
+## Quick Start
+
+\`\`\`tsx
+import { defineTask, TaskDef, TaskPipeline } from 'react-agentic';
+
+const Research = defineTask('Research best practices', 'research');
+const Plan = defineTask('Create implementation plan', 'plan');
+const Implement = defineTask('Build the feature', 'implement');
+
+export default () => (
+  <Command name="feature-pipeline" description="Feature implementation workflow">
+    <TaskPipeline title="Feature Implementation" autoChain>
+      <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
+      <TaskDef task={Plan} description="Design solution" activeForm="Planning..." />
+      <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
+    </TaskPipeline>
+  </Command>
+);
+\`\`\`
+
+## Factory Functions
+
+### defineTask(subject, name?)
+### defineWorker(name, type, model?)
+### defineTeam(name, members?)
+
+## Components
+
+### <TaskDef>
+### <TaskPipeline>
+### <Team>
+### <Teammate>
+### <ShutdownSequence>
+### <Workflow>
+
+## Builder API
+
+### createPipeline()
+```
+
+**Sections to include:**
+- Quick Start with minimal example
+- Factory functions with all signatures
+- Component props tables
+- Output format examples
+- Builder API usage
+- Best practices
+
+---
+
+### Real Examples in `src/app/`
+
+#### 1. `src/app/commands/oauth-pipeline.tsx`
+
+Full OAuth implementation workflow:
+
+```tsx
+import { defineTask, TaskDef, TaskPipeline, Command } from 'react-agentic';
+
+// Define tasks with explicit names for clean mermaid labels
+const Research = defineTask('Research OAuth providers', 'research');
+const SelectProvider = defineTask('Select OAuth provider', 'select');
+const DesignFlow = defineTask('Design auth flow', 'design');
+const ImplementAuth = defineTask('Implement authentication', 'implement');
+const AddTests = defineTask('Add integration tests', 'test');
+const Documentation = defineTask('Update documentation', 'docs');
+
+export default () => (
+  <Command name="oauth" description="Implement OAuth2 authentication">
+    <h1>OAuth2 Implementation Pipeline</h1>
+
+    <TaskPipeline title="OAuth Implementation" autoChain>
+      <TaskDef
+        task={Research}
+        description="Research OAuth2 providers (Google, GitHub, Auth0). Compare features, pricing, and integration complexity."
+        activeForm="Researching OAuth providers..."
+      />
+      <TaskDef
+        task={SelectProvider}
+        description="Based on research, select the best provider for our use case. Document decision rationale."
+        activeForm="Selecting provider..."
+      />
+      <TaskDef
+        task={DesignFlow}
+        description="Design the authentication flow including login, callback, token refresh, and logout."
+        activeForm="Designing auth flow..."
+      />
+      <TaskDef
+        task={ImplementAuth}
+        description="Implement the OAuth2 integration following the designed flow."
+        activeForm="Implementing OAuth..."
+      />
+      <TaskDef
+        task={AddTests}
+        description="Write integration tests for the auth flow including edge cases."
+        activeForm="Writing tests..."
+      />
+      <TaskDef
+        task={Documentation}
+        description="Update API docs and add authentication guide for developers."
+        activeForm="Updating docs..."
+      />
+    </TaskPipeline>
+  </Command>
+);
+```
+
+---
+
+#### 2. `src/app/commands/pr-review-pipeline.tsx`
+
+PR review with parallel and sequential tasks:
+
+```tsx
+import { defineTask, TaskDef, TaskPipeline, Command } from 'react-agentic';
+
+// Sequential analysis phase
+const FetchPR = defineTask('Fetch PR details', 'fetch');
+const AnalyzeChanges = defineTask('Analyze code changes', 'analyze');
+
+// Parallel review phase (both blocked by analyze)
+const SecurityReview = defineTask('Security review', 'security');
+const PerformanceReview = defineTask('Performance review', 'perf');
+
+// Final phase
+const GenerateReport = defineTask('Generate review report', 'report');
+
+export default () => (
+  <Command name="review-pr" description="Comprehensive PR review pipeline">
+    <h1>PR Review Pipeline</h1>
+
+    <TaskPipeline title="PR Analysis">
+      <TaskDef
+        task={FetchPR}
+        description="Fetch PR metadata, changed files, and commit history."
+        activeForm="Fetching PR..."
+      />
+      <TaskDef
+        task={AnalyzeChanges}
+        description="Analyze the scope and impact of changes."
+        activeForm="Analyzing changes..."
+        blockedBy={[FetchPR]}
+      />
+      <TaskDef
+        task={SecurityReview}
+        description="Review for security vulnerabilities (OWASP top 10, auth issues)."
+        activeForm="Security review..."
+        blockedBy={[AnalyzeChanges]}
+      />
+      <TaskDef
+        task={PerformanceReview}
+        description="Review for performance issues (N+1 queries, memory leaks)."
+        activeForm="Performance review..."
+        blockedBy={[AnalyzeChanges]}
+      />
+      <TaskDef
+        task={GenerateReport}
+        description="Compile findings into a structured review report."
+        activeForm="Generating report..."
+        blockedBy={[SecurityReview, PerformanceReview]}
+      />
+    </TaskPipeline>
+  </Command>
+);
+```
+
+---
+
+#### 3. `src/app/commands/migration-workflow.tsx` (Phase 3+)
+
+Full workflow with team coordination:
+
+```tsx
+import {
+  defineTask, defineWorker, defineTeam,
+  TaskDef, TaskPipeline, Team, Teammate, ShutdownSequence, Workflow,
+  AgentType, PluginAgentType, Command
+} from 'react-agentic';
+
+// Tasks
+const PlanMigration = defineTask('Plan database migration', 'plan');
+const BackupData = defineTask('Backup existing data', 'backup');
+const RunMigration = defineTask('Execute migration scripts', 'migrate');
+const ValidateData = defineTask('Validate migrated data', 'validate');
+
+// Workers
+const Planner = defineWorker('planner', AgentType.Plan);
+const Executor = defineWorker('executor', AgentType.GeneralPurpose);
+const Validator = defineWorker('validator', PluginAgentType.SecuritySentinel);
+
+// Team
+const MigrationTeam = defineTeam('db-migration', [Planner, Executor, Validator]);
+
+export default () => (
+  <Command name="db-migrate" description="Database migration workflow">
+    <Workflow name="Database Migration" team={MigrationTeam}>
+      <Team team={MigrationTeam} description="Database migration specialists">
+        <Teammate
+          worker={Planner}
+          description="Plans migration strategy"
+          prompt="Analyze schema changes and create migration plan. Send plan to team-lead when ready."
+        />
+        <Teammate
+          worker={Executor}
+          description="Executes migration"
+          prompt="Wait for plan approval. Execute migration scripts. Report progress to team-lead."
+        />
+        <Teammate
+          worker={Validator}
+          description="Validates results"
+          prompt="After migration, validate data integrity. Report any issues to team-lead."
+        />
+      </Team>
+
+      <TaskPipeline title="Migration Steps" autoChain>
+        <TaskDef task={PlanMigration} description="Create migration plan" activeForm="Planning..." />
+        <TaskDef task={BackupData} description="Backup current data" activeForm="Backing up..." />
+        <TaskDef task={RunMigration} description="Run migration scripts" activeForm="Migrating..." />
+        <TaskDef task={ValidateData} description="Validate migrated data" activeForm="Validating..." />
+      </TaskPipeline>
+
+      <ShutdownSequence workers={[Planner, Executor, Validator]} reason="Migration complete" />
+    </Workflow>
+  </Command>
+);
+```
+
+---
+
+### Documentation Structure
+
+```
+docs/
+├── swarm.md              # Main swarm documentation (NEW)
+└── README.md             # Update to include swarm in index
+
+src/app/
+├── commands/
+│   ├── oauth-pipeline.tsx      # Real example: OAuth workflow
+│   └── pr-review-pipeline.tsx  # Real example: PR review
+└── examples/
+    └── migration-workflow.tsx  # Real example: Full workflow (Phase 3+)
+```
+
+---
+
+### Success Criteria
+
+Phase 6 is complete when:
+
+1. ✅ `docs/swarm.md` exists with complete API documentation
+2. ✅ `docs/README.md` updated to reference swarm documentation
+3. ✅ At least 2 real examples in `src/app/commands/`
+4. ✅ Examples compile successfully with `npm run build`
+5. ✅ Output matches expected format from GOLDEN_PATH.md
+
+---
+
 ## API Mapping Reference
 
 | TSX | Claude Code API |
@@ -650,5 +923,6 @@ export const OAuthWorkflow = () => (
 | 3 | `<Team>`, `<Teammate>` | `Teammate(spawnTeam)`, `Task` |
 | 4 | `<ShutdownSequence>` | `Teammate(requestShutdown)`, `Teammate(cleanup)` |
 | 5 | `<Workflow>` | Full orchestration |
+| 6 | Documentation + Examples | `docs/swarm.md`, real examples |
 
-**Total: 5 components + 4 factory functions**
+**Total: 5 components + 4 factory functions + documentation**
