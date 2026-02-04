@@ -423,20 +423,45 @@ Task({
 ### `<ShutdownSequence>`
 
 **Props:**
-| Prop | Type | Required | Maps to |
-|------|------|----------|---------|
-| `workers` | `WorkerRef[]` | Yes | `Teammate.target_agent_id` |
-| `reason` | `string` | No | `Teammate.reason` |
+| Prop | Type | Required | Default | Maps to |
+|------|------|----------|---------|---------|
+| `workers` | `WorkerRef[]` | Yes | — | `Teammate.target_agent_id` |
+| `reason` | `string` | No | `"Shutdown requested"` | `Teammate.reason` |
+| `cleanup` | `boolean` | No | `true` | Include `Teammate({ operation: "cleanup" })` |
+| `team` | `TeamRef` | No | `{team}` placeholder | Team name in inbox path |
+| `title` | `string` | No | `"Shutdown"` | Section heading text |
 
 **Usage:**
 ```tsx
+// Basic usage
 <ShutdownSequence
   workers={[Security, Perf]}
   reason="All reviews complete"
 />
+
+// With explicit team (for standalone commands)
+<ShutdownSequence
+  workers={[Security, Perf]}
+  team={ReviewTeam}
+  reason="All reviews complete"
+/>
+
+// Partial shutdown (keep team alive for next phase)
+<ShutdownSequence
+  workers={[Security]}
+  reason="Phase 1 done"
+  cleanup={false}
+/>
+
+// Custom title
+<ShutdownSequence
+  workers={[Security, Perf]}
+  title="Cleanup Reviewers"
+  reason="All reviews complete"
+/>
 ```
 
-**Output:**
+**Output (basic usage):**
 ```markdown
 ## Shutdown
 
@@ -452,6 +477,20 @@ Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "All r
 
 // 3. Cleanup team resources
 Teammate({ operation: "cleanup" })
+```
+```
+
+**Output (with `cleanup={false}`):**
+```markdown
+## Shutdown
+
+```javascript
+// 1. Request shutdown for all workers
+Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "Phase 1 done" })
+
+// 2. Wait for shutdown_approved messages
+// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:
+// {"type": "shutdown_approved", "from": "security", ...}
 ```
 ```
 
