@@ -5,7 +5,7 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement } from 'ts-morph';
-import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode } from '../../ir/swarm-nodes.js';
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode } from '../../ir/swarm-nodes.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, getBooleanAttribute } from '../utils/index.js';
 import { transformBlockChildren } from './dispatch.js';
@@ -664,5 +664,137 @@ export function transformTeam(
     teamName: teamRef.teamName,
     description: description || undefined,
     children,
+  };
+}
+
+// =============================================================================
+// ShutdownSequence Transformer
+// =============================================================================
+
+/**
+ * Extract WorkerRef array from a JSX attribute
+ *
+ * Handles: workers={[Security, Perf]}
+ */
+function extractWorkerRefArray(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  attrName: string,
+  ctx: TransformContext
+): Array<{ workerId: string; workerName: string }> {
+  const attr = element.getAttribute(attrName);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return [];
+  }
+
+  const init = attr.getInitializer();
+  if (!init || !Node.isJsxExpression(init)) {
+    return [];
+  }
+
+  const expr = init.getExpression();
+  if (!expr || !Node.isArrayLiteralExpression(expr)) {
+    return [];
+  }
+
+  const workers: Array<{ workerId: string; workerName: string }> = [];
+
+  for (const elem of expr.getElements()) {
+    if (Node.isIdentifier(elem)) {
+      const varName = elem.getText();
+      // Look up the defineWorker() call
+      const workerRef = findWorkerRefByVarName(varName, ctx);
+      if (workerRef) {
+        workers.push({
+          workerId: workerRef.workerId,
+          workerName: workerRef.workerName,
+        });
+      }
+    }
+  }
+
+  return workers;
+}
+
+/**
+ * Find WorkerRef data by variable name
+ */
+function findWorkerRefByVarName(
+  varName: string,
+  ctx: TransformContext
+): { workerId: string; workerName: string } | null {
+  const sourceFile = ctx.sourceFile;
+  if (!sourceFile) return null;
+
+  for (const stmt of sourceFile.getStatements()) {
+    if (Node.isVariableStatement(stmt)) {
+      for (const decl of stmt.getDeclarationList().getDeclarations()) {
+        if (decl.getName() === varName) {
+          const initializer = decl.getInitializer();
+          if (initializer && Node.isCallExpression(initializer)) {
+            const callee = initializer.getExpression();
+            if (Node.isIdentifier(callee) && callee.getText() === 'defineWorker') {
+              const args = initializer.getArguments();
+              if (args.length >= 1) {
+                const nameArg = args[0];
+                let workerName = '';
+                if (Node.isStringLiteral(nameArg)) {
+                  workerName = nameArg.getLiteralValue();
+                }
+                return {
+                  workerId: `worker:${varName}`,
+                  workerName,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Transform ShutdownSequence component to ShutdownSequenceNode IR
+ */
+export function transformShutdownSequence(
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: TransformContext
+): ShutdownSequenceNode {
+  const openingElement = Node.isJsxElement(node)
+    ? node.getOpeningElement()
+    : node;
+
+  // Extract workers array (required)
+  const workers = extractWorkerRefArray(openingElement, 'workers', ctx);
+  if (workers.length === 0) {
+    throw ctx.createError(
+      'ShutdownSequence requires at least one worker in the workers array',
+      node
+    );
+  }
+
+  // Extract reason (optional, default "Shutdown requested")
+  const reason = getAttributeValue(openingElement, 'reason') ?? 'Shutdown requested';
+
+  // Extract cleanup (optional, default true)
+  const cleanupAttr = getBooleanAttribute(openingElement, 'cleanup');
+  const includeCleanup = cleanupAttr ?? true;
+
+  // Extract team (optional)
+  const teamRef = extractTeamRefFromAttribute(openingElement, 'team', ctx);
+  const teamName = teamRef?.teamName;
+
+  // Extract title (optional, default "Shutdown")
+  const title = getAttributeValue(openingElement, 'title') ?? 'Shutdown';
+
+  return {
+    kind: 'shutdownSequence',
+    workers,
+    reason,
+    includeCleanup,
+    teamName,
+    title,
   };
 }

@@ -263,6 +263,7 @@ export {
   // Components
   TaskDef,
   TaskPipeline,
+  ShutdownSequence,
 
   // Pipeline Builder
   createPipeline,
@@ -273,6 +274,7 @@ export {
   type TeamRef,
   type TaskDefProps,
   type TaskPipelineProps,
+  type ShutdownSequenceProps,
   type Pipeline,
   type PipelineBuilder,
   type PipelineStage,

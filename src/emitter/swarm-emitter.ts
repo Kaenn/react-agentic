@@ -7,7 +7,7 @@
  * - Dependency setup via TaskUpdate
  */
 
-import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode } from '../ir/swarm-nodes.js';
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode } from '../ir/swarm-nodes.js';
 
 /**
  * TaskIdResolver - Maps UUID task IDs to sequential numeric IDs
@@ -317,4 +317,46 @@ export function emitTeam(node: TeamNode): string {
   }
 
   return sections.join('\n\n');
+}
+
+/**
+ * Emit ShutdownSequence to markdown
+ */
+export function emitShutdownSequence(node: ShutdownSequenceNode): string {
+  const lines: string[] = [];
+  const teamPlaceholder = node.teamName ?? '{team}';
+
+  // Section header
+  lines.push(`## ${node.title}`);
+  lines.push('');
+
+  // Code block
+  lines.push('```javascript');
+
+  // Step 1: Request shutdown for all workers
+  lines.push('// 1. Request shutdown for all workers');
+  for (const worker of node.workers) {
+    lines.push(
+      `Teammate({ operation: "requestShutdown", target_agent_id: "${worker.workerName}", reason: "${escapeString(node.reason)}" })`
+    );
+  }
+
+  // Step 2: Wait for shutdown_approved messages
+  lines.push('');
+  lines.push('// 2. Wait for shutdown_approved messages');
+  lines.push(`// Check ~/.claude/teams/${teamPlaceholder}/inboxes/team-lead.json for:`);
+  for (const worker of node.workers) {
+    lines.push(`// {"type": "shutdown_approved", "from": "${worker.workerName}", ...}`);
+  }
+
+  // Step 3: Cleanup (if enabled)
+  if (node.includeCleanup) {
+    lines.push('');
+    lines.push('// 3. Cleanup team resources');
+    lines.push('Teammate({ operation: "cleanup" })');
+  }
+
+  lines.push('```');
+
+  return lines.join('\n');
 }

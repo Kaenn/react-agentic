@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { TaskIdResolver, emitTaskDef, emitTaskPipeline } from '../../../src/emitter/swarm-emitter.js';
-import type { TaskDefNode, TaskPipelineNode } from '../../../src/ir/swarm-nodes.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitShutdownSequence } from '../../../src/emitter/swarm-emitter.js';
+import type { TaskDefNode, TaskPipelineNode, ShutdownSequenceNode } from '../../../src/ir/swarm-nodes.js';
 
 describe('TaskIdResolver', () => {
   let resolver: TaskIdResolver;
@@ -244,5 +244,149 @@ describe('emitTaskPipeline', () => {
     expect(output).toContain('| 1 | step1 | First step | - |');
     expect(output).toContain('| 2 | step2 | Second step | 1 |');
     expect(output).toContain('| 3 | step3 | Third step | 2 |');
+  });
+});
+
+describe('emitShutdownSequence', () => {
+  it('emits section title heading', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Test shutdown',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('## Shutdown');
+  });
+
+  it('emits custom title when provided', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Test shutdown',
+      includeCleanup: true,
+      title: 'Graceful Termination',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('## Graceful Termination');
+  });
+
+  it('emits requestShutdown for each worker', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [
+        { workerId: 'worker:Security', workerName: 'security' },
+        { workerId: 'worker:Perf', workerName: 'perf' },
+      ],
+      reason: 'All reviews complete',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('```javascript');
+    expect(output).toContain('// 1. Request shutdown for all workers');
+    expect(output).toContain('Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "All reviews complete" })');
+    expect(output).toContain('Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "All reviews complete" })');
+  });
+
+  it('emits wait instructions with inbox path', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [
+        { workerId: 'worker:Security', workerName: 'security' },
+        { workerId: 'worker:Perf', workerName: 'perf' },
+      ],
+      reason: 'Shutdown requested',
+      includeCleanup: true,
+      teamName: 'pr-review',
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('// 2. Wait for shutdown_approved messages');
+    expect(output).toContain('// Check ~/.claude/teams/pr-review/inboxes/team-lead.json for:');
+    expect(output).toContain('// {"type": "shutdown_approved", "from": "security", ...}');
+    expect(output).toContain('// {"type": "shutdown_approved", "from": "perf", ...}');
+  });
+
+  it('uses {team} placeholder when teamName not provided', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Shutdown requested',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('// Check ~/.claude/teams/{team}/inboxes/team-lead.json for:');
+  });
+
+  it('emits cleanup step by default', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Shutdown requested',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('// 3. Cleanup team resources');
+    expect(output).toContain('Teammate({ operation: "cleanup" })');
+  });
+
+  it('omits cleanup step when includeCleanup is false', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Shutdown requested',
+      includeCleanup: false,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).not.toContain('// 3. Cleanup team resources');
+    expect(output).not.toContain('Teammate({ operation: "cleanup" })');
+  });
+
+  it('escapes special characters in reason', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Test "quoted" reason',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('reason: "Test \\"quoted\\" reason"');
+  });
+
+  it('outputs proper code block structure', () => {
+    const node: ShutdownSequenceNode = {
+      kind: 'shutdownSequence',
+      workers: [{ workerId: 'worker:Security', workerName: 'security' }],
+      reason: 'Shutdown requested',
+      includeCleanup: true,
+      title: 'Shutdown',
+    };
+
+    const output = emitShutdownSequence(node);
+
+    expect(output).toContain('```javascript');
+    expect(output).toMatch(/```$/); // Ends with closing code fence
   });
 });

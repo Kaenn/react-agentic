@@ -92,3 +92,28 @@ export interface TeamNode {
   /** Nested teammate definitions */
   children: TeammateNode[];
 }
+
+/**
+ * ShutdownSequenceNode IR node - represents graceful shutdown
+ *
+ * Emits as:
+ * 1. Teammate({ operation: "requestShutdown", ... }) for each worker
+ * 2. Comments about waiting for shutdown_approved
+ * 3. Teammate({ operation: "cleanup" }) if includeCleanup is true
+ */
+export interface ShutdownSequenceNode {
+  kind: 'shutdownSequence';
+  /** Workers to shutdown (WorkerRef data) */
+  workers: Array<{
+    workerId: string;    // WorkerRef.__id
+    workerName: string;  // WorkerRef.name (used as target_agent_id)
+  }>;
+  /** Reason for shutdown */
+  reason: string;
+  /** Whether to include cleanup call */
+  includeCleanup: boolean;
+  /** Team name for output comments (optional, uses placeholder if not provided) */
+  teamName?: string;
+  /** Section title */
+  title: string;
+}

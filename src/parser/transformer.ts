@@ -85,8 +85,8 @@ import {
 import type { TransformContext } from './transformers/types.js';
 
 // Swarm transformers
-import { transformTaskDef, transformTaskPipeline } from './transformers/swarm.js';
-import type { TaskDefNode, TaskPipelineNode } from '../ir/swarm-nodes.js';
+import { transformTaskDef, transformTaskPipeline, transformShutdownSequence } from './transformers/swarm.js';
+import type { TaskDefNode, TaskPipelineNode, ShutdownSequenceNode } from '../ir/swarm-nodes.js';
 
 // ============================================================================
 // Utility Functions
@@ -147,7 +147,7 @@ const SPECIAL_COMPONENTS = new Set([
   // Template primitives
   'PromptTemplate',
   // Swarm components
-  'TaskDef', 'TaskPipeline',
+  'TaskDef', 'TaskPipeline', 'ShutdownSequence',
 ]);
 
 /**
@@ -612,6 +612,9 @@ export class Transformer {
     }
     if (name === 'TaskPipeline') {
       return transformTaskPipeline(node, this.buildContext());
+    }
+    if (name === 'ShutdownSequence') {
+      return transformShutdownSequence(node, this.buildContext());
     }
 
     // Contract components (inside Agent)

@@ -26,7 +26,7 @@ import {
   transformStructuredReturns,
   isContractComponent,
 } from './contract.js';
-import { transformTaskDef, transformTaskPipeline, transformTeam } from './swarm.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence } from './swarm.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -365,6 +365,9 @@ function transformElement(
   }
   if (name === 'Prompt') {
     throw ctx.createError('Prompt must be used inside a Teammate component', node);
+  }
+  if (name === 'ShutdownSequence') {
+    return transformShutdownSequence(node, ctx);
   }
 
   // Custom component composition
