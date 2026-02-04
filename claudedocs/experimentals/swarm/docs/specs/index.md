@@ -200,7 +200,7 @@ import {
 | **Lifecycle** | | |
 | `<ShutdownSequence>` | Graceful shutdown code | [ShutdownSequence.spec.tsx](./ShutdownSequence.spec.tsx) |
 | `<WorkflowSteps>` | Full workflow lifecycle steps | [WorkflowSteps.spec.tsx](./WorkflowSteps.spec.tsx) |
-| `<Workflow>` | Top-level workflow container | [Workflow.spec.tsx](./Workflow.spec.tsx) |
+| `<Workflow>` | Orchestration container (Team + Pipeline + Shutdown) | [Workflow.spec.tsx](./Workflow.spec.tsx) |
 | **Helpers** | | |
 | `<Callout>` | Callout blocks (info, warning, etc.) | [Callout.spec.tsx](./Callout.spec.tsx) |
 | `<CodeBlock>` | Fenced code blocks | [CodeBlock.spec.tsx](./CodeBlock.spec.tsx) |
@@ -332,23 +332,28 @@ Use the `<Prompt>` component:
 
 ### Composing Workflows
 
-Workflows compose multiple components:
+Workflows compose multiple components using type-safe refs:
 
 ```tsx
-<Workflow name="Code Review" team="review">
-  <Team name="review">
-    <Teammate name="security" type="security-sentinel">
+// Define refs first
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const ReviewTeam = defineTeam('review', [Security]);
+
+<Workflow name="Code Review" team={ReviewTeam} description="Security review">
+  <Team team={ReviewTeam}>
+    <Teammate worker={Security} description="Security audit">
       <Prompt>Review for security issues</Prompt>
     </Teammate>
   </Team>
 
-  <ParallelWorkers teamName="review" workers={[...]}>
-    <Prompt name="security">...</Prompt>
-  </ParallelWorkers>
-
-  <ShutdownSequence teammates={["security"]} />
+  <ShutdownSequence workers={[Security]} reason="Review complete" />
 </Workflow>
 ```
+
+**Workflow rules:**
+- `team` prop must match first `<Team>` child
+- Only one `<Team>` child per Workflow
+- ShutdownSequence inherits team context
 
 ---
 

@@ -504,9 +504,14 @@ Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "P
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `name` | `string` | Yes | Workflow name |
-| `team` | `TeamRef` | Yes | Primary team |
+| `team` | `TeamRef` | Yes | Primary team (must match first Team child) |
 | `description` | `string` | No | Workflow description |
 | `children` | `ReactNode` | Yes | Team, Pipeline, Shutdown |
+
+**Validations:**
+- `team` prop must match first `<Team>` child's team prop
+- Only one `<Team>` child allowed per Workflow
+- For multiple teams, use separate Workflows
 
 **Usage:**
 ```tsx
@@ -544,13 +549,13 @@ const ReviewTeam = defineTeam('feature-x', [Security, Perf]);
 
 **Output:**
 ```markdown
-# Workflow: Feature X
+## Workflow: Feature X
 
 > Build feature with review
 
 ---
 
-## Team: feature-x
+### Team: feature-x
 
 > Feature X team
 
@@ -558,9 +563,9 @@ const ReviewTeam = defineTeam('feature-x', [Security, Perf]);
 Teammate({ operation: "spawnTeam", team_name: "feature-x", description: "Feature X team" })
 ```
 
-### Members
+#### Members
 
-#### security
+##### security
 
 ```javascript
 Task({
@@ -573,7 +578,7 @@ Task({
 })
 ```
 
-#### perf
+##### perf
 
 ```javascript
 Task({
@@ -610,7 +615,7 @@ TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })
 
 ---
 
-## Shutdown
+### Shutdown
 
 ```javascript
 Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "Feature complete" })
@@ -621,6 +626,15 @@ Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "Featu
 Teammate({ operation: "cleanup" })
 ```
 ```
+
+**Heading Levels:**
+- Workflow uses h2 (allows multiple workflows in one document)
+- Children (Team, TaskPipeline, ShutdownSequence) use h3
+- Sub-sections use h4+
+
+**Context Propagation:**
+- `ShutdownSequence` automatically inherits team from Workflow
+- Explicit `team` prop on ShutdownSequence overrides inherited team
 
 ---
 

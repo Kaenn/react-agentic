@@ -260,41 +260,44 @@ Task({ team_name: "review", name: "perf", subagent_type: "performance-oracle", p
 
 ### TSX
 ```tsx
-<Workflow name="PR Review" team="pr-123" description="Review PR #123">
-  <Team name="pr-123">
-    <Teammate name="reviewer" type={AgentType.GeneralPurpose}>
+// Define refs first (type-safe)
+const Reviewer = defineWorker('reviewer', AgentType.GeneralPurpose);
+const ReviewTeam = defineTeam('pr-123', [Reviewer]);
+
+<Workflow name="PR Review" team={ReviewTeam} description="Review PR #123">
+  <Team team={ReviewTeam}>
+    <Teammate worker={Reviewer} description="Code quality review">
       <Prompt>Review code quality</Prompt>
     </Teammate>
   </Team>
-  <ShutdownSequence teammates={['reviewer']} />
+  <ShutdownSequence workers={[Reviewer]} reason="Review complete" />
 </Workflow>
 ```
 
 ### Output
 ```markdown
-# Workflow: PR Review
+## Workflow: PR Review
 
 > Review PR #123
 
-**Team:** `pr-123`
-
 ---
 
-## Team: pr-123
+### Team: pr-123
 
 ```javascript
 Teammate({ operation: "spawnTeam", team_name: "pr-123" })
 ```
 
-### Members
+#### Members
 
-#### reviewer
+##### reviewer
 
 ```javascript
 Task({
   team_name: "pr-123",
   name: "reviewer",
   subagent_type: "general-purpose",
+  description: "Code quality review",
   prompt: `Review code quality`,
   run_in_background: true
 })
@@ -302,14 +305,26 @@ Task({
 
 ---
 
-### Graceful Shutdown
+### Shutdown
 
 ```javascript
-Teammate({ operation: "requestShutdown", target_agent_id: "reviewer" })
-// Wait for approval...
+// 1. Request shutdown for all workers
+Teammate({ operation: "requestShutdown", target_agent_id: "reviewer", reason: "Review complete" })
+
+// 2. Wait for shutdown_approved messages
+// Check ~/.claude/teams/pr-123/inboxes/team-lead.json for:
+// {"type": "shutdown_approved", "from": "reviewer", ...}
+
+// 3. Cleanup team resources
 Teammate({ operation: "cleanup" })
 ```
 ```
+
+**Notes:**
+- Workflow uses h2 (allows multiple workflows in one doc)
+- Children (Team, Shutdown) use h3
+- `team` prop must match first `<Team>` child
+- ShutdownSequence inherits team context from Workflow
 
 ---
 

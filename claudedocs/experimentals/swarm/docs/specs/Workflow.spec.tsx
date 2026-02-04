@@ -1,7 +1,25 @@
 /**
  * @component Workflow
- * @description Top-level container for documenting a complete workflow
+ * @description Top-level container for orchestrating Team, TaskPipeline, and ShutdownSequence
+ *
+ * Workflow is a BLOCK ELEMENT (not a document type). It can be:
+ * - Used inside <Command> for slash commands
+ * - Used standalone for markdown documentation
+ *
+ * For frontmatter (name, description for /command), wrap in <Command>.
  */
+
+import {
+  AgentType,
+  PluginAgentType,
+  Model,
+  WorkerRef,
+  TeamRef,
+  TaskRef,
+  defineWorker,
+  defineTeam,
+  defineTask,
+} from './enums';
 
 // =============================================================================
 // PROPS INTERFACE
@@ -9,31 +27,27 @@
 
 interface WorkflowProps {
   /**
-   * Workflow name (used as H1 heading)
+   * Workflow name (used as h2 heading)
    * @required
    */
   name: string;
 
   /**
+   * Team reference - MUST match first <Team> child's team prop
+   * Provides context for ShutdownSequence children
+   * @required
+   */
+  team: TeamRef;
+
+  /**
    * Brief description of what the workflow does
-   * @required
-   */
-  description: string;
-
-  /**
-   * Team name used in this workflow
-   * @required
-   */
-  team: string;
-
-  /**
-   * Optional tags for categorization
+   * Rendered as blockquote under heading
    * @optional
    */
-  tags?: string[];
+  description?: string;
 
   /**
-   * Workflow content - Team, Tasks, Patterns, Lifecycle, etc.
+   * Workflow content - Team, TaskPipeline, ShutdownSequence
    * @required
    */
   children: React.ReactNode;
@@ -43,228 +57,323 @@ interface WorkflowProps {
 // COMPONENT
 // =============================================================================
 
-export function Workflow({ name, description, team, tags, children }: WorkflowProps) {
+export function Workflow({ name, team, description, children }: WorkflowProps) {
   // Implementation renders to markdown string
 }
+
+// =============================================================================
+// VALIDATIONS
+// =============================================================================
+
+/**
+ * ## Workflow Validations
+ *
+ * 1. **team prop must match first Team child**
+ *    - Error: "Workflow team prop must match Team child"
+ *    - Example: <Workflow team={TeamA}><Team team={TeamB}> // ERROR
+ *
+ * 2. **Only one Team child allowed**
+ *    - Error: "Workflow can only contain one Team child"
+ *    - For multiple teams, use separate Workflows
+ *
+ * 3. **team prop is required**
+ *    - TeamRef from defineTeam()
+ *    - Provides context for ShutdownSequence
+ */
 
 // =============================================================================
 // USAGE EXAMPLES
 // =============================================================================
 
-// Example 1: Simple workflow
-const SimpleWorkflow = () => (
-  <Workflow name="Code Review" description="Parallel specialist review of code changes" team="code-review">
-    <Team name="code-review">
-      <Teammate name="reviewer" type="general-purpose">
-        <Prompt>Review the code</Prompt>
+// Define refs first
+const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
+
+const Research = defineTask('Research approach', 'research');
+const Plan = defineTask('Create plan', 'plan');
+const Implement = defineTask('Build feature', 'implement');
+
+// -----------------------------------------------------------------------------
+// Example 1: Complete Workflow
+// -----------------------------------------------------------------------------
+
+const CompleteWorkflow = () => (
+  <Workflow name="Feature Review" team={ReviewTeam} description="Code review with parallel specialists">
+    <Team team={ReviewTeam} description="Review specialists">
+      <Teammate worker={Security} description="Security audit">
+        <Prompt>Review for security vulnerabilities. Send findings to team-lead.</Prompt>
       </Teammate>
-    </Team>
-  </Workflow>
-);
-
-// Example 2: Full workflow with all sections
-const FullWorkflow = () => (
-  <Workflow
-    name="PR Review Pipeline"
-    description="Comprehensive PR review with parallel specialists and synthesized report"
-    team="pr-review-123"
-    tags={['review', 'parallel', 'security']}
-  >
-    <Note type="info">This workflow spawns multiple specialist reviewers in parallel.</Note>
-
-    <Team name="pr-review-123" description="Reviewing PR #123 - Add OAuth authentication">
-      <Teammate name="security" type="security-sentinel">
-        <Prompt>Review for security vulnerabilities</Prompt>
-      </Teammate>
-
-      <Teammate name="performance" type="performance-oracle">
-        <Prompt>Review for performance issues</Prompt>
-      </Teammate>
-
-      <Teammate name="architecture" type="architecture-strategist">
-        <Prompt>Review for architectural concerns</Prompt>
+      <Teammate worker={Perf} description="Performance analysis">
+        <Prompt>Review for performance issues. Send findings to team-lead.</Prompt>
       </Teammate>
     </Team>
 
-    <ParallelWorkers
-      teamName="pr-review-123"
-      workers={[
-        { name: 'security', type: 'security-sentinel' },
-        { name: 'performance', type: 'performance-oracle' },
-        { name: 'architecture', type: 'architecture-strategist' }
-      ]}
-    >
-      <Prompt name="security">Review for security vulnerabilities</Prompt>
-      <Prompt name="performance">Review for performance issues</Prompt>
-      <Prompt name="architecture">Review for architectural concerns</Prompt>
-    </ParallelWorkers>
-
-    <Lifecycle
-      steps={[
-        { name: 'Setup', code: 'Teammate({ operation: "spawnTeam", ... })' },
-        { name: 'Spawn', code: '// Spawn specialists in parallel' },
-        { name: 'Review', code: '// Monitor inbox for results' },
-        { name: 'Synthesize', code: '// Combine findings' },
-        { name: 'Cleanup', code: 'Teammate({ operation: "cleanup" })' }
-      ]}
-    />
-
-    <ShutdownSequence teammates={['security', 'performance', 'architecture']} />
-  </Workflow>
-);
-
-// Example 3: Pipeline workflow
-const PipelineWorkflow = () => (
-  <Workflow
-    name="Feature Implementation"
-    description="Research → Plan → Implement → Test → Review pipeline"
-    team="feature-oauth"
-    tags={['pipeline', 'feature', 'implementation']}
-  >
-    <TaskPipeline title="Implementation Stages">
-      <TaskDef id="1" subject="Research" description="Research OAuth best practices" blockedBy={[]} />
-
-      <TaskDef id="2" subject="Plan" description="Create implementation plan" blockedBy={['1']} />
-
-      <TaskDef id="3" subject="Implement" description="Build OAuth endpoints" blockedBy={['2']} />
-
-      <TaskDef id="4" subject="Test" description="Write and run tests" blockedBy={['3']} />
-
-      <TaskDef id="5" subject="Review" description="Final security review" blockedBy={['4']} />
+    <TaskPipeline title="Implementation" autoChain>
+      <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
+      <TaskDef task={Plan} description="Create plan" activeForm="Planning..." />
+      <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
     </TaskPipeline>
 
-    <Team name="feature-oauth">
-      <Teammate name="researcher" type="best-practices-researcher">
-        <Prompt>Research OAuth2 best practices for Rails</Prompt>
-      </Teammate>
+    <ShutdownSequence workers={[Security, Perf]} reason="Review complete" />
+  </Workflow>
+);
 
-      <Teammate name="planner" type="Plan">
-        <Prompt>Create detailed implementation plan</Prompt>
-      </Teammate>
+// -----------------------------------------------------------------------------
+// Example 2: Workflow inside Command
+// -----------------------------------------------------------------------------
 
-      <Teammate name="implementer" type="general-purpose">
-        <Prompt>Implement OAuth according to plan</Prompt>
+const WorkflowInCommand = () => (
+  <Command name="feature-review" description="Run feature review workflow">
+    <h1>Feature Review Pipeline</h1>
+
+    <Workflow name="Phase 1: Review" team={ReviewTeam}>
+      <Team team={ReviewTeam}>
+        <Teammate worker={Security} description="Security">
+          <Prompt>Security review</Prompt>
+        </Teammate>
+      </Team>
+      <ShutdownSequence workers={[Security]} reason="Phase 1 done" />
+    </Workflow>
+  </Command>
+);
+
+// -----------------------------------------------------------------------------
+// Example 3: Multiple Workflows (separate teams)
+// -----------------------------------------------------------------------------
+
+const BuildTeam = defineTeam('build-team', [
+  defineWorker('builder', AgentType.GeneralPurpose),
+]);
+
+const MultiPhaseWorkflow = () => (
+  <Command name="multi-phase" description="Multi-phase project">
+    <h1>Multi-Phase Project</h1>
+
+    <Workflow name="Phase 1: Review" team={ReviewTeam}>
+      <Team team={ReviewTeam}>
+        <Teammate worker={Security} description="Security">
+          <Prompt>Review code</Prompt>
+        </Teammate>
+      </Team>
+      <ShutdownSequence workers={[Security]} cleanup={true} />
+    </Workflow>
+
+    <Workflow name="Phase 2: Build" team={BuildTeam}>
+      <Team team={BuildTeam}>
+        <Teammate worker={BuildTeam.members[0]} description="Builder">
+          <Prompt>Build feature</Prompt>
+        </Teammate>
+      </Team>
+      <ShutdownSequence workers={BuildTeam.members} cleanup={true} />
+    </Workflow>
+  </Command>
+);
+
+// -----------------------------------------------------------------------------
+// Example 4: Standalone Workflow (no Command)
+// -----------------------------------------------------------------------------
+
+const StandaloneWorkflow = () => (
+  <Workflow name="Documentation Workflow" team={ReviewTeam} description="For docs only">
+    <Team team={ReviewTeam}>
+      <Teammate worker={Security} description="Reviewer">
+        <Prompt>Review</Prompt>
       </Teammate>
     </Team>
   </Workflow>
 );
-
-// Example 4: Swarm workflow
-const SwarmWorkflow = () => (
-  <Workflow
-    name="Codebase Security Audit"
-    description="Self-organizing swarm reviews all critical files"
-    team="security-audit"
-    tags={['swarm', 'security', 'audit']}
-  >
-    <TaskPool
-      title="Files to Audit"
-      tasks={[
-        { subject: 'Audit user.rb', description: 'Check user model security' },
-        { subject: 'Audit payment.rb', description: 'Check payment model security' },
-        { subject: 'Audit auth_controller.rb', description: 'Check auth controller' },
-        { subject: 'Audit api_controller.rb', description: 'Check API controller' }
-      ]}
-    />
-
-    <Swarm teamName="security-audit" workerCount={3} workerType="security-sentinel">
-      <Prompt>
-        {`Claim files from the task pool and audit for security issues.
-
-Focus on:
-- Input validation
-- SQL injection
-- Authentication/authorization
-- Sensitive data handling
-
-Report findings to team-lead.`}
-      </Prompt>
-    </Swarm>
-  </Workflow>
-);
+// Output: Valid markdown without frontmatter
 
 // =============================================================================
 // MARKDOWN OUTPUT
 // =============================================================================
 
 /**
- * Example 1 renders to:
+ * Example 1 (Complete Workflow) renders to:
  *
  * ```markdown
- * # Workflow: Code Review
+ * ## Workflow: Feature Review
  *
- * > Parallel specialist review of code changes
- *
- * **Team:** `code-review`
+ * > Code review with parallel specialists
  *
  * ---
  *
- * ## Team: code-review
+ * ### Team: pr-review
  *
- * [... Team content ...]
+ * > Review specialists
+ *
+ * ```javascript
+ * Teammate({ operation: "spawnTeam", team_name: "pr-review", description: "Review specialists" })
  * ```
- */
-
-/**
- * Example 2 renders to:
  *
- * ```markdown
- * # Workflow: PR Review Pipeline
+ * #### Members
  *
- * > Comprehensive PR review with parallel specialists and synthesized report
+ * ##### security
  *
- * **Team:** `pr-review-123`
- * **Tags:** review, parallel, security
- *
- * ---
- *
- * > ℹ️ **Info:** This workflow spawns multiple specialist reviewers in parallel.
- *
- * ## Team: pr-review-123
- *
- * > Reviewing PR #123 - Add OAuth authentication
- *
- * [... Team members ...]
- *
- * ### Parallel Workers
- *
- * [... ParallelWorkers diagram and code ...]
- *
- * ### Lifecycle
- *
- * [... Lifecycle diagram and steps ...]
- *
- * ### Graceful Shutdown
- *
- * [... Shutdown code ...]
+ * ```javascript
+ * Task({
+ *   team_name: "pr-review",
+ *   name: "security",
+ *   subagent_type: "compound-engineering:review:security-sentinel",
+ *   description: "Security audit",
+ *   prompt: `Review for security vulnerabilities. Send findings to team-lead.`,
+ *   run_in_background: true
+ * })
  * ```
- */
-
-/**
- * Example 3 renders to:
  *
- * ```markdown
- * # Workflow: Feature Implementation
+ * ##### perf
  *
- * > Research → Plan → Implement → Test → Review pipeline
- *
- * **Team:** `feature-oauth`
- * **Tags:** pipeline, feature, implementation
+ * ```javascript
+ * Task({
+ *   team_name: "pr-review",
+ *   name: "perf",
+ *   subagent_type: "compound-engineering:review:performance-oracle",
+ *   description: "Performance analysis",
+ *   prompt: `Review for performance issues. Send findings to team-lead.`,
+ *   run_in_background: true
+ * })
+ * ```
  *
  * ---
  *
- * ### Implementation Stages
+ * ### Implementation
  *
  * ```mermaid
  * flowchart LR
- *     T1[#1 Research] --> T2[#2 Plan] --> T3[#3 Implement]
- *     T3 --> T4[#4 Test] --> T5[#5 Review]
+ *     T1[research]
+ *     T1 --> T2[plan]
+ *     T2 --> T3[implement]
  * ```
  *
- * [... TaskDef outputs ...]
+ * ```javascript
+ * // Create all tasks
+ * TaskCreate({ subject: "Research approach", description: "Research approach", activeForm: "Researching..." })
+ * TaskCreate({ subject: "Create plan", description: "Create plan", activeForm: "Planning..." })
+ * TaskCreate({ subject: "Build feature", description: "Build feature", activeForm: "Building..." })
  *
- * ## Team: feature-oauth
+ * // Set up dependencies
+ * TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
+ * TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })
+ * ```
  *
- * [... Team members ...]
+ * ---
+ *
+ * ### Shutdown
+ *
+ * ```javascript
+ * // 1. Request shutdown for all workers
+ * Teammate({ operation: "requestShutdown", target_agent_id: "security", reason: "Review complete" })
+ * Teammate({ operation: "requestShutdown", target_agent_id: "perf", reason: "Review complete" })
+ *
+ * // 2. Wait for shutdown_approved messages
+ * // Check ~/.claude/teams/pr-review/inboxes/team-lead.json for:
+ * // {"type": "shutdown_approved", "from": "security", ...}
+ * // {"type": "shutdown_approved", "from": "perf", ...}
+ *
+ * // 3. Cleanup team resources
+ * Teammate({ operation: "cleanup" })
+ * ```
+ * ```
+ */
+
+/**
+ * Example 2 (Workflow inside Command) renders to:
+ *
+ * ```markdown
+ * ---
+ * name: feature-review
+ * description: Run feature review workflow
+ * ---
+ *
+ * # Feature Review Pipeline
+ *
+ * ## Workflow: Phase 1: Review
+ *
+ * ---
+ *
+ * ### Team: pr-review
+ *
+ * [... Team content ...]
+ *
+ * ---
+ *
+ * ### Shutdown
+ *
+ * [... Shutdown content ...]
+ * ```
+ */
+
+/**
+ * Example 4 (Standalone) renders to:
+ *
+ * ```markdown
+ * ## Workflow: Documentation Workflow
+ *
+ * > For docs only
+ *
+ * ---
+ *
+ * ### Team: pr-review
+ *
+ * [... Team content ...]
+ * ```
+ *
+ * Note: No frontmatter - just valid markdown.
+ * Wrap in <Command> if you need frontmatter.
+ */
+
+// =============================================================================
+// HEADING LEVELS
+// =============================================================================
+
+/**
+ * ## Heading Hierarchy
+ *
+ * Workflow uses h2 to allow multiple workflows in one document:
+ *
+ * ```
+ * # User-provided title (optional, in Command)
+ *
+ * ## Workflow: Phase 1        ← h2
+ * ### Team: team-name         ← h3
+ * #### Members                ← h4
+ * ##### worker-name           ← h5
+ * ### TaskPipeline title      ← h3
+ * ### Shutdown                ← h3
+ *
+ * ## Workflow: Phase 2        ← h2
+ * ### Team: other-team        ← h3
+ * ...
+ * ```
+ *
+ * Children heading levels are adjusted by Workflow emitter.
+ */
+
+// =============================================================================
+// CONTEXT PROPAGATION
+// =============================================================================
+
+/**
+ * ## Team Context Propagation
+ *
+ * ShutdownSequence automatically inherits team from Workflow:
+ *
+ * ```tsx
+ * <Workflow team={MyTeam}>
+ *   ...
+ *   <ShutdownSequence workers={[Worker1]} />
+ *   // ↑ Automatically uses MyTeam for inbox path
+ * </Workflow>
+ * ```
+ *
+ * Explicit team prop overrides:
+ *
+ * ```tsx
+ * <Workflow team={MyTeam}>
+ *   ...
+ *   <ShutdownSequence workers={[Worker1]} team={OtherTeam} />
+ *   // ↑ Uses OtherTeam instead of MyTeam
+ * </Workflow>
  * ```
  */
