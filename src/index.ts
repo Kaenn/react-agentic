@@ -263,6 +263,10 @@ export {
   // Components
   TaskDef,
   TaskPipeline,
+  Team,
+  Teammate,
+  Prompt,
+  Workflow,
   ShutdownSequence,
 
   // Pipeline Builder
@@ -274,6 +278,10 @@ export {
   type TeamRef,
   type TaskDefProps,
   type TaskPipelineProps,
+  type TeamProps,
+  type TeammateProps,
+  type PromptProps,
+  type WorkflowProps,
   type ShutdownSequenceProps,
   type Pipeline,
   type PipelineBuilder,

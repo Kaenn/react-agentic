@@ -22,6 +22,12 @@ This folder contains the documentation for react-agentic, a TSX-to-Markdown comp
 | [Grammar Specification](./grammar.md) | Formal EBNF grammar, element reference, nesting rules |
 | [API Reference](./api-reference.md) | Low-level utility functions for tooling |
 
+## Orchestration
+
+| Guide | Description |
+|-------|-------------|
+| [Swarm System](./swarm.md) | Multi-agent orchestration with Teams, Tasks, and Workflows |
+
 ## Examples
 
 | Example | Location | Description |
