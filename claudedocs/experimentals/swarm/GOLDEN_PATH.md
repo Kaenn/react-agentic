@@ -314,11 +314,45 @@ Teammate({ operation: "spawnTeam", team_name: "pr-review", description: "Code re
 |------|------|----------|---------|
 | `worker` | `WorkerRef` | Yes | `Task.name` + `Task.subagent_type` |
 | `description` | `string` | Yes | `Task.description` |
-| `prompt` | `string` | Yes | `Task.prompt` |
+| `prompt` | `string` | No* | `Task.prompt` |
 | `model` | `Model` | No | `Task.model` |
 | `background` | `boolean` | No | `Task.run_in_background` (default: true) |
+| `children` | `<Prompt>` | No* | `Task.prompt` (takes precedence over prop) |
 
-**Usage:**
+*Either `prompt` prop OR `<Prompt>` child required. Child takes precedence.
+
+**Usage (prompt prop - for short prompts):**
+```tsx
+<Teammate
+  worker={Security}
+  description="Quick security check"
+  prompt="Check for XSS vulnerabilities"
+/>
+```
+
+**Usage (<Prompt> child - for structured prompts with full JSX):**
+```tsx
+<Teammate worker={Security} description="Security audit">
+  <Prompt>
+    <h2>Security Review Task</h2>
+
+    <XmlBlock name="focus_areas">
+      <ul>
+        <li>SQL injection</li>
+        <li>XSS attacks</li>
+        <li>Auth bypass</li>
+      </ul>
+    </XmlBlock>
+
+    <p>Send findings to team-lead via:</p>
+    <pre><code>
+    Teammate(&#123; operation: "write", target_agent_id: "team-lead", value: "..." &#125;)
+    </code></pre>
+  </Prompt>
+</Teammate>
+```
+
+**Usage (template literal - for multi-line string prompts):**
 ```tsx
 <Teammate
   worker={Security}

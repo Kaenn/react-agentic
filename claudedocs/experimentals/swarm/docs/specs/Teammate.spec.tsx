@@ -40,13 +40,20 @@ interface TeammateProps {
   /**
    * Agent type - determines behavior and available tools
    * Use AgentType enum for built-in types or PluginAgentType for plugins
+   * @optional if worker is provided
+   */
+  type?: AgentType | PluginAgentType | string;
+
+  /**
+   * Short description shown in task list/logs
+   * Maps to Task.description
    * @required
    */
-  type: AgentType | PluginAgentType | string;
+  description: string;
 
   /**
    * Model to use for this teammate
-   * @default inherits from parent
+   * @default inherits from worker or parent
    */
   model?: Model;
 
@@ -57,10 +64,19 @@ interface TeammateProps {
   background?: boolean;
 
   /**
-   * Prompt content - use <Prompt> child for better readability
-   * @required
+   * Full instructions - alternative to <Prompt> child
+   * Use <Prompt> child for multi-line prompts with full JSX support
+   * @optional if <Prompt> child is provided
    */
-  children: React.ReactNode;
+  prompt?: string;
+
+  /**
+   * Children - can be <Prompt> for multi-line instructions
+   * <Prompt> supports full BlockContent elements (h1, XmlBlock, Table, etc.)
+   * Takes precedence over prompt prop
+   * @optional if prompt prop is provided
+   */
+  children?: React.ReactNode;
 }
 
 // =============================================================================
@@ -87,15 +103,15 @@ const ArchitectReviewer = defineWorker('arch', PluginAgentType.ArchitectureStrat
 // Use refs in components
 const WorkerRefExample = () => (
   <>
-    <Teammate worker={SecurityAuditor}>
+    <Teammate worker={SecurityAuditor} description="Security vulnerability scan">
       <Prompt>Review code for security vulnerabilities</Prompt>
     </Teammate>
 
-    <Teammate worker={PerformanceAnalyst}>
+    <Teammate worker={PerformanceAnalyst} description="Performance analysis">
       <Prompt>Analyze performance bottlenecks</Prompt>
     </Teammate>
 
-    <Teammate worker={ArchitectReviewer}>
+    <Teammate worker={ArchitectReviewer} description="Architecture review">
       <Prompt>Review architectural decisions</Prompt>
     </Teammate>
   </>
@@ -124,28 +140,28 @@ const SpreadDefaultsExample = () => (
 
 // Example 1: Simple teammate (using enum)
 const SimpleTeammate = () => (
-  <Teammate name="worker" type={AgentType.GeneralPurpose}>
+  <Teammate name="worker" type={AgentType.GeneralPurpose} description="Task worker">
     <Prompt>Complete assigned tasks</Prompt>
   </Teammate>
 );
 
 // Example 2: Teammate with model override (using enum)
 const TeammateWithModel = () => (
-  <Teammate name="researcher" type={AgentType.Explore} model={Model.Haiku}>
+  <Teammate name="researcher" type={AgentType.Explore} model={Model.Haiku} description="Find auth files">
     <Prompt>Find all authentication-related files in the codebase</Prompt>
   </Teammate>
 );
 
 // Example 3: Synchronous teammate (foreground, using enum)
 const SyncTeammate = () => (
-  <Teammate name="quick-check" type={AgentType.Bash} background={false}>
+  <Teammate name="quick-check" type={AgentType.Bash} background={false} description="Git status check">
     <Prompt>Run git status and return results</Prompt>
   </Teammate>
 );
 
 // Example 4: Complex prompt with detailed instructions (using enum)
 const DetailedTeammate = () => (
-  <Teammate name="security-auditor" type={PluginAgentType.SecuritySentinel} model={Model.Sonnet}>
+  <Teammate name="security-auditor" type={PluginAgentType.SecuritySentinel} model={Model.Sonnet} description="Security audit">
     <Prompt>
       {`You are a security auditor for this codebase.
 
@@ -178,6 +194,7 @@ When done:
  *   team_name: "{team}",
  *   name: "worker",
  *   subagent_type: "general-purpose",
+ *   description: "Task worker",
  *   prompt: `Complete assigned tasks`,
  *   run_in_background: true
  * })
@@ -196,6 +213,7 @@ When done:
  *   team_name: "{team}",
  *   name: "researcher",
  *   subagent_type: "Explore",
+ *   description: "Find auth files",
  *   prompt: `Find all authentication-related files in the codebase`,
  *   model: "haiku",
  *   run_in_background: true

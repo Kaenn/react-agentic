@@ -22,14 +22,20 @@ export { Variables, interpolate, createPromptTemplate, t };
 
 interface PromptProps {
   /**
-   * The prompt content - can be string or template literal
-   * Preserves whitespace and formatting
+   * The prompt content - supports full JSX (BlockContent elements)
+   *
+   * Supported elements:
+   * - HTML: <h1>-<h6>, <p>, <ul>, <ol>, <blockquote>, <pre>, etc.
+   * - Components: <XmlBlock>, <Table>, <List>, <ExecutionContext>, etc.
+   * - Text content and template literals
+   *
+   * Children are transformed to markdown string for Task.prompt
    * @required
    */
-  children: string | React.ReactNode;
+  children: React.ReactNode;
 
   /**
-   * Variables for interpolation - replaces ${var} in content
+   * Variables for interpolation - replaces ${var} in text content
    * @optional
    */
   vars?: Variables;
@@ -71,9 +77,9 @@ Return a list of files with brief descriptions.`}
   </Teammate>
 );
 
-// Example 3: Structured prompt with sections
-const StructuredPrompt = () => (
-  <Teammate name="security-reviewer" type="security-sentinel">
+// Example 3: Structured prompt with template literal sections
+const StructuredPromptTemplate = () => (
+  <Teammate name="security-reviewer" type="security-sentinel" description="Security review">
     <Prompt>
       {`# Security Review Task
 
@@ -99,6 +105,45 @@ Send findings to team-lead with:
 - Location: file:line
 - Description: What the issue is
 - Recommendation: How to fix`}
+    </Prompt>
+  </Teammate>
+);
+
+// Example 3b: Structured prompt with full JSX (RECOMMENDED for complex prompts)
+const StructuredPromptJSX = () => (
+  <Teammate name="security-reviewer" type="security-sentinel" description="Security review">
+    <Prompt>
+      <h1>Security Review Task</h1>
+
+      <h2>Objective</h2>
+      <p>Review the payment processing module for security vulnerabilities.</p>
+
+      <XmlBlock name="focus_areas">
+        <h3>Input Validation</h3>
+        <ul>
+          <li>Check all user inputs are sanitized</li>
+          <li>Verify SQL parameterization</li>
+        </ul>
+
+        <h3>Authentication</h3>
+        <ul>
+          <li>Verify JWT token validation</li>
+          <li>Check session management</li>
+        </ul>
+      </XmlBlock>
+
+      <h2>Output Format</h2>
+      <Table
+        headers={["Field", "Description"]}
+        rows={[
+          ["Severity", "Critical/High/Medium/Low"],
+          ["Location", "file:line"],
+          ["Description", "What the issue is"],
+          ["Recommendation", "How to fix"],
+        ]}
+      />
+
+      <ExecutionContext paths={["SECURITY_RULES.md"]} />
     </Prompt>
   </Teammate>
 );
