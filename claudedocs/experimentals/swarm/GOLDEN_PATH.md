@@ -8,19 +8,32 @@ Core components that deliver 80% of swarm authoring value.
 
 ## Phase 1: Type-Safe References
 
-### `defineTask(subject)`
+### `defineTask(subject, name?)`
 
 ```tsx
 import { defineTask } from 'react-agentic/swarm';
 
+// Simple usage (name derived from subject)
 const Research = defineTask('Research best practices');
-const Plan = defineTask('Create implementation plan');
-const Implement = defineTask('Build the feature');
-
 // Research.subject = "Research best practices"
-// Minimal interface: only subject (maps to TaskCreate.subject)
-// No .id or .name - IDs assigned at emit time using object identity
-// Cross-file safe: import tasks from other files, order in JSX determines IDs
+// Research.name = "research-best-p" (auto-derived, truncated to 15 chars)
+
+// Explicit name for cleaner mermaid labels
+const Plan = defineTask('Create implementation plan', 'plan');
+// Plan.subject = "Create implementation plan"
+// Plan.name = "plan"
+
+const Implement = defineTask('Build the feature', 'implement');
+```
+
+**TaskRef interface:**
+```typescript
+interface TaskRef {
+  subject: string;           // Human-readable title (TaskCreate.subject)
+  name: string;              // Short label for mermaid (derived if not provided)
+  __id: string;              // UUID for cross-file identity (internal)
+  readonly __isTaskRef: true; // Type guard marker
+}
 ```
 
 ### `defineWorker(name, type, model?)`
@@ -54,6 +67,17 @@ const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
 | `PluginAgentType.ArchitectureStrategist` | `"compound-engineering:review:architecture-strategist"` |
 | `PluginAgentType.BestPracticesResearcher` | `"compound-engineering:research:best-practices-researcher"` |
 
+**WorkerRef interface:**
+```typescript
+interface WorkerRef {
+  name: string;
+  type: string;
+  model?: string;
+  __id: string;               // UUID for identity (internal)
+  readonly __isWorkerRef: true;
+}
+```
+
 ### `defineTeam(name, members?)`
 
 ```tsx
@@ -63,6 +87,16 @@ const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
 
 // ReviewTeam.name = "pr-review"
 // ReviewTeam.members = [Security, Perf]
+```
+
+**TeamRef interface:**
+```typescript
+interface TeamRef {
+  name: string;
+  members?: WorkerRef[];
+  __id: string;               // UUID for identity (internal)
+  readonly __isTeamRef: true;
+}
 ```
 
 ---
@@ -81,6 +115,9 @@ const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
 
 **Usage:**
 ```tsx
+const Research = defineTask('Research best practices', 'research');
+const Plan = defineTask('Create implementation plan', 'plan');
+
 <TaskDef
   task={Research}
   description="Research OAuth2 best practices and compare providers"
@@ -95,31 +132,30 @@ const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
 />
 ```
 
-**Output:**
+**Output (batched format):**
 ```markdown
 #### Task #1: Research best practices
 
+#### Task #2: Create implementation plan
+
 ```javascript
+// Create all tasks
 TaskCreate({
   subject: "Research best practices",
   description: "Research OAuth2 best practices and compare providers",
   activeForm: "Researching OAuth..."
 })
-```
-
-#### Task #2: Create implementation plan
-
-```javascript
 TaskCreate({
   subject: "Create implementation plan",
   description: "Create implementation plan based on research findings",
   activeForm: "Planning..."
 })
 
+// Set up dependencies
 TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 ```
 
-**Blocked by:** #1 (research)
+**Blocked by:** #1 (Research best practices)
 ```
 
 ---
@@ -130,11 +166,16 @@ TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `title` | `string` | No | Pipeline title |
-| `autoChain` | `boolean` | No | Auto-add `blockedBy` to each subsequent task |
+| `autoChain` | `boolean` | No | Auto-add `blockedBy` to each subsequent task (default: false) |
 | `children` | `TaskDef[]` | Yes | Tasks in sequence |
 
 **Usage:**
 ```tsx
+const Research = defineTask('Research best practices', 'research');
+const Plan = defineTask('Create implementation plan', 'plan');
+const Implement = defineTask('Build the feature', 'implement');
+const Test = defineTask('Write tests', 'test');
+
 <TaskPipeline title="OAuth Implementation" autoChain>
   <TaskDef task={Research} description="Research OAuth2 providers" activeForm="Researching..." />
   <TaskDef task={Plan} description="Design implementation approach" activeForm="Planning..." />
@@ -143,17 +184,20 @@ TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 </TaskPipeline>
 ```
 
-**Output:**
+**Output (edge-per-line mermaid, batched code):**
 ```markdown
 ### OAuth Implementation
 
 ```mermaid
 flowchart LR
-    T1[research] --> T2[plan] --> T3[implement] --> T4[test]
+    T1[research]
+    T1 --> T2[plan]
+    T2 --> T3[implement]
+    T3 --> T4[test]
 ```
 
 ```javascript
-// Create tasks
+// Create all tasks
 TaskCreate({ subject: "Research best practices", description: "Research OAuth2 providers", activeForm: "Researching..." })
 TaskCreate({ subject: "Create implementation plan", description: "Design implementation approach", activeForm: "Planning..." })
 TaskCreate({ subject: "Build the feature", description: "Build OAuth2 integration", activeForm: "Implementing..." })
@@ -171,6 +215,58 @@ TaskUpdate({ taskId: "4", addBlockedBy: ["3"] })
 | 2 | Create implementation plan | #1 |
 | 3 | Build the feature | #2 |
 | 4 | Write tests | #3 |
+```
+
+---
+
+### `createPipeline()` Builder
+
+Convenience builder for sequential pipelines.
+
+**Usage:**
+```tsx
+import { createPipeline, TaskPipeline, TaskDef } from 'react-agentic/swarm';
+
+const pipeline = createPipeline('OAuth Implementation')
+  .task('Research OAuth providers', 'research')
+  .task('Create implementation plan', 'plan')
+  .task('Build OAuth endpoints', 'implement')
+  .build();
+
+// Access individual task refs
+const { research, plan, implement } = pipeline.tasks;
+
+// Use in JSX
+<TaskPipeline title={pipeline.title}>
+  {pipeline.stages.map(stage => (
+    <TaskDef
+      key={stage.task.__id}
+      task={stage.task}
+      description={stage.description ?? ''}
+      blockedBy={stage.blockedBy}
+    />
+  ))}
+</TaskPipeline>
+```
+
+**Builder interface:**
+```typescript
+interface PipelineBuilder {
+  task(subject: string, name?: string, description?: string): PipelineBuilder;
+  build(): Pipeline;
+}
+
+interface Pipeline {
+  title: string;
+  tasks: Record<string, TaskRef>;  // Keyed by name
+  stages: PipelineStage[];
+}
+
+interface PipelineStage {
+  task: TaskRef;
+  description?: string;
+  blockedBy: TaskRef[];  // Auto-set to previous task
+}
 ```
 
 ---
@@ -341,9 +437,9 @@ Teammate({ operation: "cleanup" })
 
 **Usage:**
 ```tsx
-const Research = defineTask('Research');
-const Plan = defineTask('Plan');
-const Implement = defineTask('Implement');
+const Research = defineTask('Research', 'research');
+const Plan = defineTask('Plan', 'plan');
+const Implement = defineTask('Implement', 'implement');
 
 const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
 const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
@@ -423,14 +519,18 @@ Task({
 
 ```mermaid
 flowchart LR
-    T1[research] --> T2[plan] --> T3[implement]
+    T1[research]
+    T1 --> T2[plan]
+    T2 --> T3[implement]
 ```
 
 ```javascript
+// Create all tasks
 TaskCreate({ subject: "Research", description: "Research approach", activeForm: "Researching..." })
 TaskCreate({ subject: "Plan", description: "Create plan", activeForm: "Planning..." })
 TaskCreate({ subject: "Implement", description: "Build feature", activeForm: "Building..." })
 
+// Set up dependencies
 TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })
 ```
@@ -474,11 +574,11 @@ import {
   ShutdownSequence
 } from 'react-agentic/swarm';
 
-// Define task refs (no IDs needed - assigned at emit time)
-const Research = defineTask('Research OAuth providers');
-const Plan = defineTask('Create implementation plan');
-const Implement = defineTask('Implement OAuth');
-const Test = defineTask('Write tests');
+// Define task refs with explicit names for clean mermaid labels
+const Research = defineTask('Research OAuth providers', 'research');
+const Plan = defineTask('Create implementation plan', 'plan');
+const Implement = defineTask('Implement OAuth', 'implement');
+const Test = defineTask('Write tests', 'test');
 
 // Define worker refs
 const Researcher = defineWorker('researcher', PluginAgentType.BestPracticesResearcher);
@@ -536,7 +636,7 @@ export const OAuthWorkflow = () => (
 | `<Team team={ref}>` | `Teammate({ operation: "spawnTeam", team_name: ref.name })` |
 | `<Teammate worker={ref} prompt={...}>` | `Task({ team_name, name: ref.name, subagent_type: ref.type, prompt, run_in_background: true })` |
 | `<TaskDef task={ref} description={...}>` | `TaskCreate({ subject: ref.subject, description })` |
-| `blockedBy={[ref1, ref2]}` | `TaskUpdate({ taskId, addBlockedBy: ["1", "2"] })` (IDs resolved via object identity at emit time) |
+| `blockedBy={[ref1, ref2]}` | `TaskUpdate({ taskId, addBlockedBy: ["1", "2"] })` (IDs resolved via `__id` at emit time) |
 | `<ShutdownSequence workers={[...]}>` | `Teammate({ operation: "requestShutdown", target_agent_id })` then `Teammate({ operation: "cleanup" })` |
 
 ---
@@ -546,9 +646,9 @@ export const OAuthWorkflow = () => (
 | Phase | Components | Emits |
 |-------|------------|-------|
 | 1 | `defineTask`, `defineWorker`, `defineTeam` | (refs only) |
-| 2 | `<TaskDef>`, `<TaskPipeline>` | `TaskCreate`, `TaskUpdate` |
+| 2 | `<TaskDef>`, `<TaskPipeline>`, `createPipeline()` | `TaskCreate`, `TaskUpdate` |
 | 3 | `<Team>`, `<Teammate>` | `Teammate(spawnTeam)`, `Task` |
 | 4 | `<ShutdownSequence>` | `Teammate(requestShutdown)`, `Teammate(cleanup)` |
 | 5 | `<Workflow>` | Full orchestration |
 
-**Total: 5 components + 3 factory functions**
+**Total: 5 components + 4 factory functions**
