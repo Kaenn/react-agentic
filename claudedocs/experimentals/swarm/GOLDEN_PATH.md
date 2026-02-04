@@ -65,13 +65,6 @@ const ReviewTeam = defineTeam('pr-review', [Security, Perf]);
 // ReviewTeam.members = [Security, Perf]
 ```
 
-### `resetAllIds()`
-
-```tsx
-// Reset counters between test runs or separate workflows
-resetAllIds();
-```
-
 ---
 
 ## Phase 2: TaskDef + TaskPipeline
@@ -466,7 +459,6 @@ import {
   defineTask,
   defineWorker,
   defineTeam,
-  resetAllIds,
 
   // Enums
   AgentType,
@@ -559,4 +551,4 @@ export const OAuthWorkflow = () => (
 | 4 | `<ShutdownSequence>` | `Teammate(requestShutdown)`, `Teammate(cleanup)` |
 | 5 | `<Workflow>` | Full orchestration |
 
-**Total: 5 components + 3 helper functions**
+**Total: 5 components + 3 factory functions**

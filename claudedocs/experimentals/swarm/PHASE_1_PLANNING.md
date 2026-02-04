@@ -1,16 +1,15 @@
 # Phase 1: Type-Safe References — Planning Document
 
-Implementation planning for `defineTask()`, `defineWorker()`, `defineTeam()`, `resetAllIds()`.
+Implementation planning for `defineTask()`, `defineWorker()`, `defineTeam()`.
 
 ---
 
 ## Objective
 
 Create type-safe reference factories that:
-1. Generate predictable IDs for tasks
+1. Provide minimal TaskRef with `subject` only (IDs assigned at emit time)
 2. Map agent types to Claude Code `subagent_type` values
 3. Track team membership
-4. Support ID reset between workflows
 
 ---
 
@@ -49,22 +48,21 @@ These refs are **compile-time only**. They don't emit markdown directly — they
 | Pattern | Source | Applies To |
 |---------|--------|------------|
 | Brand types | `src/components/runtime-var.ts` | All refs need `__isTaskRef`, `__isWorkerRef` markers |
-| Registry pattern | `src/components/runtime-fn.ts` | Task ID counter, optional ref tracking |
 | Type guards | `runtime-var.ts`, `runtime-fn.ts` | `isTaskRef()`, `isWorkerRef()`, `isTeamRef()` |
-| Factory functions | `src/components/Agent.ts` | `defineWorker()` already exists (extend it) |
+| Factory functions | `src/components/Agent.ts` | `defineAgent()` pattern to follow |
 | Enum mapping | (new) | `AgentType` → `subagent_type` string |
 
 ### What Already Exists
 
-1. **WorkerRef pattern** in `src/components/Agent.ts`:
+1. **AgentRef pattern** in `src/components/Agent.ts`:
    ```typescript
-   interface WorkerRef<TInput = unknown> {
+   interface AgentRef<TInput = unknown> {
      name: string;
      path?: string;
-     __isWorkerRef: true;
+     __isAgentRef: true;
    }
 
-   function defineWorker<TInput>(config): WorkerRef<TInput> { ... }
+   function defineAgent<TInput>(config): AgentRef<TInput> { ... }
    ```
 
 2. **Registry pattern** in `src/components/runtime-fn.ts`:
@@ -97,9 +95,9 @@ These refs are **compile-time only**. They don't emit markdown directly — they
 **Recommendation:** Option A — `src/components/swarm/`
 
 Rationale: Swarm is a coherent feature set. Dedicated folder allows:
-- `src/components/swarm/refs.ts` — TaskRef, WorkerRef extensions, TeamRef
-- `src/components/swarm/enums.ts` — AgentType, PluginAgentType, Model, MessageType
-- `src/components/swarm/registry.ts` — ID counters, optional ref tracking
+- `src/components/swarm/refs.ts` — TaskRef, WorkerRef, TeamRef interfaces + factories
+- `src/components/swarm/enums.ts` — AgentType, PluginAgentType, Model
+- `src/components/swarm/guards.ts` — Type guards
 - `src/components/swarm/index.ts` — Clean re-exports
 
 ---
@@ -307,11 +305,11 @@ function resolveBlockedBy(refs: TaskRef[]): string[] {
 src/components/swarm/
 ├── index.ts           # Re-exports all swarm utilities
 ├── refs.ts            # TaskRef, WorkerRef, TeamRef interfaces + factories
-├── enums.ts           # AgentType, PluginAgentType, Model, MessageType, TaskStatus
+├── enums.ts           # AgentType, PluginAgentType, Model
 └── guards.ts          # isTaskRef(), isWorkerRef(), isTeamRef()
 ```
 
-Note: No `registry.ts` needed — numeric IDs assigned at emit time (Phase 2+), not in refs.
+Note: No registry needed — numeric IDs assigned at emit time (Phase 2+), not in refs.
 
 ---
 
@@ -439,10 +437,7 @@ export { TaskRef, WorkerRef, TeamRef } from './refs';
 export { defineTask, defineWorker, defineTeam } from './refs';
 
 // Enums
-export { AgentType, PluginAgentType, Model, MessageType, TaskStatus } from './enums';
-
-// Registry
-export { resetAllIds } from './registry';
+export { AgentType, PluginAgentType, Model } from './enums';
 
 // Guards
 export { isTaskRef, isWorkerRef, isTeamRef } from './guards';
@@ -575,10 +570,10 @@ Integration tests with components (`<TaskDef>`, `<Teammate>`) are deferred to Ph
 4. **Implement guards** — `guards.ts` (type guards)
 5. **Create index** — `index.ts` (re-exports)
 6. **Update main exports** — `jsx.ts`, `index.ts`
+7. **Add tests** — Unit tests for all above
+8. **Update package.json** — Add `exports` field for subpath
 
 Note: No registry/counter needed for Phase 1 — numeric IDs assigned at emit time (Phase 2+).
-8. **Add tests** — Unit tests for all above
-9. **Update package.json** — Add `exports` field for subpath
 
 ---
 
@@ -586,14 +581,13 @@ Note: No registry/counter needed for Phase 1 — numeric IDs assigned at emit ti
 
 | Item | Files | Lines (approx) |
 |------|-------|----------------|
-| Enums | 1 | 40 |
-| Registry | 1 | 20 |
+| Enums | 1 | 30 |
 | Refs | 1 | 60 |
 | Guards | 1 | 30 |
 | Index | 1 | 15 |
 | Main exports update | 2 | 5 |
 | Tests | 1 | 100 |
-| **Total** | **8** | **~270** |
+| **Total** | **7** | **~240** |
 
 ---
 
