@@ -77,6 +77,7 @@ export {
 
 export {
   useRuntimeVar,
+  useVariable,
   isRuntimeVar,
   getRuntimeVarInfo,
   toJqExpression,
@@ -142,3 +143,42 @@ export {
   type AskUserProps,
   type AskUserOption,
 } from './ask-user.js';
+
+// ============================================================================
+// Reference Printing
+// ============================================================================
+
+export {
+  Ref,
+  REF_MARKER,
+  type RefProps,
+} from './Ref.js';
+
+// ============================================================================
+// Agent Contract Components
+// ============================================================================
+
+export {
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  StatusReturn,
+  StructuredReturns,
+  type ContractComponentProps,
+  type StatusReturnProps,
+  type StructuredReturnsProps,
+} from './contract.js';
+
+// ============================================================================
+// Meta-Prompting Components
+// ============================================================================
+
+// Meta-prompting components removed in Phase 38 Plan 04
+// Use Assign with file() source helper instead
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export * from './swarm/index.js';

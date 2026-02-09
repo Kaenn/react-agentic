@@ -53,7 +53,7 @@ export function getAttributeValue(
       return expr.getLiteralText();
     }
 
-    // Template literal: prop={`value`}
+    // Template literal: prop={`value`} or prop={`value ${var}`}
     if (Node.isTemplateExpression(expr) || Node.isNoSubstitutionTemplateLiteral(expr)) {
       return expr.getText().slice(1, -1); // Remove backticks
     }
@@ -180,9 +180,27 @@ export function getElementName(
 }
 
 /**
- * Check if a name looks like a custom component (PascalCase)
+ * Built-in components that should not be treated as custom user components
+ */
+const BUILTIN_COMPONENTS = new Set([
+  'Command', 'Agent', 'SpawnAgent', 'Markdown', 'XmlBlock', 'Assign', 'AssignGroup',
+  'If', 'Else', 'Loop', 'Break', 'Return', 'AskUser', 'OnStatus', 'OnStatusDefault',
+  'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
+  'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation',
+  'Table', 'List', 'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
+  'Step', 'Bash', 'ReadFiles', 'PromptTemplate', 'Indent',
+  'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
+  'StructuredReturns', 'StatusReturn', 'ReturnStatus',
+  // Swarm components
+  'TaskDef', 'TaskPipeline',
+]);
+
+/**
+ * Check if a name looks like a custom component (PascalCase) but NOT a builtin
  */
 export function isCustomComponent(name: string): boolean {
+  if (BUILTIN_COMPONENTS.has(name)) return false;
   return /^[A-Z]/.test(name);
 }
 
@@ -521,6 +539,11 @@ export function extractRuntimeCallArg(
     return { type: 'literal', value: expr.getLiteralValue() };
   }
 
+  // Template literal with substitution - convert RuntimeVars to shell format
+  if (Node.isTemplateExpression(expr)) {
+    return { type: 'literal', value: extractTemplateContentWithRuntimeVars(expr, ctx) };
+  }
+
   // Nested object
   if (Node.isObjectLiteralExpression(expr)) {
     const nested: Record<string, RuntimeCallArgValue> = {};
@@ -542,7 +565,28 @@ export function extractRuntimeCallArg(
     return { type: 'json', value: items };
   }
 
-  // Ternary, binary expressions, etc. - generate description
+  // Unwrap parenthesized expressions for proper handling
+  if (Node.isParenthesizedExpression(expr)) {
+    return extractRuntimeCallArg(expr.getExpression(), ctx);
+  }
+
+  // Ternary with RuntimeVar condition - create structured conditional
+  if (Node.isConditionalExpression(expr)) {
+    const condition = expr.getCondition();
+    const conditionRef = parseRuntimeVarRef(condition, ctx);
+
+    if (conditionRef) {
+      return {
+        type: 'conditional',
+        condition: conditionRef,
+        whenTrue: extractRuntimeCallArg(expr.getWhenTrue(), ctx),
+        whenFalse: extractRuntimeCallArg(expr.getWhenFalse(), ctx),
+      };
+    }
+    // Fall through to expression type if condition is not a simple RuntimeVar
+  }
+
+  // Binary expressions, prefix unary, or complex conditionals - generate description
   if (Node.isConditionalExpression(expr) || Node.isBinaryExpression(expr) || Node.isPrefixUnaryExpression(expr)) {
     return {
       type: 'expression',
@@ -592,6 +636,93 @@ export function extractRuntimeCallArgs(
   }
 
   return result;
+}
+
+// ============================================================================
+// Array Extraction with RuntimeVar Support
+// ============================================================================
+
+/**
+ * Get array items from a JSX attribute with RuntimeVar template support
+ *
+ * Handles:
+ * - String literals: "item"
+ * - Template literals with RuntimeVar interpolation: `cat ${ctx.phaseDir}/*`
+ *
+ * @param element - The JSX element
+ * @param attrName - The attribute name
+ * @param ctx - Transform context
+ * @returns Array of strings with RuntimeVar references resolved to $VAR.path syntax
+ */
+export function getArrayWithRuntimeVars(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  attrName: string,
+  ctx: RuntimeTransformContext
+): string[] | undefined {
+  const attr = element.getAttribute(attrName);
+  if (!attr || !Node.isJsxAttribute(attr)) return undefined;
+
+  const init = attr.getInitializer();
+  if (!init || !Node.isJsxExpression(init)) return undefined;
+
+  const expr = init.getExpression();
+  if (!expr || !Node.isArrayLiteralExpression(expr)) return undefined;
+
+  const results: string[] = [];
+  for (const el of expr.getElements()) {
+    if (Node.isStringLiteral(el)) {
+      results.push(el.getLiteralValue());
+    } else if (Node.isNoSubstitutionTemplateLiteral(el)) {
+      results.push(el.getLiteralValue());
+    } else if (Node.isTemplateExpression(el)) {
+      const parts: string[] = [];
+      parts.push(el.getHead().getLiteralText());
+      for (const span of el.getTemplateSpans()) {
+        const spanExpr = span.getExpression();
+        const ref = parseRuntimeVarRef(spanExpr, ctx);
+        if (ref) {
+          const pathStr = ref.path.length === 0
+            ? ''
+            : ref.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+          parts.push(`$${ref.varName}${pathStr}`);
+        } else {
+          parts.push(`\${${spanExpr.getText()}}`);
+        }
+        parts.push(span.getLiteral().getLiteralText());
+      }
+      results.push(parts.join(''));
+    }
+  }
+  return results.length > 0 ? results : undefined;
+}
+
+/**
+ * Extract template literal content with RuntimeVar interpolation
+ * Converts RuntimeVar references to {$VARNAME.path} format for readability
+ */
+export function extractTemplateContentWithRuntimeVars(
+  expr: import('ts-morph').TemplateExpression,
+  ctx: RuntimeTransformContext
+): string {
+  const parts: string[] = [];
+  parts.push(expr.getHead().getLiteralText());
+
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    const ref = parseRuntimeVarRef(spanExpr, ctx);
+    if (ref) {
+      const pathStr = ref.path.length === 0
+        ? ''
+        : ref.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+      parts.push(`{$${ref.varName}${pathStr}}`);
+    } else {
+      // Preserve as shell variable syntax for non-RuntimeVar expressions
+      parts.push(`\${${spanExpr.getText()}}`);
+    }
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
 }
 
 // ============================================================================

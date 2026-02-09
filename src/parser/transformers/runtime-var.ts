@@ -34,9 +34,11 @@ export function extractRuntimeVarDeclarations(
     const init = node.getInitializer();
     if (!init || !Node.isCallExpression(init)) return;
 
-    // Check if it's a useRuntimeVar call
+    // Check if it's a useRuntimeVar or useVariable call (unified API)
     const expr = init.getExpression();
-    if (!Node.isIdentifier(expr) || expr.getText() !== 'useRuntimeVar') return;
+    if (!Node.isIdentifier(expr)) return;
+    const funcName = expr.getText();
+    if (funcName !== 'useRuntimeVar' && funcName !== 'useVariable') return;
 
     // Get the variable name argument (first arg)
     const args = init.getArguments();

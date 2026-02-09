@@ -686,7 +686,7 @@ describe('Local Component Inlining', () => {
       const output = buildCommand(tsx);
 
       expect(output).toContain('Status Check');
-      expect(output).toContain('**If ctx.success:**');
+      expect(output).toContain('**If $CTX.success:**');
     });
 
     it('works inside If block', () => {
@@ -713,7 +713,7 @@ describe('Local Component Inlining', () => {
 
       const output = buildCommand(tsx);
 
-      expect(output).toContain('**If ctx.success:**');
+      expect(output).toContain('**If $CTX.success:**');
       expect(output).toContain('Operation completed successfully!');
     });
   });

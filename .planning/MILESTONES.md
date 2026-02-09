@@ -1,5 +1,87 @@
 # Project Milestones: React Agentic
 
+## v3.0 Primitive/Composite Architecture (Shipped: 2026-01-31)
+
+**Delivered:** Established primitive/composite component architecture for customizable workflow patterns.
+
+**Phases completed:** 27-33 (13 plans total)
+
+**Key accomplishments:**
+
+- Safety baseline: 64 snapshot tests capturing all component output + primitive registry (22 components across 3 layers)
+- Content type system: CommandContent, AgentContent, SubComponentContent discriminated unions for type-safe content constraints
+- Reference printing: RuntimeVar/RuntimeFn shell variable syntax ($VAR.path), Ref component for explicit reference printing
+- Component composition: Full props and children support in custom components, fragment composition
+- Composite library: 7 user-definable convenience wrappers (IfElseBlock, LoopWithBreak, SpawnAgentWithRetry, StepSection, DataTable, BulletList, FileContext)
+- Documentation: Primitive/composite architecture guide with user-facing patterns and examples
+
+**Stats:**
+
+- 95 files changed (+16,984 / -164 lines)
+- 49,295 total lines of TypeScript
+- 7 phases, 13 plans
+- 11 days from start to ship
+
+**Git range:** `feat(27-02)` → `docs(33)`
+
+**What's next:** v3.1 or v4.0 based on user feedback
+
+---
+
+## v2.1 Parser Refactoring (Shipped: 2026-01-31)
+
+**Delivered:** Split monolithic parser files into organized submodules for maintainability.
+
+**Phases completed:** 26 (4 plans total)
+
+**Key accomplishments:**
+
+- Split parser.ts (1255 lines) into utils/ directory with 7 focused modules
+- Split transformer.ts (3956 lines) into transformers/ directory with 10 focused modules
+- Central index.ts re-exports all public APIs (no breaking changes)
+- All existing tests pass after refactoring
+
+**Stats:**
+
+- 20 files created/modified
+- 46,800 total lines of TypeScript
+- 1 phase, 4 plans
+- 1 day from start to ship
+
+**Git range:** `feat(26-01)` → `feat(26-04)`
+
+**What's next:** v3.0 Primitive/Composite Architecture
+
+---
+
+## v2.0 TSX Syntax Improvements (Shipped: 2026-01-27)
+
+**Delivered:** Improved TSX authoring ergonomics with module restructure, semantic components, structured props (Table/List), and render props pattern for context access.
+
+**Phases completed:** 20-25 (17 plans total)
+
+**Key accomplishments:**
+
+- Module restructure: Split jsx.ts (1044 -> 107 lines) into primitives/ and workflow/ directories
+- Structured props: Table with headers/rows/alignment and List with items/ordered/start
+- Semantic components: ExecutionContext, SuccessCriteria, OfferNext, XML wrappers
+- Context access: Render props {(ctx) => ...} for Command/Agent, explicit generics
+- Step component: Numbered workflow sections with heading/bold/xml variants
+- Documentation: 1,130 lines of new docs with TSX -> markdown examples
+
+**Stats:**
+
+- 17 files created/modified
+- 45,543 total lines of TypeScript
+- 6 phases, 17 plans
+- 2 days from start to ship
+
+**Git range:** Phase 20 -> Phase 25
+
+**What's next:** v2.1 Parser Refactoring (split parser.ts and transformer.ts into submodules)
+
+---
+
 ## v1.8 Scoped State Skills (Shipped: 2026-01-26)
 
 **Delivered:** Provider-agnostic scoped state skills with SQLite backend — State<TSchema> components generate deterministic CRUD skills without AI interpretation.
@@ -12,7 +94,7 @@
 - SQLite provider generating bash/sqlite3 code templates for CRUD operations
 - Auto-generated skills: init, read, write, delete per state definition
 - Custom Operation support for semantic operations (e.g., `releases.record`)
-- TypeScript → SQL schema mapping with type validation and enum constraints
+- TypeScript -> SQL schema mapping with type validation and enum constraints
 
 **Stats:**
 
@@ -21,7 +103,7 @@
 - 1 phase, 4 plans
 - 1 day from start to ship
 
-**Git range:** `feat(19-01)` → `feat(19-04)`
+**Git range:** `feat(19-01)` -> `feat(19-04)`
 
 **What's next:** Additional providers (localfile, supabase), state migration tooling
 
@@ -49,7 +131,7 @@
 - 7 phases, 17 plans
 - 2 days from project start to ship
 
-**Git range:** `feat(01-02)` → `feat(07-02)`
+**Git range:** `feat(01-02)` -> `feat(07-02)`
 
 **What's next:** v2 features (config file, incremental compilation, parallel processing)
 

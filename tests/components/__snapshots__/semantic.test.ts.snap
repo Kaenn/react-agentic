@@ -1,0 +1,110 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Semantic Components > ExecutionContext > emits ExecutionContext with basic paths 1`] = `
+"<execution_context>
+@.planning/PROJECT.md
+@.planning/STATE.md
+@docs/README.md
+</execution_context>
+"
+`;
+
+exports[`Semantic Components > ExecutionContext > emits ExecutionContext with children 1`] = `
+"<execution_context>
+@package.json
+@tsconfig.json
+
+Additional context about these files.
+</execution_context>
+"
+`;
+
+exports[`Semantic Components > ExecutionContext > emits ExecutionContext with custom prefix 1`] = `
+"<execution_context>
+#src/components/Button.tsx
+#src/components/Input.tsx
+</execution_context>
+"
+`;
+
+exports[`Semantic Components > Step > emits Step with bold variant 1`] = `
+"**Step 2: Install Dependencies**
+
+Run npm install.
+"
+`;
+
+exports[`Semantic Components > Step > emits Step with complex content 1`] = `
+"## Step 4: Run Tests
+
+Execute the test suite with **coverage**:
+
+\`\`\`bash
+npm test -- --coverage
+\`\`\`
+
+Verify all tests pass.
+"
+`;
+
+exports[`Semantic Components > Step > emits Step with heading variant 1`] = `
+"## Step 1: Initialize Project
+
+Create a new project directory.
+"
+`;
+
+exports[`Semantic Components > Step > emits Step with sub-step numbering 1`] = `
+"## Step 1.1: Create Subdirectory
+
+Create the src directory.
+"
+`;
+
+exports[`Semantic Components > Step > emits Step with xml variant 1`] = `
+"<step number="3" name="Configure Build">
+
+Set up the build configuration.
+
+</step>
+"
+`;
+
+exports[`Semantic Components > XmlBlock > emits XmlBlock with attributes 1`] = `
+"<section id="intro" class="important">
+Section content here.
+</section>
+"
+`;
+
+exports[`Semantic Components > XmlBlock > emits XmlBlock with basic name and children 1`] = `
+"<objective>
+Complete the migration to TypeScript.
+</objective>
+"
+`;
+
+exports[`Semantic Components > XmlBlock > emits XmlBlock with mixed content 1`] = `
+"<instructions>
+Follow these steps:
+
+1. First step
+2. Second step
+
+\`\`\`bash
+npm install
+\`\`\`
+</instructions>
+"
+`;
+
+exports[`Semantic Components > XmlBlock > emits nested XmlBlocks 1`] = `
+"<task>
+## Task Title
+
+<details>
+Inner block content.
+</details>
+</task>
+"
+`;

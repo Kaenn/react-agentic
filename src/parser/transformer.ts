@@ -11,6 +11,7 @@ import {
   JsxSelfClosingElement,
   JsxFragment,
   JsxOpeningElement,
+  JsxAttribute,
   JsxSpreadAttribute,
   SourceFile,
   TemplateExpression,
@@ -42,6 +43,8 @@ import type {
   ElseNode,
   LoopNode,
   OnStatusNode,
+  OnStatusDefaultNode,
+  OutputReference,
   SkillDocumentNode,
   SkillFrontmatterNode,
   SkillFileNode,
@@ -65,7 +68,11 @@ import type {
   ReadFilesNode,
   ReadFileEntry,
   PromptTemplateNode,
+  StructuredReturnsNode,
+  ReturnStatusNode,
 } from '../ir/index.js';
+// Note: RoleNode, UpstreamInputNode, DownstreamConsumerNode, MethodologyNode
+// are no longer needed. Those components are now composites that emit XmlBlockNode.
 import { getElementName, getAttributeValue, getTestAttributeValue, extractText, extractInlineText, getArrayAttributeValue, resolveSpreadAttribute, resolveComponentImport, extractTypeArguments, extractVariableDeclarations, extractInputObjectLiteral, resolveTypeImport, extractInterfaceProperties, extractStateSchema, extractSqlArguments, analyzeRenderPropsChildren, type ExtractedVariable, type RenderPropsInfo } from './parser.js';
 
 // Document transformers - extracted functions for Agent, Skill, MCPConfig, State
@@ -76,6 +83,10 @@ import {
   transformState as documentTransformState,
 } from './transformers/document.js';
 import type { TransformContext } from './transformers/types.js';
+
+// Swarm transformers
+import { transformTaskDef, transformTaskPipeline, transformShutdownSequence, transformWorkflow } from './transformers/swarm.js';
+import type { TaskDefNode, TaskPipelineNode, ShutdownSequenceNode, WorkflowNode } from '../ir/swarm-nodes.js';
 
 // ============================================================================
 // Utility Functions
@@ -121,7 +132,7 @@ function isInlineElement(tagName: string): boolean {
  * Special component names that are NOT custom user components
  */
 const SPECIAL_COMPONENTS = new Set([
-  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus',
+  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus', 'OnStatusDefault',
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
@@ -135,6 +146,8 @@ const SPECIAL_COMPONENTS = new Set([
   'ReadFiles',
   // Template primitives
   'PromptTemplate',
+  // Swarm components
+  'TaskDef', 'TaskPipeline', 'ShutdownSequence', 'Workflow',
 ]);
 
 /**
@@ -519,6 +532,19 @@ export class Transformer {
       return this.transformOnStatus(node);
     }
 
+    // OnStatusDefault component - standalone is an error (must follow OnStatus as sibling OR have output prop)
+    if (name === 'OnStatusDefault') {
+      // Allow with explicit output prop
+      const openingElement = Node.isJsxElement(node)
+        ? node.getOpeningElement()
+        : node;
+      const hasOutputProp = openingElement.getAttribute('output');
+      if (!hasOutputProp) {
+        throw this.createError('<OnStatusDefault> must follow <OnStatus> as sibling or provide output prop', node);
+      }
+      return this.transformOnStatusDefault(node);
+    }
+
     // ReadState component - read state from registry
     if (name === 'ReadState') {
       return this.transformReadState(node);
@@ -578,6 +604,55 @@ export class Transformer {
     // PromptTemplate - wrap content in markdown code fence
     if (name === 'PromptTemplate') {
       return this.transformPromptTemplate(node);
+    }
+
+    // Swarm components
+    if (name === 'TaskDef') {
+      return transformTaskDef(node, this.buildContext());
+    }
+    if (name === 'TaskPipeline') {
+      return transformTaskPipeline(node, this.buildContext());
+    }
+    if (name === 'ShutdownSequence') {
+      return transformShutdownSequence(node, this.buildContext());
+    }
+    if (name === 'Workflow') {
+      return transformWorkflow(node, this.buildContext());
+    }
+
+    // Contract components (inside Agent)
+    // Role, UpstreamInput, DownstreamConsumer, Methodology are composites that wrap XmlBlock.
+    // We handle them directly here to avoid requiring imports.
+    if (name === 'Role') {
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'role', children: children as BaseBlockNode[] };
+    }
+    if (name === 'UpstreamInput') {
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'upstream_input', children: children as BaseBlockNode[] };
+    }
+    if (name === 'DownstreamConsumer') {
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'downstream_consumer', children: children as BaseBlockNode[] };
+    }
+    if (name === 'Methodology') {
+      const children = Node.isJsxElement(node)
+        ? this.transformBlockChildren(node.getJsxChildren())
+        : [];
+      return { kind: 'xmlBlock', name: 'methodology', children: children as BaseBlockNode[] };
+    }
+    if (name === 'StructuredReturns') {
+      return this.transformStructuredReturns(node);
+    }
+    if (name === 'ReturnStatus' || name === 'StatusReturn') {
+      // ReturnStatus/StatusReturn outside StructuredReturns - this is an error
+      throw this.createError(`${name} component can only be used inside StructuredReturns`, node);
     }
 
     // Markdown passthrough
@@ -1473,6 +1548,122 @@ export class Transformer {
     };
   }
 
+
+  /**
+   * Extract path prop value, handling strings, templates, and RuntimeVar references
+   *
+   * Converts RuntimeVar property access to shell variable syntax:
+   * - ctx.phaseDir -> $CTX_phaseDir
+   * - ctx.phaseId -> $CTX_phaseId
+   */
+  private extractPathProp(
+    element: JsxOpeningElement | JsxSelfClosingElement,
+    name: string,
+    node: Node
+  ): string | undefined {
+    const attr = element.getAttribute(name);
+    if (!attr || !Node.isJsxAttribute(attr)) {
+      return undefined;
+    }
+
+    const init = attr.getInitializer();
+    if (!init) {
+      return undefined;
+    }
+
+    // String literal: path="value"
+    if (Node.isStringLiteral(init)) {
+      return init.getLiteralValue();
+    }
+
+    // JSX expression: path={...}
+    if (Node.isJsxExpression(init)) {
+      const expr = init.getExpression();
+      if (!expr) {
+        return undefined;
+      }
+
+      // String literal inside expression: path={"value"}
+      if (Node.isStringLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // No-substitution template literal: path={`value`}
+      if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+        return expr.getLiteralValue();
+      }
+
+      // Template expression with substitutions: path={`${ctx.phaseDir}/file.md`}
+      if (Node.isTemplateExpression(expr)) {
+        return this.extractPathTemplateContent(expr);
+      }
+
+      // Property access: path={ctx.phaseDir} -> $CTX_phaseDir
+      if (Node.isPropertyAccessExpression(expr)) {
+        return this.formatPropertyAccessAsShellVar(expr);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract template literal content, converting RuntimeVar refs to shell syntax
+   *
+   * Template like: `${ctx.phaseDir}/${ctx.phaseId}-RESEARCH.md`
+   * Becomes: $CTX_phaseDir/$CTX_phaseId-RESEARCH.md
+   */
+  private extractPathTemplateContent(expr: TemplateExpression): string {
+    const parts: string[] = [];
+
+    // Head: text before first ${...}
+    parts.push(expr.getHead().getLiteralText());
+
+    // Spans: each has expression + literal text after
+    for (const span of expr.getTemplateSpans()) {
+      const spanExpr = span.getExpression();
+
+      // Check if it's a property access (RuntimeVar reference)
+      if (Node.isPropertyAccessExpression(spanExpr)) {
+        parts.push(this.formatPropertyAccessAsShellVar(spanExpr));
+      } else {
+        // Preserve other expressions as ${...} syntax
+        parts.push(`\${${spanExpr.getText()}}`);
+      }
+
+      parts.push(span.getLiteral().getLiteralText());
+    }
+
+    return parts.join('');
+  }
+
+  /**
+   * Format property access expression as shell variable
+   *
+   * ctx.phaseDir -> $CTX_phaseDir
+   * ctx.flags.research -> $CTX_flags_research
+   */
+  private formatPropertyAccessAsShellVar(expr: PropertyAccessExpression): string {
+    const parts: string[] = [];
+    let current: Node = expr;
+
+    // Walk up the property access chain
+    while (Node.isPropertyAccessExpression(current)) {
+      const propAccess = current as PropertyAccessExpression;
+      parts.unshift(propAccess.getName());
+      current = propAccess.getExpression();
+    }
+
+    // Get the base identifier (e.g., 'ctx')
+    if (Node.isIdentifier(current)) {
+      const baseName = current.getText().toUpperCase(); // ctx -> CTX
+      return `$${baseName}_${parts.join('_')}`;
+    }
+
+    // Fallback: just use the text as-is
+    return `\${${expr.getText()}}`;
+  }
+
   /**
    * Transform <ReadFiles> to ReadFilesNode
    *
@@ -1605,8 +1796,8 @@ export class Transformer {
 
     for (const span of tmpl.getTemplateSpans()) {
       const spanExpr = span.getExpression();
-      // Convert TS ${expr} to shell ${expr}
-      result += '${' + spanExpr.getText() + '}';
+      // Convert TS ${expr} to shell $VAR (without braces for simplicity)
+      result += '$' + spanExpr.getText();
       result += span.getLiteral().getLiteralText();
     }
 
@@ -1812,6 +2003,70 @@ export class Transformer {
     const content = parts.join('').trim();
 
     return { kind: 'raw', content };
+  }
+
+  // Note: transformRole, transformUpstreamInput, transformDownstreamConsumer, transformMethodology
+  // have been removed. Those components are now composites that wrap XmlBlock.
+
+  private transformReturnStatus(node: JsxElement | JsxSelfClosingElement): ReturnStatusNode {
+    const opening = Node.isJsxElement(node) ? node.getOpeningElement() : node;
+
+    const status = getAttributeValue(opening, 'status');
+    if (!status) {
+      throw this.createError('Return requires status prop', node);
+    }
+
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'returnStatus',
+      status,
+      children: children as BaseBlockNode[],
+    };
+  }
+
+  private transformStructuredReturns(node: JsxElement | JsxSelfClosingElement): StructuredReturnsNode {
+    if (Node.isJsxSelfClosingElement(node)) {
+      throw this.createError('StructuredReturns must have at least one child', node);
+    }
+
+    const returns: ReturnStatusNode[] = [];
+
+    for (const child of node.getJsxChildren()) {
+      // Skip whitespace-only text
+      if (Node.isJsxText(child)) {
+        const text = child.getText().trim();
+        if (!text) continue;
+        // Non-empty text inside StructuredReturns is an error
+        throw this.createError(
+          'StructuredReturns can only contain StatusReturn components, not text',
+          child
+        );
+      }
+
+      if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
+        const childName = getElementName(child);
+        if (childName === 'ReturnStatus' || childName === 'StatusReturn') {
+          returns.push(this.transformReturnStatus(child));
+        } else {
+          throw this.createError(
+            `StructuredReturns can only contain StatusReturn components, not <${childName}>`,
+            child
+          );
+        }
+      }
+    }
+
+    if (returns.length === 0) {
+      throw this.createError('StructuredReturns must have at least one StatusReturn child', node);
+    }
+
+    return {
+      kind: 'structuredReturns',
+      returns,
+    };
   }
 
   /**
@@ -2764,6 +3019,62 @@ export class Transformer {
     };
   }
 
+  /**
+   * Transform OnStatusDefault component to OnStatusDefaultNode
+   * Handles catch-all for agent output statuses
+   *
+   * @param node - JSX element
+   * @param outputRef - Output reference from preceding OnStatus (sibling detection) or explicit prop
+   */
+  private transformOnStatusDefault(
+    node: JsxElement | JsxSelfClosingElement,
+    outputRef?: OutputReference
+  ): OnStatusDefaultNode {
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+
+    // Check for explicit output prop
+    const outputAttr = openingElement.getAttribute('output');
+    let resolvedOutputRef: OutputReference | undefined = outputRef;
+
+    if (outputAttr && Node.isJsxAttribute(outputAttr)) {
+      const outputInit = outputAttr.getInitializer();
+      if (outputInit && Node.isJsxExpression(outputInit)) {
+        const outputExpr = outputInit.getExpression();
+        if (outputExpr && Node.isIdentifier(outputExpr)) {
+          const outputIdentifier = outputExpr.getText();
+          const agentName = this.outputs.get(outputIdentifier);
+          if (agentName) {
+            resolvedOutputRef = {
+              kind: 'outputReference',
+              agent: agentName,
+            };
+          }
+        }
+      }
+    }
+
+    // Validate we have an output reference
+    if (!resolvedOutputRef) {
+      throw this.createError(
+        'OnStatusDefault must follow OnStatus blocks or provide output prop',
+        openingElement
+      );
+    }
+
+    // Transform children as block content
+    const children = Node.isJsxElement(node)
+      ? this.transformBlockChildren(node.getJsxChildren())
+      : [];
+
+    return {
+      kind: 'onStatusDefault',
+      outputRef: resolvedOutputRef,
+      children: children as BaseBlockNode[],
+    };
+  }
+
   // ============================================================================
   // MCP Configuration Transformation
   // ============================================================================
@@ -2822,6 +3133,32 @@ export class Transformer {
               const elseNode = this.transformElse(sibling);
               blocks.push(elseNode);
               i = nextIndex; // Skip past Else in outer loop
+            }
+            break;
+          }
+        } else if (childName === 'OnStatus') {
+          // Transform OnStatus
+          const onStatusNode = this.transformOnStatus(child);
+          blocks.push(onStatusNode);
+
+          // Check for OnStatusDefault sibling
+          let nextIndex = i + 1;
+          while (nextIndex < jsxChildren.length) {
+            const sibling = jsxChildren[nextIndex];
+            // Skip whitespace-only text
+            if (Node.isJsxText(sibling)) {
+              const text = extractText(sibling);
+              if (!text) {
+                nextIndex++;
+                continue;
+              }
+            }
+            // Check if next non-whitespace is OnStatusDefault
+            if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))
+                && getElementName(sibling) === 'OnStatusDefault') {
+              const onStatusDefaultNode = this.transformOnStatusDefault(sibling, onStatusNode.outputRef);
+              blocks.push(onStatusDefaultNode);
+              i = nextIndex; // Skip past OnStatusDefault in outer loop
             }
             break;
           }
@@ -2892,43 +3229,208 @@ export class Transformer {
       );
     }
 
-    // Extract assignment from props (exactly one of bash, value, env)
-    const bashProp = this.extractAssignPropValue(openingElement, 'bash');
-    const valueProp = this.extractAssignPropValue(openingElement, 'value');
-    const envProp = this.extractAssignPropValue(openingElement, 'env');
+    // Check for from prop (required)
+    const fromProp = openingElement.getAttribute('from');
 
-    const propCount = [bashProp, valueProp, envProp].filter(p => p !== undefined).length;
-    if (propCount === 0) {
+    if (!fromProp) {
       throw this.createError(
-        'Assign requires one of: bash, value, or env prop',
-        openingElement
-      );
-    }
-    if (propCount > 1) {
-      throw this.createError(
-        'Assign accepts only one of: bash, value, or env prop',
+        'Assign requires from prop with a source helper: from={file(...)} or from={bash(...)} or from={value(...)} or from={env(...)}',
         openingElement
       );
     }
 
-    let assignment: { type: 'bash' | 'value' | 'env'; content: string };
-    if (bashProp !== undefined) {
-      assignment = { type: 'bash', content: bashProp };
-    } else if (valueProp !== undefined) {
-      assignment = { type: 'value', content: valueProp };
-    } else {
-      assignment = { type: 'env', content: envProp! };
+    if (!Node.isJsxAttribute(fromProp)) {
+      throw this.createError('from prop must be a regular attribute, not a spread', openingElement);
     }
 
     // Extract optional comment prop
     const commentProp = this.extractAssignPropValue(openingElement, 'comment');
 
+    const assignment = this.transformAssignFromProp(openingElement, fromProp);
     return {
       kind: 'assign',
       variableName: variable.envName,
       assignment,
       ...(commentProp && { comment: commentProp }),
     };
+  }
+
+  /**
+   * Transform an Assign from prop to assignment object
+   * Handles file(), bash(), value(), env() source helpers
+   */
+  private transformAssignFromProp(
+    openingElement: JsxOpeningElement | JsxSelfClosingElement,
+    fromAttr: JsxAttribute
+  ): AssignNode['assignment'] {
+    const init = fromAttr.getInitializer();
+    if (!init || !Node.isJsxExpression(init)) {
+      throw this.createError('Assign from must be a JSX expression: from={file(...)}', openingElement);
+    }
+
+    const expr = init.getExpression();
+    if (!expr) {
+      throw this.createError('Assign from must contain a source helper call', openingElement);
+    }
+
+    // Check if from prop is an Identifier (RuntimeFnComponent reference)
+    if (Node.isIdentifier(expr)) {
+      const identName = expr.getText();
+      const sourceFile = openingElement.getSourceFile();
+      const fnName = this.findRuntimeFnName(sourceFile, identName);
+
+      if (fnName) {
+        // Extract args prop (required for runtimeFn)
+        const argsAttr = openingElement.getAttribute('args');
+        let args: Record<string, unknown> = {};
+
+        if (argsAttr && Node.isJsxAttribute(argsAttr)) {
+          const argsInit = argsAttr.getInitializer();
+          if (argsInit && Node.isJsxExpression(argsInit)) {
+            const argsExpr = argsInit.getExpression();
+            if (argsExpr && Node.isObjectLiteralExpression(argsExpr)) {
+              args = this.extractArgsObject(argsExpr);
+            }
+          }
+        }
+
+        return { type: 'runtimeFn', fnName, args };
+      }
+    }
+
+    // Check if it's a call expression to a source helper (file, bash, value, env)
+    if (!Node.isCallExpression(expr)) {
+      throw this.createError(
+        'Assign from must be a source helper call: file(), bash(), value(), or env()',
+        openingElement
+      );
+    }
+
+    const fnExpr = expr.getExpression();
+    if (!Node.isIdentifier(fnExpr)) {
+      throw this.createError('Assign from must call a source helper: file(), bash(), value(), env()', openingElement);
+    }
+
+    const fnName = fnExpr.getText();
+    const args = expr.getArguments();
+
+    // Handle each source type
+    switch (fnName) {
+      case 'file': {
+        if (args.length === 0) {
+          throw this.createError('file() requires a path argument', openingElement);
+        }
+
+        const pathArg = args[0];
+        let path: string;
+
+        // Extract path from string literal or template
+        if (Node.isStringLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(pathArg)) {
+          path = pathArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(pathArg)) {
+          path = this.extractTemplatePath(pathArg);
+        } else {
+          throw this.createError('file() path must be a string or template literal', openingElement);
+        }
+
+        // Check for optional option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let optional = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const optionalProp = options.getProperty('optional');
+          if (optionalProp && Node.isPropertyAssignment(optionalProp)) {
+            const optInit = optionalProp.getInitializer();
+            if (optInit && (optInit.getText() === 'true' || optInit.getText() === 'false')) {
+              optional = optInit.getText() === 'true';
+            }
+          }
+        }
+
+        return { type: 'file', path, ...(optional && { optional }) };
+      }
+
+      case 'bash': {
+        if (args.length === 0) {
+          throw this.createError('bash() requires a command argument', openingElement);
+        }
+
+        const cmdArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(cmdArg)) {
+          content = cmdArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(cmdArg)) {
+          content = this.extractTemplatePath(cmdArg);
+        } else {
+          throw this.createError('bash() command must be a string or template literal', openingElement);
+        }
+
+        return { type: 'bash', content };
+      }
+
+      case 'value': {
+        if (args.length === 0) {
+          throw this.createError('value() requires a value argument', openingElement);
+        }
+
+        const valArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isNoSubstitutionTemplateLiteral(valArg)) {
+          content = valArg.getLiteralValue();
+        } else if (Node.isTemplateExpression(valArg)) {
+          content = this.extractTemplatePath(valArg);
+        } else {
+          throw this.createError('value() must be a string or template literal', openingElement);
+        }
+
+        // Check for raw option (second argument)
+        const options = args.length > 1 ? args[1] : undefined;
+        let raw = false;
+
+        if (options && Node.isObjectLiteralExpression(options)) {
+          const rawProp = options.getProperty('raw');
+          if (rawProp && Node.isPropertyAssignment(rawProp)) {
+            const rawInit = rawProp.getInitializer();
+            if (rawInit && (rawInit.getText() === 'true' || rawInit.getText() === 'false')) {
+              raw = rawInit.getText() === 'true';
+            }
+          }
+        }
+
+        return { type: 'value', content, ...(raw && { raw }) };
+      }
+
+      case 'env': {
+        if (args.length === 0) {
+          throw this.createError('env() requires an environment variable name', openingElement);
+        }
+
+        const envArg = args[0];
+        let content: string;
+
+        if (Node.isStringLiteral(envArg)) {
+          content = envArg.getLiteralValue();
+        } else {
+          throw this.createError('env() variable name must be a string literal', openingElement);
+        }
+
+        return { type: 'env', content };
+      }
+
+      default:
+        throw this.createError(
+          `Unknown source helper: ${fnName}. Use file(), bash(), value(), or env()`,
+          openingElement
+        );
+    }
   }
 
   /**
@@ -3037,6 +3539,53 @@ export class Transformer {
     }
 
     return undefined;
+  }
+
+  /**
+   * Find the function name from a runtimeFn wrapper declaration
+   * Scans source file for: const WrapperName = runtimeFn(fnName)
+   */
+  private findRuntimeFnName(sourceFile: SourceFile, wrapperName: string): string | null {
+    for (const statement of sourceFile.getStatements()) {
+      if (!Node.isVariableStatement(statement)) continue;
+
+      for (const decl of statement.getDeclarationList().getDeclarations()) {
+        if (decl.getName() !== wrapperName) continue;
+
+        const init = decl.getInitializer();
+        if (!init || !Node.isCallExpression(init)) continue;
+
+        const callExpr = init.getExpression();
+        if (!Node.isIdentifier(callExpr) || callExpr.getText() !== 'runtimeFn') continue;
+
+        const args = init.getArguments();
+        if (args.length > 0 && Node.isIdentifier(args[0])) {
+          return args[0].getText();
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Extract object literal to Record<string, unknown>
+   */
+  private extractArgsObject(objExpr: ObjectLiteralExpression): Record<string, unknown> {
+    const args: Record<string, unknown> = {};
+    for (const prop of objExpr.getProperties()) {
+      if (Node.isPropertyAssignment(prop)) {
+        const name = prop.getName();
+        const init = prop.getInitializer();
+        if (init) {
+          if (Node.isStringLiteral(init)) args[name] = init.getLiteralValue();
+          else if (Node.isNumericLiteral(init)) args[name] = Number(init.getLiteralValue());
+          else if (init.getText() === 'true') args[name] = true;
+          else if (init.getText() === 'false') args[name] = false;
+          else args[name] = init.getText(); // Fallback to source text
+        }
+      }
+    }
+    return args;
   }
 
   /**

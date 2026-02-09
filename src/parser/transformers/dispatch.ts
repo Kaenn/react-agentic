@@ -15,13 +15,18 @@ import { isCustomComponent, extractTemplateContent } from './shared.js';
 // Import all transform functions from modules
 import { transformList, transformBlockquote, transformCodeBlock, transformDiv } from './html.js';
 import { transformTable, transformPropList, transformExecutionContext, transformSuccessCriteria, transformOfferNext, transformXmlSection, transformXmlWrapper } from './semantic.js';
-import { transformIf, transformElse, transformLoop, transformOnStatus } from './control.js';
+import { transformIf, transformElse, transformLoop, transformOnStatus, transformOnStatusDefault } from './control.js';
 import { transformSpawnAgent } from './spawner.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
 import { transformReadState, transformWriteState } from './state.js';
 import { transformStep, transformBash, transformReadFiles, transformPromptTemplate } from './primitives.js';
 import { transformMarkdown, transformXmlBlock, transformCustomComponent } from './markdown.js';
 import { transformInlineChildren } from './inline.js';
+import {
+  transformStructuredReturns,
+  isContractComponent,
+} from './contract.js';
+import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence, transformWorkflow } from './swarm.js';
 
 /**
  * Extract raw markdown text from JSX text node, preserving newlines
@@ -230,6 +235,19 @@ function transformElement(
     return transformOnStatus(node, ctx);
   }
 
+  // OnStatusDefault component - standalone is an error (must follow OnStatus as sibling OR have output prop)
+  if (name === 'OnStatusDefault') {
+    // Allow with explicit output prop
+    const openingElement = Node.isJsxElement(node)
+      ? node.getOpeningElement()
+      : node;
+    const hasOutputProp = openingElement.getAttribute('output');
+    if (!hasOutputProp) {
+      throw ctx.createError('<OnStatusDefault> must follow <OnStatus> as sibling or provide output prop', node);
+    }
+    return transformOnStatusDefault(node, ctx);
+  }
+
   // ReadState component - read state from registry
   if (name === 'ReadState') {
     return transformReadState(node, ctx);
@@ -291,9 +309,68 @@ function transformElement(
     return transformPromptTemplate(node, ctx);
   }
 
+  // Contract components (inside Agent)
+  // Role, UpstreamInput, DownstreamConsumer, Methodology are composites that wrap XmlBlock.
+  // We handle them directly here to avoid requiring imports.
+  if (name === 'Role') {
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'role', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
+  }
+  if (name === 'UpstreamInput') {
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'upstream_input', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
+  }
+  if (name === 'DownstreamConsumer') {
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'downstream_consumer', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
+  }
+  if (name === 'Methodology') {
+    const children = Node.isJsxElement(node)
+      ? transformBlockChildren(node.getJsxChildren(), ctx)
+      : [];
+    return { kind: 'xmlBlock', name: 'methodology', children: children as import('../../ir/nodes.js').BaseBlockNode[] };
+  }
+  if (name === 'StructuredReturns') {
+    return transformStructuredReturns(node, ctx);
+  }
+  if (name === 'ReturnStatus' || name === 'StatusReturn') {
+    // ReturnStatus/StatusReturn outside StructuredReturns - this is handled by StructuredReturns transformer
+    // If we get here, it means the component was used outside StructuredReturns
+    throw ctx.createError(`${name} component can only be used inside StructuredReturns`, node);
+  }
+
   // Markdown passthrough
   if (name === 'Markdown') {
     return transformMarkdown(node, ctx);
+  }
+
+  // Swarm components
+  if (name === 'TaskDef') {
+    return transformTaskDef(node, ctx);
+  }
+  if (name === 'TaskPipeline') {
+    return transformTaskPipeline(node, ctx);
+  }
+  if (name === 'Team') {
+    return transformTeam(node, ctx);
+  }
+  if (name === 'Teammate') {
+    throw ctx.createError('Teammate must be used inside a Team component', node);
+  }
+  if (name === 'Prompt') {
+    throw ctx.createError('Prompt must be used inside a Teammate component', node);
+  }
+  if (name === 'ShutdownSequence') {
+    return transformShutdownSequence(node, ctx);
+  }
+  if (name === 'Workflow') {
+    return transformWorkflow(node, ctx);
   }
 
   // Custom component composition
@@ -313,6 +390,7 @@ function transformElement(
  * - Pairing If/Else siblings (Else must immediately follow If)
  * - Dispatching each child to appropriate transformer
  * - Skipping null results (filtered nodes)
+ * - Children substitution for component composition
  */
 export function transformBlockChildren(
   jsxChildren: Node[],
@@ -331,6 +409,21 @@ export function transformBlockChildren(
         i++;
         continue;
       }
+    }
+
+    // Handle {children} or {props.children} expressions at block level
+    if (Node.isJsxExpression(child)) {
+      const expr = child.getExpression();
+      if (expr) {
+        const text = expr.getText();
+        // Check for {children} or {props.children} - return the pre-transformed blocks
+        if ((text === 'children' || text === 'props.children') && ctx.componentChildren) {
+          blocks.push(...ctx.componentChildren);
+          i++;
+          continue;
+        }
+      }
+      // Fall through to transformToBlock for other expressions
     }
 
     if (Node.isJsxElement(child) || Node.isJsxSelfClosingElement(child)) {
@@ -359,6 +452,32 @@ export function transformBlockChildren(
             const elseNode = transformElse(sibling, ctx);
             blocks.push(elseNode);
             i = nextIndex; // Skip past Else in outer loop
+          }
+          break;
+        }
+      } else if (childName === 'OnStatus') {
+        // Transform OnStatus
+        const onStatusNode = transformOnStatus(child, ctx);
+        blocks.push(onStatusNode);
+
+        // Check for OnStatusDefault sibling
+        let nextIndex = i + 1;
+        while (nextIndex < jsxChildren.length) {
+          const sibling = jsxChildren[nextIndex];
+          // Skip whitespace-only text
+          if (Node.isJsxText(sibling)) {
+            const text = extractText(sibling);
+            if (!text) {
+              nextIndex++;
+              continue;
+            }
+          }
+          // Check if next non-whitespace is OnStatusDefault
+          if ((Node.isJsxElement(sibling) || Node.isJsxSelfClosingElement(sibling))
+              && getElementName(sibling) === 'OnStatusDefault') {
+            const onStatusDefaultNode = transformOnStatusDefault(sibling, ctx, onStatusNode.outputRef);
+            blocks.push(onStatusDefaultNode);
+            i = nextIndex; // Skip past OnStatusDefault in outer loop
           }
           break;
         }

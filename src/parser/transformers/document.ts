@@ -36,7 +36,10 @@ import type {
   BlockNode,
   BaseBlockNode,
   TypeReference,
+  StructuredReturnsNode,
 } from '../../ir/index.js';
+// Note: RoleNode, UpstreamInputNode, DownstreamConsumerNode, MethodologyNode
+// are no longer needed. Those components are now composites that emit XmlBlockNode.
 import {
   getElementName,
   getAttributeValue,
@@ -281,6 +284,112 @@ export function transformArrowFunctionBody(
 }
 
 // ============================================================================
+// Contract Component Validation
+// ============================================================================
+
+/**
+ * Contract component names in required order.
+ * Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+ * that emit XmlBlockNode with these tag names (snake_case).
+ * StructuredReturns is still a primitive with its own IR node kind.
+ */
+const CONTRACT_COMPONENT_ORDER = [
+  'role',                 // XmlBlockNode.name
+  'upstream_input',       // XmlBlockNode.name
+  'downstream_consumer',  // XmlBlockNode.name
+  'methodology',          // XmlBlockNode.name
+  'structuredReturns',    // StructuredReturnsNode.kind
+] as const;
+
+type ContractIdentifier = typeof CONTRACT_COMPONENT_ORDER[number];
+
+/**
+ * Get contract identifier for a block node.
+ * Returns the XmlBlock name for composites, or 'structuredReturns' for the primitive.
+ */
+function getContractIdentifier(child: BaseBlockNode): ContractIdentifier | null {
+  // Check for XmlBlockNode (composites emit these)
+  if (child.kind === 'xmlBlock') {
+    const xmlBlock = child as import('../../ir/nodes.js').XmlBlockNode;
+    if (CONTRACT_COMPONENT_ORDER.includes(xmlBlock.name as ContractIdentifier)) {
+      return xmlBlock.name as ContractIdentifier;
+    }
+  }
+  // Check for StructuredReturnsNode (primitive)
+  if (child.kind === 'structuredReturns') {
+    return 'structuredReturns';
+  }
+  return null;
+}
+
+/**
+ * Convert contract identifier to component name for error messages
+ */
+function identifierToComponentName(id: ContractIdentifier): string {
+  switch (id) {
+    case 'role': return 'Role';
+    case 'upstream_input': return 'UpstreamInput';
+    case 'downstream_consumer': return 'DownstreamConsumer';
+    case 'methodology': return 'Methodology';
+    case 'structuredReturns': return 'StructuredReturns';
+  }
+}
+
+/**
+ * Validate contract components in agent children
+ * - At most one of each type
+ * - Must appear in correct order (can be interleaved with other content)
+ */
+function validateContractComponents(
+  children: BaseBlockNode[],
+  ctx: TransformContext,
+  node: Node
+): void {
+  // Count occurrences of each contract component type
+  const counts: Partial<Record<ContractIdentifier, number>> = {};
+
+  for (const child of children) {
+    const id = getContractIdentifier(child);
+    if (id) {
+      counts[id] = (counts[id] || 0) + 1;
+    }
+  }
+
+  // Check for duplicates
+  for (const [id, count] of Object.entries(counts)) {
+    if (count > 1) {
+      const componentName = identifierToComponentName(id as ContractIdentifier);
+      throw ctx.createError(
+        `Agent can only have one <${componentName}> component (found ${count})`,
+        node
+      );
+    }
+  }
+
+  // Check ordering (filter to only contract components, verify they're in order)
+  let lastIndex = -1;
+  for (const child of children) {
+    const id = getContractIdentifier(child);
+    if (id) {
+      const currentIndex = CONTRACT_COMPONENT_ORDER.indexOf(id);
+      if (currentIndex !== -1 && currentIndex < lastIndex) {
+        throw ctx.createError(
+          'Contract components must appear in order: Role → UpstreamInput → DownstreamConsumer → Methodology → StructuredReturns',
+          node
+        );
+      }
+      if (currentIndex !== -1) {
+        lastIndex = currentIndex;
+      }
+    }
+  }
+
+  // TODO: Validate exhaustiveness of StructuredReturns for declared status type
+  // This requires analyzing the Agent's generic type parameter and extracting
+  // the status union type, which is complex. Defer to future enhancement.
+}
+
+// ============================================================================
 // Command Transformer
 // ============================================================================
 
@@ -483,6 +592,9 @@ export function transformAgent(
       children = getTransformBlockChildren(ctx)(node.getJsxChildren(), ctx);
     }
   }
+
+  // Validate contract components (ordering, uniqueness)
+  validateContractComponents(children as BaseBlockNode[], ctx, node);
 
   return { kind: 'agentDocument', frontmatter, children: children as BaseBlockNode[] };
 }

@@ -8,6 +8,7 @@
 import type { ReactNode } from 'react';
 import type { CommandContext } from './Command.js';
 import type { RuntimeVarProxy, OrRuntimeVar, AllowRuntimeVars } from './runtime-var.js';
+import type { AgentContent } from '../ir/content-types.js';
 
 // ============================================================================
 // Types
@@ -61,9 +62,14 @@ export interface AgentProps<TInput = unknown, TOutput = unknown> {
   model?: string;
   /**
    * Agent body content - either regular JSX or render props function
+   *
+   * Agents allow the full feature set including control flow, runtime features,
+   * and user interaction. Type children with AgentContent for enhanced type
+   * documentation, or use ReactNode for flexibility.
+   *
    * Render props: (ctx: AgentContext) => ReactNode
    */
-  children?: ReactNode | ((ctx: AgentContext) => ReactNode);
+  children?: AgentContent | AgentContent[] | ((ctx: AgentContext) => ReactNode) | ReactNode;
   // TInput and TOutput are compile-time only - used for cross-file type validation
 }
 
@@ -155,6 +161,12 @@ export interface SpawnAgentProps<TInput = unknown> {
    * Enable "load from file" pattern for spawning.
    */
   loadFromFile?: boolean | string;
+  /**
+   * Enable agent self-reading pattern.
+   * When true, prepends "First, read {agentsDir}/{agent}.md for your role and instructions."
+   * Requires agent prop to be a string or AgentRef (not inline agent).
+   */
+  readAgentFile?: boolean;
   /** Prompt content - supports multi-line and {variable} placeholders */
   prompt?: string;
   /** Variable name containing the prompt (for runtime concatenation) */
@@ -177,6 +189,8 @@ export interface V3SpawnAgentProps<TInput = unknown> {
   description: OrRuntimeVar<string>;
   /** Enable "load from file" pattern - accepts RuntimeVar */
   loadFromFile?: OrRuntimeVar<string | boolean>;
+  /** Enable agent self-reading pattern (prepends read instruction) */
+  readAgentFile?: OrRuntimeVar<boolean>;
   /** Prompt content - supports RuntimeVar interpolation */
   prompt?: OrRuntimeVar<string>;
   /** Typed input - accepts RuntimeVar values */

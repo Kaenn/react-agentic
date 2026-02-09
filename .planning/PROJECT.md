@@ -13,122 +13,158 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 ### Validated
 
 **v1.0 MVP:**
-- ✓ TSX → AST → MD transpilation pipeline — v1.0
-- ✓ `<Command>` component with typed props (name, description, allowedTools) that become YAML frontmatter — v1.0
-- ✓ HTML-like elements: h1-h6, b, i, code, a, p, ul, ol, li, blockquote, pre, br, hr — v1.0
-- ✓ `<div name="...">` for XML-like semantic blocks in output — v1.0
-- ✓ `<Markdown>` component as raw markdown fallback — v1.0
-- ✓ Props spreading support with TypeScript types — v1.0
-- ✓ Component composition (shared fragments across commands) — v1.0
-- ✓ CLI: `react-agentic build <src> --out <dest>` — v1.0
-- ✓ Watch mode for development workflow — v1.0
-- ✓ Dry run mode with build tree preview — v1.0
-- ✓ Source-located errors with file:line:col format — v1.0
-- ✓ Colored terminal output (NO_COLOR aware) — v1.0
+- TSX -> AST -> MD transpilation pipeline — v1.0
+- `<Command>` component with typed props (name, description, allowedTools) that become YAML frontmatter — v1.0
+- HTML-like elements: h1-h6, b, i, code, a, p, ul, ol, li, blockquote, pre, br, hr — v1.0
+- `<div name="...">` for XML-like semantic blocks in output — v1.0
+- `<Markdown>` component as raw markdown fallback — v1.0
+- Props spreading support with TypeScript types — v1.0
+- Component composition (shared fragments across commands) — v1.0
+- CLI: `react-agentic build <src> --out <dest>` — v1.0
+- Watch mode for development workflow — v1.0
+- Dry run mode with build tree preview — v1.0
+- Source-located errors with file:line:col format — v1.0
+- Colored terminal output (NO_COLOR aware) — v1.0
 
 **v1.1 Agent Framework:**
-- ✓ `<Agent>` component transpiles to Claude Code agent markdown — v1.1
-- ✓ `<SpawnAgent>` component for Commands to invoke Agents — v1.1
-- ✓ Shared interface definitions (Agent owns contract, Command imports it) — v1.1
-- ✓ TypeScript type safety across command → agent boundary — v1.1
-- ✓ Output format matches GSD (get-shit-done) exactly — v1.1
+- `<Agent>` component transpiles to Claude Code agent markdown — v1.1
+- `<SpawnAgent>` component for Commands to invoke Agents — v1.1
+- Shared interface definitions (Agent owns contract, Command imports it) — v1.1
+- TypeScript type safety across command -> agent boundary — v1.1
+- Output format matches GSD (get-shit-done) exactly — v1.1
 
 **v1.2 Type-Safe Communication:**
-- ✓ SpawnAgent `input` prop with VariableRef/object literal support — v1.2
-- ✓ Auto-generated prompts from Agent interface contracts — v1.2
+- SpawnAgent `input` prop with VariableRef/object literal support — v1.2
+- Auto-generated prompts from Agent interface contracts — v1.2
 
 **v1.3 Conditional Logic:**
-- ✓ `<If>` / `<Else>` components for conditional execution — v1.3
-- ✓ Variable interpolation in test expressions — v1.3
+- `<If>` / `<Else>` components for conditional execution — v1.3
+- Variable interpolation in test expressions — v1.3
 
 **v1.4 Agent Output Management:**
-- ✓ `AgentStatus` type and `BaseOutput` interface — v1.4
-- ✓ `useOutput` hook and `<OnStatus>` component — v1.4
-- ✓ Auto-generated `<structured_returns>` section — v1.4
+- `AgentStatus` type and `BaseOutput` interface — v1.4
+- `useOutput` hook and `<OnStatus>` component — v1.4
+- Auto-generated `<structured_returns>` section — v1.4
 
 **v1.5 Skill System:**
-- ✓ `<Skill>` component with `<SkillFile>` and `<SkillStatic>` — v1.5
+- `<Skill>` component with `<SkillFile>` and `<SkillStatic>` — v1.5
 
 **v1.6 State System:**
-- ✓ `useStateRef<TSchema>` / `<ReadState>` / `<WriteState>` — v1.6
-- ✓ FileAdapter with JSON persistence — v1.6
+- `useStateRef<TSchema>` / `<ReadState>` / `<WriteState>` — v1.6
+- FileAdapter with JSON persistence — v1.6
 
 **v1.7 MCP Configuration:**
-- ✓ `<MCPServer>` component for settings.json generation — v1.7
+- `<MCPServer>` component for settings.json generation — v1.7
 
 **v1.8 Scoped State Skills:**
-- ✓ `<State<TSchema>>` component with provider binding — v1.8
-- ✓ SQLite provider with auto-generated CRUD skills — v1.8
-- ✓ `<Operation>` for custom semantic operations — v1.8
-- ✓ TypeScript → SQL schema mapping — v1.8
+- `<State<TSchema>>` component with provider binding — v1.8
+- SQLite provider with auto-generated CRUD skills — v1.8
+- `<Operation>` for custom semantic operations — v1.8
+- TypeScript -> SQL schema mapping — v1.8
+
+**v2.0 TSX Syntax Improvements:**
+- Module structure splits jsx.ts into primitives/ and workflow/ directories — v2.0
+- Central index.ts re-exports all components from both directories — v2.0
+- ExecutionContext component with paths prop and @ imports — v2.0
+- SuccessCriteria component with checkbox list — v2.0
+- OfferNext component with typed routes — v2.0
+- DeviationRules, CommitRules, WaveExecution, CheckpointHandling XML sections — v2.0
+- Table component with headers/rows array props — v2.0
+- List component with items array prop — v2.0
+- Command/Agent render props pattern {(ctx) => children} — v2.0
+- Workflow components (Bash, Loop, If) explicit generic type parameters — v2.0
+- Step component with name/number props for numbered workflow sections — v2.0
+- Transformer and emitter support for all new components — v2.0
+- Unit tests covering each new component — v2.0
+
+**v2.1 Parser Refactoring:**
+- Split parser.ts (1255 lines) into utils/ directory with focused modules — v2.1
+- Split transformer.ts (3956 lines) into transformers/ directory with focused modules — v2.1
+- Central index.ts re-exports all public APIs (no breaking changes) — v2.1
+
+**v3.0 Primitive/Composite Architecture:**
+- ✓ Baseline snapshot tests capture current behavior before refactoring — v3.0
+- ✓ Primitive registry lists compiler-owned components explicitly (22 primitives) — v3.0
+- ✓ CommandContent, AgentContent, SubComponentContent type system — v3.0
+- ✓ RuntimeVar shell variable syntax ($VAR.path) in markdown output — v3.0
+- ✓ RuntimeFn reference properties (.name, .call, .input, .output) — v3.0
+- ✓ Ref component for explicit variable/function reference printing — v3.0
+- ✓ Full props and children support in custom components — v3.0
+- ✓ Fragment composition (multiple elements without wrapper) — v3.0
+- ✓ Compile-time content validation (TypeScript errors for invalid nesting) — v3.0
+- ✓ Composite library: IfElseBlock, LoopWithBreak, SpawnAgentWithRetry — v3.0
+- ✓ Composite library: StepSection, DataTable, BulletList, FileContext — v3.0
+- ✓ Composites exported from react-agentic/composites — v3.0
+- ✓ User-facing documentation for primitive/composite architecture — v3.0
 
 ### Active
 
-## Current Milestone: v2.0 TSX Syntax Improvements
+**v3.1 Meta-Prompting:**
 
-**Goal:** Improve TSX authoring ergonomics by adopting better syntax patterns from Tentative 2 while preserving the ts-morph compile-time foundation.
-
-**Target features:**
-- Module restructure — Split jsx.ts (1044 lines) into primitives/ and workflow/ modules
-- Semantic components — ExecutionContext, SuccessCriteria, DeviationRules, CommitRules, etc.
-- Structured props — Table with headers/rows arrays, List with items array
-- Render props pattern — Optional {(ctx) => ...} for Command/Agent context access
-- Typed routes — OfferNext component with typed route objects
-- Explicit generics — Allow visible type constraints on Bash, Loop, etc.
-
-**Reference:** `/Users/glenninizan/workspace/react-agentic/gsd-bkp/compare-tentatives.md`
-
-**Potential future features (deferred):**
-- Additional providers (localfile, supabase, postgres)
-- State migration tooling
-- Config file support for build options
-- Incremental compilation
-- Parallel processing
+Target features:
+- Agent contract components: `<Role>`, `<UpstreamInput>`, `<DownstreamConsumer>`, `<Methodology>`
+- Agent return contract: `<StructuredReturns>` with typed return statuses
+- Command orchestration: `<Uses agent={...}>`, `<Init>`, `<HandleReturn>`
+- Meta-prompting layer: `<MetaPrompt>`, `<GatherContext>`, `<ComposeContext>`
+- Context gathering: `<ReadFile>`, `<InlineField>`, `<XmlBlock>` with content prop
+- Return handling: `<Match status="...">`, `<Display>`, `<OfferNext>`
+- SpawnAgent enhancement: `readAgentFile` prop for agent self-reading pattern
 
 ### Out of Scope
 
 - YAML output for state files — deferred to future milestone
 - Additional elements beyond base set — will expand based on usage
 - Vite/esbuild plugin integration — CLI first
-- Component props support — v2
-- Package imports (only relative imports supported) — v2
-- Multi-block fragment returns — v2
-- Config file support — v2
-- Incremental compilation — v2
+- Package imports (only relative imports supported) — future
+- Config file support — future
+- Incremental compilation — future
+
+## Current Milestone: v3.1 Meta-Prompting
+
+**Goal:** Enable intelligent context gathering and structured prompt composition — let Claude think with context to create smart prompts adapted to each agent.
+
+## Current State
+
+**Shipped:** v3.0 Primitive/Composite Architecture (2026-01-31)
+
+**Codebase:**
+- 49,295 lines of TypeScript
+- 884 tests (all passing)
+- 7 composites available for user customization
+- 22 primitives documented and classified
+
+**Architecture:**
+- IR layer with discriminated unions decouples parsing from emission
+- Parse -> Transform -> Emit pipeline
+- Transformer supports component composition via import resolution
+- Organized module structure: primitives/, workflow/, workflow/sections/, composites/
+- Content type system for type-safe nesting constraints
 
 ## Context
-
-**Current State:** Shipped v1.0 with 2,442 LOC TypeScript across 16 source files.
 
 **Tech stack:**
 - TypeScript 5.9.3 with NodeNext module resolution
 - ts-morph ^27.0.2 for TSX parsing
 - Commander.js for CLI
 - Chokidar for file watching
-- Vitest for testing (155 tests)
-
-**Architecture:**
-- IR layer with discriminated unions decouples parsing from emission
-- Parse → Transform → Emit pipeline
-- Transformer supports component composition via import resolution
+- Vitest for testing (884 tests)
 
 **Reference implementation:**
 - Input example: `src/app/commit-helper.tsx`
 - Output: `.claude/commands/commit-helper.md`
 - Documentation: `docs/build-pipeline.md`
 
-**Element mapping:**
-| TSX | Markdown Output |
-|-----|-----------------|
-| `<Command props>` | YAML frontmatter |
-| `<h2>Title</h2>` | `## Title` |
-| `<b>text</b>` | `**text**` |
-| `<i>text</i>` | `*text*` |
-| `<code>text</code>` | `` `text` `` |
-| `<ul><li>item</li></ul>` | `- item` |
-| `<div name="foo">` | `<foo>...</foo>` |
-| `<Markdown>{raw}</Markdown>` | raw content |
-| `<br/>` | newline |
+**v3.0 Component additions:**
+| Component | Props | Output |
+|-----------|-------|--------|
+| `<Ref>` | value, call | Variable/function reference |
+| `<IfElseBlock>` | condition, then, otherwise | Conditional block (composite) |
+| `<LoopWithBreak>` | max, breakWhen, breakMessage | Loop with break (composite) |
+| `<SpawnAgentWithRetry>` | maxRetries, retryWhen | Agent spawn with retry (composite) |
+| `<StepSection>` | number, name, description | Step with description (composite) |
+| `<DataTable>` | headers, rows, caption, emptyMessage | Table with caption (composite) |
+| `<BulletList>` | items, title | List with title (composite) |
+| `<FileContext>` | paths, title | ExecutionContext with title (composite) |
 
 ## Constraints
 
@@ -141,13 +177,21 @@ Compile-time safety for Claude Code commands — malformed commands fail at buil
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| ts-morph over Babel | Full type resolution, not just syntax parsing | ✓ Good — enables spread resolution and component composition |
-| CLI-first over plugin | Simpler initial scope, can add plugins later | ✓ Good — clean separation, watch mode works well |
-| `<Markdown>` fallback | Never block users when element not supported | ✓ Good — escape hatch available |
-| `<div name>` for XML blocks | Clean mapping to Claude Code's semantic tags | ✓ Good — intuitive syntax |
-| IR discriminated unions | Type-safe switching with assertNever exhaustiveness | ✓ Good — caught bugs at compile time |
-| Chokidar with debouncing | Research showed file watcher pitfalls | ✓ Good — 200ms debounce prevents duplicate builds |
-| JSX `{' '}` pattern | Standard JSX whitespace behavior, not a bug | ✓ Good — documented in example |
+| ts-morph over Babel | Full type resolution, not just syntax parsing | Good — enables spread resolution and component composition |
+| CLI-first over plugin | Simpler initial scope, can add plugins later | Good — clean separation, watch mode works well |
+| `<Markdown>` fallback | Never block users when element not supported | Good — escape hatch available |
+| `<div name>` for XML blocks | Clean mapping to Claude Code's semantic tags | Good — intuitive syntax |
+| IR discriminated unions | Type-safe switching with assertNever exhaustiveness | Good — caught bugs at compile time |
+| Chokidar with debouncing | Research showed file watcher pitfalls | Good — 200ms debounce prevents duplicate builds |
+| JSX `{' '}` pattern | Standard JSX whitespace behavior, not a bug | Good — documented in example |
+| Module restructure (v2.0) | jsx.ts monolith (1044 lines) was hard to navigate | Good — 91% reduction, clean separation |
+| Explicit named re-exports | Tree-shaking and API control | Good — 59 clean exports |
+| Structured props (Table/List) | Array props vs manual JSX children | Good — type-safe, less boilerplate |
+| Render props optional | Progressive disclosure, backwards compatible | Good — simple cases stay simple |
+| Step number as string | Support sub-steps like "1.1" | Good — flexible numbering |
+| Extract-based content types | Explicit allow-list vs deny-list for SubComponentContent | Good — clear boundaries |
+| Shell variable syntax | $VAR.path matches Claude Code conventions | Good — familiar to users |
+| Composites subpath export | ./composites separate from main package | Good — tree-shaking friendly |
 
 ---
-*Last updated: 2026-01-26 after v2.0 milestone start*
+*Last updated: 2026-01-31 after starting v3.1 Meta-Prompting milestone*

@@ -89,6 +89,8 @@ export const SPECIAL_COMPONENTS = new Set([
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
   'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  // Swarm components
+  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt', 'ShutdownSequence', 'Workflow',
   'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
   // Step workflow primitive
   'Step',
@@ -98,6 +100,10 @@ export const SPECIAL_COMPONENTS = new Set([
   'ReadFiles',
   // Template primitives
   'PromptTemplate',
+  // Agent contract composites (emit as XmlBlock directly, no import needed)
+  'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
+  // Swarm components
+  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt',
 ]);
 
 /**

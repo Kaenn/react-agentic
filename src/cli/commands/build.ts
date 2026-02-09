@@ -29,11 +29,13 @@ import type { RuntimeFileInfo } from '../../emitter/index.js';
 
 interface BuildOptions {
   out: string;
+  agentsOut: string;
   runtimeOut: string;
   codeSplit: boolean;
   minify: boolean;
   dryRun?: boolean;
   watch?: boolean;
+  config?: Partial<import('../config.js').ReactAgenticConfig>;
 }
 
 /**
@@ -59,8 +61,10 @@ async function processFile(
   // Build runtime file
   const buildResult = await buildRuntimeFile(sourceFile, project, {
     commandsOut: options.out,
+    agentsOut: options.agentsOut,
     runtimeOut: options.runtimeOut,
     dryRun: options.dryRun,
+    config: options.config,
   });
 
   // Log warnings
@@ -253,11 +257,13 @@ export const buildCommand = new Command('build')
 
     const options: BuildOptions = {
       out: config.outputDir,
+      agentsOut: config.agentsDir,
       runtimeOut: config.runtimeDir,
       codeSplit: config.codeSplit,
       minify: config.minify,
       dryRun: cliOptions.dryRun,
       watch: cliOptions.watch,
+      config,
     };
 
     // Disallow --dry-run with --watch (validate early before expensive operations)

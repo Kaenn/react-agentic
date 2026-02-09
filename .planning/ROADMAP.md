@@ -2,28 +2,32 @@
 
 ## Milestones
 
-- **v1.0 MVP** - Phases 1-7 (shipped 2026-01-21)
-- **v1.1 Agent Framework** - Phases 8-11 (shipped 2026-01-21)
-- **v1.2 Type-Safe Communication** - Phase 12 (shipped 2026-01-21)
-- **v1.3 Conditional Logic** - Phase 13 (shipped 2026-01-22)
-- **v1.4 Agent Output Management** - Phases 14-15 (shipped 2026-01-22)
-- **v1.5 Skill System** - Phase 16 (shipped 2026-01-22)
-- **v1.6 State System** - Phase 17 (shipped 2026-01-22)
-- **v1.7 MCP Configuration** - Phase 18 (shipped 2026-01-22)
-- **v1.8 Scoped State Skills** - Phase 19 (shipped 2026-01-26)
-- **v2.0 TSX Syntax Improvements** - Phases 20-25 (shipped 2026-01-27)
+- **v1.0 MVP** — Phases 1-7 (shipped 2026-01-21)
+- **v1.1 Agent Framework** — Phases 8-11 (shipped 2026-01-21)
+- **v1.2 Type-Safe Communication** — Phase 12 (shipped 2026-01-21)
+- **v1.3 Conditional Logic** — Phase 13 (shipped 2026-01-22)
+- **v1.4 Agent Output Management** — Phases 14-15 (shipped 2026-01-22)
+- **v1.5 Skill System** — Phase 16 (shipped 2026-01-22)
+- **v1.6 State System** — Phase 17 (shipped 2026-01-22)
+- **v1.7 MCP Configuration** — Phase 18 (shipped 2026-01-22)
+- **v1.8 Scoped State Skills** — Phase 19 (shipped 2026-01-26)
+- **v2.0 TSX Syntax Improvements** — Phases 20-25 (shipped 2026-01-27)
+- **v2.1 Parser Refactoring** — Phase 26 (shipped 2026-01-31)
+- **v3.0 Primitive/Composite Architecture** — Phases 27-33 (shipped 2026-01-31)
+- **v3.1 Meta-Prompting** — Phases 34-37 (shipped 2026-02-01)
+- **v3.2 Data Abstraction** — Phase 38 (shipped 2026-02-02)
 
 ## Phases
 
 <details>
-<summary>v1.0 MVP (Phases 1-7) - SHIPPED 2026-01-21</summary>
+<summary>v1.0 MVP (Phases 1-7) — SHIPPED 2026-01-21</summary>
 
 See: .planning/milestones/v1.0-ROADMAP.md
 
 </details>
 
 <details>
-<summary>v1.1-v1.8 (Phases 8-19) - SHIPPED</summary>
+<summary>v1.1-v1.8 (Phases 8-19) — SHIPPED</summary>
 
 See: .planning/ROADMAP.md history or milestone archives
 
@@ -42,175 +46,122 @@ See: .planning/ROADMAP.md history or milestone archives
 
 </details>
 
-### v2.0 TSX Syntax Improvements (SHIPPED 2026-01-27)
+<details>
+<summary>v2.0 TSX Syntax Improvements (Phases 20-25) — SHIPPED 2026-01-27</summary>
 
-**Milestone Goal:** Improve TSX authoring ergonomics with better module organization, semantic components for common patterns, structured props for tables/lists, and render props pattern for context access.
+See: .planning/milestones/v2.0-ROADMAP.md
 
-- [x] **Phase 20: Module Restructure** - Split jsx.ts into primitives/ and workflow/ directories (complete 2026-01-26)
-- [x] **Phase 21: Structured Props** - Table and List components with array-based props (complete 2026-01-26)
-- [x] **Phase 22: Semantic Components** - ExecutionContext, SuccessCriteria, OfferNext, and XML wrapper sections (complete 2026-01-26)
-- [x] **Phase 23: Context Access Patterns** - Render props for Command/Agent, explicit generics, Step component (complete 2026-01-27)
-- [x] **Phase 24: Parser/Emitter Integration** - Transform and emit all new components with tests (complete 2026-01-27)
-- [x] **Phase 25: TSX Test Modernization** - Update all test files in src/app/ to use v2.0 syntax features (complete 2026-01-27)
+- Phase 20: Module Restructure (2/2 plans)
+- Phase 21: Structured Props (2/2 plans)
+- Phase 22: Semantic Components (4/4 plans)
+- Phase 23: Context Access Patterns (3/3 plans)
+- Phase 24: Parser/Emitter Integration (3/3 plans)
+- Phase 25: TSX Test Modernization (3/3 plans)
 
-## Phase Details
+</details>
 
-### Phase 20: Module Restructure
-**Goal**: Split jsx.ts (1044 lines) into organized primitives/ and workflow/ directories with clean re-exports
-**Depends on**: Phase 19 (v1.8 complete)
-**Requirements**: ORG-01, ORG-02, ORG-03
-**Success Criteria** (what must be TRUE):
-  1. jsx.ts split into `primitives/` and `workflow/` directories
-  2. Central `index.ts` re-exports all components from both directories
-  3. `workflow/sections/` subdirectory exists for semantic XML wrapper components
-  4. All existing imports continue to work (no breaking changes)
-  5. Build passes with no TypeScript errors
-**Plans**: 2 plans
+<details>
+<summary>v2.1 Parser Refactoring (Phase 26) — SHIPPED 2026-01-31</summary>
 
-Plans:
-- [x] 20-01-PLAN.md - Create primitives/ and workflow/ directories with all component files
-- [x] 20-02-PLAN.md - Rewrite jsx.ts with re-exports and verify build/tests pass
+See: .planning/milestones/ (no archive created - minor milestone)
 
-### Phase 21: Structured Props
-**Goal**: Add Table and List components that accept structured array props instead of manual JSX children
-**Depends on**: Phase 20
-**Requirements**: PROP-01, PROP-02
-**Success Criteria** (what must be TRUE):
-  1. `<Table headers={["A", "B"]} rows={[["1", "2"], ["3", "4"]]} />` emits markdown table
-  2. `<List items={["item1", "item2"]} />` emits markdown bullet list
-  3. Components accept optional props for styling (ordered list vs bullet, etc.)
-  4. TypeScript enforces prop types at compile time
-**Plans**: 2 plans
+- Phase 26: Parser Refactoring (4/4 plans) — Split parser.ts and transformer.ts into submodules
 
-Plans:
-- [x] 21-01-PLAN.md - Table and List IR nodes and JSX types
-- [x] 21-02-PLAN.md - Table and List transformer and emitter implementation
+</details>
 
-### Phase 22: Semantic Components
-**Goal**: Add semantic section components that emit XML-wrapped content for common Claude Code patterns
-**Depends on**: Phase 21
-**Requirements**: SEM-01, SEM-02, SEM-03, SEM-04, SEM-05, SEM-06, SEM-07
-**Success Criteria** (what must be TRUE):
-  1. `<ExecutionContext paths={["@file1", "@file2"]} />` emits `<execution_context>` with @ imports
-  2. `<SuccessCriteria items={["crit1", "crit2"]} />` emits `<success_criteria>` with checkbox list
-  3. `<OfferNext routes={[{name: "x", description: "y", path: "z"}]} />` emits typed navigation section
-  4. `<DeviationRules>`, `<CommitRules>`, `<WaveExecution>`, `<CheckpointHandling>` emit named XML sections with children
-  5. All semantic components work inside Command and Agent bodies
-**Plans**: 4 plans
+<details>
+<summary>v3.0 Primitive/Composite Architecture (Phases 27-33) — SHIPPED 2026-01-31</summary>
 
-Plans:
-- [x] 22-01-PLAN.md - ExecutionContext, SuccessCriteria, XmlSection components and IR nodes
-- [x] 22-02-PLAN.md - OfferNext component with typed routes and XML wrapper components
-- [x] 22-03-PLAN.md - Transformer implementation for all semantic components
-- [x] 22-04-PLAN.md - Emitter implementation and end-to-end verification
+See: .planning/milestones/v3.0-ROADMAP.md
 
-### Phase 23: Context Access Patterns
-**Goal**: Enable render props pattern for context access and explicit generics on workflow components
-**Depends on**: Phase 22
-**Requirements**: CTX-01, CTX-02, CTX-03, CTX-04
-**Success Criteria** (what must be TRUE):
-  1. `<Command>{(ctx) => ...}</Command>` render props pattern works with typed context
-  2. `<Agent>{(ctx) => ...}</Agent>` render props pattern works with typed context
-  3. `<Bash<string>>`, `<Loop<T>>`, `<If<T>>` accept explicit generic type parameters
-  4. `<Step name="Setup" number={1}>` component emits numbered workflow section
-  5. Context types include relevant command/agent metadata
-**Plans**: 3 plans
+- Phase 27: Baseline & Registry (2/2 plans) — Snapshot tests + primitive classification
+- Phase 28: Content Types (1/1 plan) — CommandContent, AgentContent, SubComponentContent
+- Phase 29: Reference Printing (2/2 plans) — Shell variable syntax, Ref component
+- Phase 30: Component Composition (2/2 plans) — Props and children in custom components
+- Phase 31: Content Validation (1/1 plan) — Compile-time nesting errors
+- Phase 32: Composite Library (4/4 plans) — 7 user-definable composites
+- Phase 33: Documentation (1/1 plan) — Primitives and composites docs
+
+</details>
+
+---
+
+<details>
+<summary>v3.1 Meta-Prompting (Phases 34-37) — SHIPPED 2026-02-01</summary>
+
+See: .planning/milestones/v3.1-ROADMAP.md
+
+- Phase 34: Agent Contract Components (4/4 plans) — Role, UpstreamInput, DownstreamConsumer, Methodology, StructuredReturns
+- Phase 35: Command Orchestration Components (1/1 plan) — OnStatusDefault
+- Phase 36: Meta-Prompting Components (3/3 plans) — ReadFile, MetaPrompt, GatherContext, ComposeContext, XmlBlock, InlineField, Preamble
+- Phase 37: SpawnAgent Enhancement + Integration (2/2 plans) — readAgentFile prop, integration tests
+
+</details>
+
+---
+
+## v3.2 Data Abstraction (Phase 38)
+
+Unify data assignment patterns with a single `<Assign>` component using a `from` prop that accepts different source types (file, bash, value, runtimeFn). Deprecates separate ReadFile and simplifies the API.
+
+### Phase 38: Unified Assign with from Prop
+
+**Goal:** Single unified `<Assign var={ref} from={source} />` pattern for all data sources.
+
+**Dependencies:** Phase 37 (builds on ReadFile and runtime patterns)
+
+**Requirements:** See claudedocs/proposals/data-abstraction.md
+
+**Plans:** 5 plans
 
 Plans:
-- [x] 23-01-PLAN.md — Command and Agent render props support (CTX-01, CTX-02)
-- [x] 23-02-PLAN.md — Explicit generics on workflow components (CTX-03)
-- [x] 23-03-PLAN.md — Step component for numbered sections (CTX-04)
+- [x] 38-01-PLAN.md — Source helpers and types (file, bash, value, env)
+- [x] 38-02-PLAN.md — IR, transformer, and emitter support for from prop
+- [x] 38-03-PLAN.md — Integration tests for from prop pattern
+- [x] 38-04-PLAN.md — Remove legacy syntax and ReadFile component
+- [x] 38-05-PLAN.md — Gap closure: runtimeFn support for Assign from prop
 
-### Phase 24: Parser/Emitter Integration
-**Goal**: Wire all new components through transformer and emitter with comprehensive tests
-**Depends on**: Phase 23
-**Requirements**: PAR-01, PAR-02, PAR-03
-**Success Criteria** (what must be TRUE):
-  1. Transformer recognizes all new components and converts to IR nodes
-  2. Emitter generates correct markdown for all new IR nodes
-  3. Unit tests cover each new component with expected input -> output
-  4. Integration test demonstrates all new components in a single command
-  5. Documentation updated for all new components
-**Plans**: 3 plans
+**Details:**
+- Implement `file()`, `bash()`, `value()`, `env()` source helper functions
+- Extend `<Assign>` to accept `from` prop with source types
+- Support runtimeFn directly as source (existing pattern)
+- Optional file reads with `{ optional: true }`
+- Remove `<ReadFile>` component entirely (not deprecated — clean break)
+- Remove old Assign props (bash=, value=, env=) entirely
 
-Plans:
-- [x] 24-01-PLAN.md — Unit verification tests for Table, List, and semantic components
-- [x] 24-02-PLAN.md — Control flow tests (Loop, OnStatus, Step) and v2.0 integration test
-- [x] 24-03-PLAN.md — Documentation updates for all v2.0 components
+**Success Criteria:**
+1. `<Assign var={x} from={file('path')} />` emits `X=$(cat path)`
+2. `<Assign var={x} from={file('path', { optional: true })} />` emits `X=$(cat path 2>/dev/null)`
+3. `<Assign var={x} from={bash('cmd')} />` emits `X=$(cmd)`
+4. `<Assign var={x} from={value('str')} />` emits `X="str"` (quoted by default)
+5. `<Assign var={x} from={value('str', { raw: true })} />` emits `X=str` (unquoted)
+6. `<Assign var={x} from={env('HOME')} />` emits `X=$HOME`
+7. `<Assign var={x} from={MyFn} args={{}} />` emits runtime function call
+8. Old syntax removed, ReadFile removed (no deprecation period)
 
-### Phase 25: TSX Test Modernization
-**Goal**: Update all TSX test files in src/app/ to use new v2.0 syntax features (Table, List, ExecutionContext, SuccessCriteria, OfferNext, XML sections, render props, Step component)
-**Depends on**: Phase 24
-**Requirements**: TEST-01
-**Success Criteria** (what must be TRUE):
-  1. All test files in src/app/ demonstrate working examples of v2.0 features
-  2. Table and List components used where appropriate (replaces manual markdown)
-  3. ExecutionContext and SuccessCriteria used for semantic sections
-  4. Render props pattern demonstrated in at least one Command and Agent
-  5. All files build successfully with `npm run build`
-  6. Tests serve as working documentation for v2.0 features
-**Plans**: 3 plans
-
-Plans:
-- [x] 25-01-PLAN.md — Update scenario files with Table and List components
-- [x] 25-02-PLAN.md — Update scenario files with semantic components (ExecutionContext, SuccessCriteria, Step)
-- [x] 25-03-PLAN.md — Render props in Agent + enhance release command with OfferNext
-
-### v2.1 Parser Refactoring
-
-**Milestone Goal:** Refactor the large parser files (parser.ts: 1255 lines, transformer.ts: 3956 lines) into smaller, maintainable submodules for improved code organization and readability.
-
-- [ ] **Phase 26: Parser Refactoring** - Split parser.ts and transformer.ts into focused submodules
-
-## Phase Details
-
-### Phase 26: Parser Refactoring
-**Goal**: Split monolithic parser files into organized submodules for maintainability
-**Depends on**: Phase 25 (v2.0 complete)
-**Requirements**: REF-01, REF-02
-**Success Criteria** (what must be TRUE):
-  1. `parser.ts` (1255 lines) split into `utils/` directory with 7 focused modules
-  2. `transformer.ts` (3956 lines) split into `transformers/` directory with 10 focused modules
-  3. Central `index.ts` re-exports all public APIs (no breaking changes)
-  4. All existing tests pass after refactoring
-  5. Build passes with no TypeScript errors
-  6. Code is easier to navigate and understand
-**Plans**: 4 plans
-
-Plans:
-- [ ] 26-01-PLAN.md — Create utils/ directory with project, jsx-traversal, text-extraction, spread-resolution, component-resolution, type-resolution, variable-extraction modules
-- [ ] 26-02-PLAN.md — Create transformers/ directory foundation (types, shared utilities, dispatch stub)
-- [ ] 26-03-PLAN.md — Extract document, html, inline, semantic, control transformers
-- [ ] 26-04-PLAN.md — Extract remaining transformers, implement dispatch, update coordinator, verify tests
+---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 20 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26
+All phases complete through v3.1. v3.2 in progress.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. IR Extensions | v1.1 | 1/1 | Complete | 2026-01-21 |
-| 9. Agent Transpilation | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 10. SpawnAgent Component | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 11. Type Safety | v1.1 | 2/2 | Complete | 2026-01-21 |
-| 12. Typed SpawnAgent Input | v1.2 | 4/4 | Complete | 2026-01-21 |
-| 13. Conditional Logic | v1.3 | 3/3 | Complete | 2026-01-22 |
-| 14. Agent Output Schema | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 15. Command Output Handling | v1.4 | 3/3 | Complete | 2026-01-22 |
-| 16. Skill Component | v1.5 | 5/5 | Complete | 2026-01-22 |
-| 17. State System | v1.6 | 6/6 | Complete | 2026-01-22 |
-| 18. MCP Configuration | v1.7 | 4/4 | Complete | 2026-01-22 |
-| 19. Scoped State Skills | v1.8 | 4/4 | Complete | 2026-01-26 |
-| 20. Module Restructure | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 21. Structured Props | v2.0 | 2/2 | Complete | 2026-01-26 |
-| 22. Semantic Components | v2.0 | 4/4 | Complete | 2026-01-26 |
-| 23. Context Access Patterns | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 24. Parser/Emitter Integration | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 25. TSX Test Modernization | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 26. Parser Refactoring | v2.1 | 0/4 | Not Started | - |
+| 1-7 | v1.0 | 17/17 | Complete | 2026-01-21 |
+| 8-19 | v1.1-v1.8 | 56/56 | Complete | 2026-01-26 |
+| 20-25 | v2.0 | 17/17 | Complete | 2026-01-27 |
+| 26 | v2.1 | 4/4 | Complete | 2026-01-31 |
+| 27-33 | v3.0 | 13/13 | Complete | 2026-01-31 |
+| 34-37 | v3.1 | 10/10 | Complete | 2026-02-01 |
+| 38 | v3.2 | 5/5 | Complete | 2026-02-02 |
+
+**Total:** 122 plans completed across 38 phases
 
 ---
 *Roadmap created: 2026-01-21*
-*v2.0 TSX Syntax Improvements started: 2026-01-26*
-*v2.1 Parser Refactoring planned: 2026-01-27*
+*v2.0 TSX Syntax Improvements shipped: 2026-01-27*
+*v2.1 Parser Refactoring shipped: 2026-01-31*
+*v3.0 Primitive/Composite Architecture shipped: 2026-01-31*
+*v3.1 Meta-Prompting shipped: 2026-02-01*
+*v3.2 Data Abstraction shipped: 2026-02-02*

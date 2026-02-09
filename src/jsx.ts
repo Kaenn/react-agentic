@@ -33,9 +33,19 @@ export {
   Return,
   AskUser,
 
+  // Agent contract components
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  StatusReturn,
+  StructuredReturns,
+
   // Runtime primitives
   useRuntimeVar,
+  useVariable,
   runtimeFn,
+  Ref,
 
   // Utilities
   useOutput,
@@ -59,6 +69,7 @@ export {
   BREAK_MARKER,
   RETURN_MARKER,
   ASK_USER_MARKER,
+  REF_MARKER,
 
   // Types
   type CommandProps,
@@ -96,6 +107,10 @@ export {
   type RuntimeCallProps,
   type RuntimeCallComponent,
   type RuntimeFnComponent,
+  type RefProps,
+  type ContractComponentProps,
+  type StatusReturnProps,
+  type StructuredReturnsProps,
 } from './components/index.js';
 
 // ============================================================================
@@ -106,3 +121,35 @@ export {
   ExecutionContext,
   type ExecutionContextProps,
 } from './workflow/sections/index.js';
+
+// ============================================================================
+// Primitive Helpers
+// ============================================================================
+
+export {
+  file,
+  bash,
+  value,
+  env,
+  type FileSource,
+  type BashSource,
+  type ValueSource,
+  type EnvSource,
+  type AssignSource,
+} from './primitives/sources.js';
+
+export {
+  // Note: useVariable is exported from components (unified API from runtime-var.ts)
+  // Legacy useVariable from primitives is deprecated
+  Assign,
+  AssignGroup,
+  type VariableRef,
+  type AssignProps,
+  type AssignGroupProps,
+} from './primitives/variables.js';
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export * from './components/swarm/index.js';

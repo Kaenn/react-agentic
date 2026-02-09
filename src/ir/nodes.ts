@@ -5,6 +5,11 @@
  * enabling exhaustive type checking in switch statements.
  */
 
+import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode, WorkflowNode } from './swarm-nodes.js';
+
+// Re-export swarm nodes for convenience
+export type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode, WorkflowNode };
+
 // ============================================================================
 // Inline Nodes (within paragraphs, headings, etc.)
 // ============================================================================
@@ -231,10 +236,12 @@ export interface IndentNode {
 export interface AssignNode {
   kind: 'assign';
   variableName: string;    // Shell variable name (e.g., 'PHASE_DIR')
-  assignment: {
-    type: 'bash' | 'value' | 'env';  // bash: VAR=$(...), value: VAR=..., env: VAR=$ENV
-    content: string;                  // The bash command, static value, or env var name
-  };
+  assignment:
+    | { type: 'bash'; content: string; }
+    | { type: 'value'; content: string; raw?: boolean; }
+    | { type: 'env'; content: string; }
+    | { type: 'file'; path: string; optional?: boolean; }
+    | { type: 'runtimeFn'; fnName: string; args: Record<string, unknown>; };
   comment?: string;        // Optional inline comment (e.g., "Get phase from roadmap")
   blankBefore?: boolean;   // Insert extra blank line before this assignment (from <br/>)
 }
@@ -272,6 +279,41 @@ export interface OnStatusNode {
   status: 'SUCCESS' | 'BLOCKED' | 'NOT_FOUND' | 'ERROR' | 'CHECKPOINT';
   /** Block content for this status */
   children: BaseBlockNode[];
+}
+
+/**
+ * OnStatusDefault block - catch-all for unhandled agent statuses
+ * Emits as **On any other status:** prose pattern
+ */
+export interface OnStatusDefaultNode {
+  kind: 'onStatusDefault';
+  /** Output reference from useOutput (inherited from preceding OnStatus) */
+  outputRef: OutputReference;
+  /** Block content for default case */
+  children: BaseBlockNode[];
+}
+
+// Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+// that wrap XmlBlock. They no longer have dedicated IR nodes - they emit XmlBlockNode.
+
+/**
+ * Return - individual return status with description
+ * Only valid inside StructuredReturns
+ * Named ReturnStatusNode to avoid conflict with control flow ReturnNode
+ */
+export interface ReturnStatusNode {
+  kind: 'returnStatus';
+  status: string;
+  children: BaseBlockNode[];
+}
+
+/**
+ * StructuredReturns - container for Return children
+ * Renders as <structured_returns> with ## headings for each status
+ */
+export interface StructuredReturnsNode {
+  kind: 'structuredReturns';
+  returns: ReturnStatusNode[];
 }
 
 /**
@@ -380,12 +422,22 @@ export type BaseBlockNode =
   | AssignNode
   | AssignGroupNode
   | OnStatusNode
+  | OnStatusDefaultNode
   | ReadStateNode
   | WriteStateNode
   | ReadFilesNode
   | PromptTemplateNode
   | MCPServerNode
-  | StepNode;
+  | StepNode
+  | StructuredReturnsNode
+  | TaskDefNode
+  | TaskPipelineNode
+  | TeamNode
+  | TeammateNode
+  | ShutdownSequenceNode
+  | WorkflowNode;
+  // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+  // that wrap XmlBlock. They emit XmlBlockNode instead of dedicated IR nodes.
 
 /**
  * Internal alias for backward compatibility within this file
@@ -616,7 +668,9 @@ export type IRNode =
   | SkillDocumentNode
   | MCPConfigDocumentNode
   | StateDocumentNode
-  | TypeReference;
+  | TypeReference
+  | StructuredReturnsNode
+  | ReturnStatusNode;
 
 // ============================================================================
 // Utilities

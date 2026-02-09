@@ -65,6 +65,16 @@ export interface RuntimeFnComponent<TArgs extends object, TReturn> {
   readonly fn: RuntimeFunction<TArgs, TReturn>;
   /** Marker for type guard */
   readonly __isRuntimeFn: true;
+
+  // Reference properties for printing
+  /** Function identifier name (e.g., "initProject") */
+  readonly name: string;
+  /** Function call syntax with parens (e.g., "initProject()") */
+  readonly call: string;
+  /** Comma-separated parameter names from function signature */
+  readonly input: string;
+  /** Output type as JSON schema string (placeholder - requires compile-time extraction) */
+  readonly output: string;
 }
 
 // ============================================================================
@@ -81,6 +91,41 @@ const RUNTIME_FN_MARKER = Symbol.for('react-agentic:runtime-fn');
  * Maps function name -> function reference
  */
 const runtimeFnRegistry = new Map<string, RuntimeFunction<object, unknown>>();
+
+// ============================================================================
+// Internal Helpers
+// ============================================================================
+
+/**
+ * Extract parameter names from a function
+ *
+ * Uses function.toString() to get source and parses parameter names.
+ * Strips type annotations to get just the names.
+ *
+ * @param fn - Function to extract parameter names from
+ * @returns Comma-separated parameter names, or empty string if none
+ *
+ * @example
+ * async function foo(args: Args) { ... }
+ * // Returns: "args"
+ *
+ * async function bar(a: string, b: number) { ... }
+ * // Returns: "a, b"
+ */
+function extractParameterNames(fn: Function): string {
+  const fnStr = fn.toString();
+  const match = fnStr.match(/\(([^)]*)\)/);
+  if (!match || !match[1].trim()) return '';
+
+  // Extract parameter names, stripping types and default values
+  const params = match[1].split(',').map(p => {
+    // Get everything before : (type annotation) or = (default value)
+    const name = p.trim().split(/[:\s=]/)[0];
+    return name.trim();
+  }).filter(Boolean);
+
+  return params.join(', ');
+}
 
 // ============================================================================
 // Public API
@@ -150,13 +195,18 @@ export function runtimeFn<TArgs extends object, TReturn>(
     return null;
   };
 
-  // Create wrapper with marker
+  // Create wrapper with marker and reference properties
   const wrapper = {
     Call,
     fnName,
     fn,
     __isRuntimeFn: true as const,
     [RUNTIME_FN_MARKER]: true,
+    // Reference properties for printing
+    name: fnName,
+    call: `${fnName}()`,
+    input: extractParameterNames(fn),
+    output: 'unknown', // Type extraction requires compile-time type analysis
   };
 
   return wrapper;

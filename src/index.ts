@@ -28,9 +28,19 @@ export {
   Return,
   AskUser,
 
+  // Agent contract components
+  Role,
+  UpstreamInput,
+  DownstreamConsumer,
+  Methodology,
+  StatusReturn,
+  StructuredReturns,
+
   // Runtime primitives
   useRuntimeVar,
+  useVariable,
   runtimeFn,
+  Ref,
 
   // Agent utilities
   useOutput,
@@ -57,6 +67,7 @@ export {
   BREAK_MARKER,
   RETURN_MARKER,
   ASK_USER_MARKER,
+  REF_MARKER,
 
   // Types
   type CommandProps,
@@ -95,6 +106,10 @@ export {
   type RuntimeCallProps,
   type RuntimeCallComponent,
   type RuntimeFnComponent,
+  type RefProps,
+  type ContractComponentProps,
+  type StatusReturnProps,
+  type StructuredReturnsProps,
 } from './components/index.js';
 
 // ============================================================================
@@ -208,3 +223,68 @@ export {
   ExecutionContext,
   type ExecutionContextProps,
 } from './workflow/sections/index.js';
+
+// ============================================================================
+// Primitive Helpers
+// ============================================================================
+
+export {
+  file,
+  bash,
+  value,
+  env,
+  type FileSource,
+  type BashSource,
+  type ValueSource,
+  type EnvSource,
+  type AssignSource,
+} from './primitives/sources.js';
+
+// ============================================================================
+// Swarm System
+// ============================================================================
+
+export {
+  // Enums
+  AgentType,
+  PluginAgentType,
+  Model,
+  TaskMode,
+
+  // Factories
+  defineTask,
+  defineWorker,
+  defineTeam,
+
+  // Guards
+  isTaskRef,
+  isWorkerRef,
+  isTeamRef,
+
+  // Components
+  TaskDef,
+  TaskPipeline,
+  Team,
+  Teammate,
+  Prompt,
+  Workflow,
+  ShutdownSequence,
+
+  // Pipeline Builder
+  createPipeline,
+
+  // Types
+  type TaskRef,
+  type WorkerRef,
+  type TeamRef,
+  type TaskDefProps,
+  type TaskPipelineProps,
+  type TeamProps,
+  type TeammateProps,
+  type PromptProps,
+  type WorkflowProps,
+  type ShutdownSequenceProps,
+  type Pipeline,
+  type PipelineBuilder,
+  type PipelineStage,
+} from './components/swarm/index.js';

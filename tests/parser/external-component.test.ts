@@ -558,7 +558,7 @@ describe('External Component Imports', () => {
       );
 
       expect(output).toContain('## Status');
-      expect(output).toContain('**If ctx.status:**');
+      expect(output).toContain('**If $CTX.status:**');
     });
   });
 });

@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Structured Components > Indent > emits Indent with 4 spaces 1`] = `
+"    Indented with 4 spaces.
+"
+`;
+
+exports[`Structured Components > Indent > emits Indent with default indentation (2 spaces) 1`] = `
+"  Indented paragraph.
+
+  Another indented paragraph.
+"
+`;
+
+exports[`Structured Components > Indent > emits Indent with nested blocks 1`] = `
+"  ### Nested Heading
+
+  1. Indented list item
+"
+`;
+
+exports[`Structured Components > List > emits nested list 1`] = `
+"1. Top level item
+  - Nested item 1
+  - Nested item 2
+"
+`;
+
+exports[`Structured Components > List > emits ordered list 1`] = `
+"1. Step one
+2. Step two
+"
+`;
+
+exports[`Structured Components > List > emits ordered list with start number 1`] = `
+"5. Item five
+6. Item six
+"
+`;
+
+exports[`Structured Components > List > emits unordered list 1`] = `
+"- First item
+- Second item
+- Third item
+"
+`;
+
+exports[`Structured Components > Table > emits Table with basic headers and rows 1`] = `
+"| Name | Age | City |
+| :--- | :--- | :--- |
+| Alice | 30 | New York |
+| Bob | 25 | San Francisco |
+| Charlie | 35 | Seattle |
+"
+`;
+
+exports[`Structured Components > Table > emits Table with column alignment 1`] = `
+"| Item | Price | Quantity |
+| :--- | ---: | :---: |
+| Apple | $1.50 | 10 |
+| Banana | $0.75 | 20 |
+"
+`;
+
+exports[`Structured Components > Table > emits Table with empty cells 1`] = `
+"| Column 1 | Column 2 | Column 3 |
+| :--- | :--- | :--- |
+| Value 1 | - | Value 3 |
+| - | Value 2 | - |
+"
+`;
+
+exports[`Structured Components > Table > emits Table without headers 1`] = `
+"| :--- | :--- |
+| Row 1 Col 1 | Row 1 Col 2 |
+| Row 2 Col 1 | Row 2 Col 2 |
+"
+`;

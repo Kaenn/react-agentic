@@ -1,77 +1,100 @@
-# v2.0 Requirements: TSX Syntax Improvements
+# Requirements: React Agentic
 
-## Code Organization
+**Defined:** 2026-01-31
+**Core Value:** Compile-time safety for Claude Code commands — malformed commands fail at build time, not runtime.
 
-- [x] **ORG-01**: Module structure splits jsx.ts into primitives/ and workflow/ directories
-- [x] **ORG-02**: Central index.ts re-exports all components from both directories
-- [x] **ORG-03**: workflow/sections/ subdirectory contains semantic XML wrapper components
+## v3.1 Requirements
 
-## Semantic Components
+Requirements for Meta-Prompting milestone. Each maps to roadmap phases.
 
-- [x] **SEM-01**: ExecutionContext component accepts `paths: string[]` prop and emits `<execution_context>` with @ imports
-- [x] **SEM-02**: SuccessCriteria component accepts `items: string[]` prop and emits `<success_criteria>` with checkbox list
-- [x] **SEM-03**: OfferNext component accepts `routes: OfferNextRoute[]` prop and emits typed route navigation section
-- [x] **SEM-04**: DeviationRules component emits `<deviation_rules>` section with children content
-- [x] **SEM-05**: CommitRules component emits `<commit_rules>` section with children content
-- [x] **SEM-06**: WaveExecution component emits `<wave_execution>` section with children content
-- [x] **SEM-07**: CheckpointHandling component emits `<checkpoint_handling>` section with children content
+### Agent Contract
 
-## Structured Props
+Components inside `<Agent>` that define its contract with callers.
 
-- [x] **PROP-01**: Table component accepts `headers: string[]` and `rows: string[][]` props and emits markdown table
-- [x] **PROP-02**: List component accepts `items: string[]` prop and emits markdown bullet list
+- [x] **AGNT-01**: `<Role>` component defines agent identity and responsibilities
+- [x] **AGNT-02**: `<UpstreamInput>` documents what context agent expects from caller
+- [x] **AGNT-03**: `<DownstreamConsumer>` documents what consumes agent's output
+- [x] **AGNT-04**: `<Methodology>` describes how the agent works (approach, patterns)
+- [x] **AGNT-05**: `<StructuredReturns>` with `<StatusReturn>` children defines typed return statuses
 
-## Context Access
+### Command Orchestration
 
-- [x] **CTX-01**: Command component supports optional render props pattern `{(ctx) => children}` with typed context
-- [x] **CTX-02**: Agent component supports optional render props pattern `{(ctx) => children}` with typed context
-- [x] **CTX-03**: Workflow components (Bash, Loop, If) accept explicit generic type parameters `<T>`
-- [x] **CTX-04**: Step component accepts `name: string` and `number: number` props for numbered workflow sections
+Components inside `<Command>` for agent orchestration.
 
-## Parser/Emitter
+- [x] **ORCH-07**: `<OnStatusDefault>` catch-all for unhandled agent return statuses
 
-- [x] **PAR-01**: Transformer recognizes all new components and converts to IR nodes
-- [x] **PAR-02**: Emitter generates correct markdown for all new IR nodes
-- [x] **PAR-03**: Unit tests cover each new component with expected input → output
+Note: ORCH-01 through ORCH-06 removed per CONTEXT.md (Uses, Init, ValidateEnvironment, ParseArguments, HandleReturn, Match). OnStatusDefault added as replacement catch-all component.
 
----
+### Meta-Prompting
 
-## Future Requirements (Deferred)
+The context-gathering layer for intelligent prompt composition.
 
-- Additional state providers (localfile, supabase, postgres)
-- State migration tooling
-- Config file support for build options
-- Incremental compilation
-- Parallel processing
+- [x] **META-01**: `<MetaPrompt>` wrapper for context composition block
+- [x] **META-02**: `<GatherContext>` wrapper for file read operations
+- [x] **META-03**: `<ReadFile>` reads file into named variable for composition
+- [x] **META-04**: `<ComposeContext>` structures gathered content into XML blocks
+- [x] **META-05**: `<InlineField>` renders simple key-value inline (e.g., `**Phase:** 08`)
+- [x] **META-06**: `<Preamble>` renders intro text before structured content
+
+### SpawnAgent Enhancement
+
+Enhancements to existing SpawnAgent component.
+
+- [x] **SPWN-01**: `readAgentFile` prop enables agent self-reading pattern
+
+## Future Requirements
+
+Deferred to v3.2 or later. Tracked but not in current roadmap.
+
+### Extended Return Actions
+
+- **RACT-01**: `<Display>` action for showing messages in HandleReturn
+- **RACT-02**: `<PresentCheckpoint>` action for user interaction
+- **RACT-03**: `<AwaitUserResponse>` action for waiting on input
+- **RACT-04**: `<OfferOptions>` with `<Option>` children for choices
+- **RACT-05**: `<OfferNext>` action for suggesting next command
+
+### Extended Context
+
+- **ECTX-01**: `<AdditionalSections>` wrapper for extra context sections
+- **ECTX-02**: `<Section name="...">` for named context sections
 
 ## Out of Scope
 
-- Breaking changes to existing component APIs — existing patterns continue to work
-- Runtime JSX evaluation — remain compile-time only
-- React compatibility — this is not React, just uses TSX syntax
+Explicitly excluded. Documented to prevent scope creep.
 
----
+| Feature | Reason |
+|---------|--------|
+| Full agent inlining (Scenario 3) | Agent self-reading pattern preferred for reusability |
+| Dynamic agent selection | Static agent reference sufficient for v3.1 |
+| Cross-command state | Each command invocation is independent |
+| Agent chaining DSL | Handle via composition in user code |
 
 ## Traceability
 
-| REQ-ID | Phase | Plan | Status |
-|--------|-------|------|--------|
-| ORG-01 | 20 | 20-01 | Complete |
-| ORG-02 | 20 | 20-02 | Complete |
-| ORG-03 | 20 | 20-01 | Complete |
-| SEM-01 | 22 | 22-01 | Complete |
-| SEM-02 | 22 | 22-01 | Complete |
-| SEM-03 | 22 | 22-02 | Complete |
-| SEM-04 | 22 | 22-02 | Complete |
-| SEM-05 | 22 | 22-02 | Complete |
-| SEM-06 | 22 | 22-02 | Complete |
-| SEM-07 | 22 | 22-02 | Complete |
-| PROP-01 | 21 | 21-01, 21-02 | Complete |
-| PROP-02 | 21 | 21-01, 21-02 | Complete |
-| CTX-01 | 23 | 23-01 | Complete |
-| CTX-02 | 23 | 23-01 | Complete |
-| CTX-03 | 23 | 23-02 | Complete |
-| CTX-04 | 23 | 23-03 | Complete |
-| PAR-01 | 24 | 24-01, 24-02 | Complete |
-| PAR-02 | 24 | 24-01, 24-02 | Complete |
-| PAR-03 | 24 | 24-01, 24-02 | Complete |
+Which phases cover which requirements.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AGNT-01 | Phase 34 | Complete |
+| AGNT-02 | Phase 34 | Complete |
+| AGNT-03 | Phase 34 | Complete |
+| AGNT-04 | Phase 34 | Complete |
+| AGNT-05 | Phase 34 | Complete |
+| ORCH-07 | Phase 35 | Complete |
+| META-01 | Phase 36 | Complete |
+| META-02 | Phase 36 | Complete |
+| META-03 | Phase 36 | Complete |
+| META-04 | Phase 36 | Complete |
+| META-05 | Phase 36 | Complete |
+| META-06 | Phase 36 | Complete |
+| SPWN-01 | Phase 37 | Complete |
+
+**Coverage:**
+- v3.1 requirements: 13 total (6 removed per CONTEXT.md)
+- Mapped to phases: 13
+- Complete: 13
+
+---
+*Requirements defined: 2026-01-31*
+*Traceability updated: 2026-02-01 (v3.1 milestone complete)*

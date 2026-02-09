@@ -1,0 +1,191 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Runtime Components > AskUser > emits AskUser with header 1`] = `
+"Use the AskUserQuestion tool:
+
+- Question: "Confirm deletion?"
+- Header: "Warning"
+- Options:
+  - "Yes, delete" (value: "yes")
+  - "No, keep it" (value: "no")
+
+Store the user's response in \`$CONFIRM_DELETE\`.
+"
+`;
+
+exports[`Runtime Components > AskUser > emits AskUser with multiSelect 1`] = `
+"Use the AskUserQuestion tool:
+
+- Question: "Which features should be enabled?"
+- Options:
+  - "Feature A" (value: "feature-a") - Enable experimental feature A
+  - "Feature B" (value: "feature-b") - Enable beta feature B
+  - "Feature C" (value: "feature-c")
+
+Store the user's response in \`$FEATURES\`.
+"
+`;
+
+exports[`Runtime Components > AskUser > emits basic AskUser with options 1`] = `
+"Use the AskUserQuestion tool:
+
+- Question: "Which environment should we deploy to?"
+- Options:
+  - "Staging" (value: "staging")
+  - "Production" (value: "production")
+
+Store the user's response in \`$ENVIRONMENT\`.
+"
+`;
+
+exports[`Runtime Components > Control Flow Integration > emits Loop containing Break 1`] = `
+"**Loop up to 100 times (counter: $i):**
+
+Searching...
+
+**Break loop:** Found matching item.
+"
+`;
+
+exports[`Runtime Components > OnStatus > emits OnStatus with BLOCKED status 1`] = `
+"**On BLOCKED:**
+
+Approval required before proceeding.
+"
+`;
+
+exports[`Runtime Components > OnStatus > emits OnStatus with ERROR status 1`] = `
+"**On ERROR:**
+
+Deployment failed. Rolling back...
+
+\`\`\`bash
+git revert HEAD
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > OnStatus > emits OnStatus with NOT_FOUND status 1`] = `
+"**On NOT_FOUND:**
+
+Resource not found. Creating new one...
+"
+`;
+
+exports[`Runtime Components > OnStatus > emits OnStatus with SUCCESS status 1`] = `
+"**On SUCCESS:**
+
+All tests passed!
+"
+`;
+
+exports[`Runtime Components > RuntimeCall > emits RuntimeCall with mixed arg types 1`] = `
+"**Runtime Call**: \`sendNotification\`
+
+| Argument | Source |
+|----------|--------|
+| message | "Task completed" |
+| userId | USER.id |
+| priority | "high" |
+
+\`\`\`bash
+NOTIFICATION_ID=$(node .claude/runtime/runtime.js sendNotification '{"message": "Task completed", "userId": $USER.id, "priority": "high"}')
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > RuntimeCall > emits RuntimeCall with runtime variable references 1`] = `
+"**Runtime Call**: \`processData\`
+
+| Argument | Source |
+|----------|--------|
+| input | CTX.data |
+| config | CONFIG |
+
+\`\`\`bash
+RESULT=$(node .claude/runtime/runtime.js processData '{"input": $CTX.data, "config": $CONFIG}')
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > RuntimeCall > emits basic RuntimeCall with literal args 1`] = `
+"**Runtime Call**: \`calculatePrice\`
+
+| Argument | Source |
+|----------|--------|
+| quantity | 10 |
+| unitPrice | 5.99 |
+
+\`\`\`bash
+TOTAL_PRICE=$(node .claude/runtime/runtime.js calculatePrice '{"quantity": 10, "unitPrice": 5.99}')
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > SpawnAgent > emits SpawnAgent loaded from file 1`] = `
+"\`\`\`
+Task(
+  prompt="First, read .claude/agents/custom-agent.md for your role and instructions.\\n\\nExecute custom workflow.",
+  subagent_type="general-purpose",
+  model="claude-opus-4",
+  description="Custom agent from file"
+)
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > SpawnAgent > emits SpawnAgent with input object 1`] = `
+"\`\`\`
+Task(
+  prompt="<files>
+src/*.ts
+</files>
+
+<severity>
+high
+</severity>",
+  subagent_type="code-reviewer",
+  model="claude-sonnet-4",
+  description="Review code changes"
+)
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > SpawnAgent > emits SpawnAgent with output variable 1`] = `
+"\`\`\`
+Task(
+  prompt="Investigate best practices for React testing.",
+  subagent_type="researcher",
+  model="claude-opus-4",
+  description="Research the topic"
+)
+\`\`\`
+
+Store the agent's result in \`$RESEARCH_RESULT\`.
+"
+`;
+
+exports[`Runtime Components > SpawnAgent > emits SpawnAgent with runtime variable reference in input 1`] = `
+"\`\`\`
+Task(
+  prompt="" + $CTX.filePath,
+  subagent_type="analyzer",
+  model="claude-sonnet-4",
+  description="Analyze data"
+)
+\`\`\`
+"
+`;
+
+exports[`Runtime Components > SpawnAgent > emits basic SpawnAgent with prompt 1`] = `
+"\`\`\`
+Task(
+  prompt="Execute all tests and report results.",
+  subagent_type="test-runner",
+  model="claude-opus-4",
+  description="Run the test suite"
+)
+\`\`\`
+"
+`;

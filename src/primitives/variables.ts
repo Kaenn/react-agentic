@@ -21,38 +21,43 @@ export interface VariableRef<T = string> {
 /**
  * Declare a shell variable reference
  *
- * This is a compile-time hook that creates a reference to a shell variable.
- * The actual assignment is specified on <Assign> where you emit it.
+ * @deprecated Use `useVariable` from 'react-agentic' (exported from components/runtime-var.ts)
+ * which provides unified support for both Assign and meta-prompting components.
+ *
+ * This legacy version only works with Assign component and bash interpolation.
+ * The new unified `useVariable` works with Assign, Ref, If, and JSX interpolation.
  *
  * @param name - Shell variable name (e.g., "PHASE_DIR")
  * @returns VariableRef for use in Assign and string interpolation
  *
  * @example
+ * // Old pattern (deprecated):
+ * import { useVariable } from './primitives/variables.js';
  * const phaseDir = useVariable("PHASE_DIR");
  *
- * // In JSX - assignment specified at emission point:
- * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* 2>/dev/null | head -1`} />
- *
- * // For interpolation:
- * <If test={`[ -z ${phaseDir.ref} ]`}>
+ * // New unified pattern:
+ * import { useVariable } from 'react-agentic';
+ * const phaseDir = useVariable<string>("PHASE_DIR");
+ * // Works with both Assign AND meta-prompting
  */
 export function useVariable<T = string>(name: string): VariableRef<T> {
   return { name, ref: name };
 }
 
+import type { AssignSource } from './sources.js';
+import type { RuntimeFnComponent } from '../components/runtime-fn.js';
+import type { RuntimeVarProxy } from '../components/runtime-var.js';
+
 /**
  * Props for the Assign component
- * Specify exactly one of: bash, value, or env
  */
 export interface AssignProps {
-  /** Variable reference from useVariable */
-  var: VariableRef;
-  /** Bash command to capture output: VAR=$(command) */
-  bash?: string;
-  /** Static value: VAR=value (quoted if contains spaces) */
-  value?: string;
-  /** Environment variable to read: VAR=$ENV_VAR */
-  env?: string;
+  /** Variable reference from useVariable (supports both VariableRef and RuntimeVarProxy) */
+  var: VariableRef | RuntimeVarProxy<unknown>;
+  /** Data source - file, bash, value, env, or runtimeFn */
+  from: AssignSource | RuntimeFnComponent<any, any>;
+  /** For runtimeFn sources: arguments to pass */
+  args?: Record<string, unknown>;
   /** Optional comment to emit above the assignment (e.g., "Get phase from roadmap") */
   comment?: string;
 }
@@ -61,22 +66,31 @@ export interface AssignProps {
  * Assign component - emits shell variable assignment
  *
  * This is a compile-time component. It's never executed at runtime.
- * It emits a bash code block with the variable assignment.
+ * It emits a bash code block with the variable assignment using a source helper.
  *
  * @example bash command
+ * import { bash } from 'react-agentic';
  * const phaseDir = useVariable("PHASE_DIR");
- * <Assign var={phaseDir} bash={`ls -d .planning/phases/\${PHASE}-* | head -1`} />
+ * <Assign var={phaseDir} from={bash(`ls -d .planning/phases/\${PHASE}-* | head -1`)} />
  * // Outputs: PHASE_DIR=$(ls -d .planning/phases/${PHASE}-* | head -1)
  *
  * @example static value
+ * import { value } from 'react-agentic';
  * const outputFile = useVariable("OUTPUT_FILE");
- * <Assign var={outputFile} value="/tmp/output.md" />
- * // Outputs: OUTPUT_FILE=/tmp/output.md
+ * <Assign var={outputFile} from={value("/tmp/output.md")} />
+ * // Outputs: OUTPUT_FILE="/tmp/output.md"
  *
  * @example environment variable
+ * import { env } from 'react-agentic';
  * const phase = useVariable("PHASE");
- * <Assign var={phase} env="PHASE_NUMBER" />
+ * <Assign var={phase} from={env("PHASE_NUMBER")} />
  * // Outputs: PHASE=$PHASE_NUMBER
+ *
+ * @example file content
+ * import { file } from 'react-agentic';
+ * const stateContent = useVariable("STATE_CONTENT");
+ * <Assign var={stateContent} from={file(".planning/STATE.md")} />
+ * // Outputs: STATE_CONTENT=$(cat .planning/STATE.md)
  */
 export function Assign(_props: AssignProps): null {
   return null;

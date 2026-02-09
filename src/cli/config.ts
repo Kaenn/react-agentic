@@ -23,6 +23,8 @@ export interface ReactAgenticConfig {
   minify: boolean;
   /** Split runtime into per-namespace modules (default: false) */
   codeSplit: boolean;
+  /** Directory for agent definition files (default: .claude/agents) */
+  agentsDir: string;
 }
 
 /**
@@ -33,6 +35,7 @@ export const DEFAULT_CONFIG: ReactAgenticConfig = {
   runtimeDir: DEFAULT_RUNTIME_DIR,
   minify: false,
   codeSplit: false,
+  agentsDir: '.claude/agents',
 };
 
 const CONFIG_FILENAME = 'react-agentic.config.json';
@@ -67,6 +70,9 @@ export async function loadConfigFile(cwd: string = process.cwd()): Promise<Parti
     if (typeof parsed.codeSplit === 'boolean') {
       config.codeSplit = parsed.codeSplit;
     }
+    if (typeof parsed.agentsDir === 'string') {
+      config.agentsDir = parsed.agentsDir;
+    }
 
     return config;
   } catch (error) {
@@ -83,6 +89,7 @@ export interface CLIConfigOverrides {
   runtimeOut?: string;
   minify?: boolean;
   codeSplit?: boolean;
+  agentsDir?: string;
 }
 
 /**
@@ -181,6 +188,7 @@ export async function resolveConfig(
     runtimeDir,
     minify: cliOptions.minify ?? fileConfig.minify ?? DEFAULT_CONFIG.minify,
     codeSplit: cliOptions.codeSplit ?? fileConfig.codeSplit ?? DEFAULT_CONFIG.codeSplit,
+    agentsDir: cliOptions.agentsDir ?? fileConfig.agentsDir ?? DEFAULT_CONFIG.agentsDir,
   };
 
   // Validate the merged config

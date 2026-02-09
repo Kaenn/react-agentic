@@ -5,7 +5,7 @@
  * and related helper functions for primitive markdown components.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, ObjectLiteralExpression, TemplateExpression } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, ObjectLiteralExpression, TemplateExpression, NoSubstitutionTemplateLiteral, PropertyAccessExpression } from 'ts-morph';
 import type { StepNode, StepVariant, CodeBlockNode, ReadFilesNode, ReadFileEntry, PromptTemplateNode, BlockNode, BaseBlockNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue } from '../utils/index.js';
@@ -184,6 +184,122 @@ export function transformReadFiles(
     kind: 'readFiles',
     files,
   };
+}
+
+
+/**
+ * Extract path prop value, handling strings, templates, and RuntimeVar references
+ *
+ * Converts RuntimeVar property access to shell variable syntax:
+ * - ctx.phaseDir -> $CTX_phaseDir
+ * - ctx.phaseId -> $CTX_phaseId
+ */
+function extractPathProp(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string,
+  ctx: TransformContext
+): string | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+  if (!init) {
+    return undefined;
+  }
+
+  // String literal: path="value"
+  if (Node.isStringLiteral(init)) {
+    return init.getLiteralValue();
+  }
+
+  // JSX expression: path={...}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (!expr) {
+      return undefined;
+    }
+
+    // String literal inside expression: path={"value"}
+    if (Node.isStringLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // No-substitution template literal: path={`value`}
+    if (Node.isNoSubstitutionTemplateLiteral(expr)) {
+      return expr.getLiteralValue();
+    }
+
+    // Template expression with substitutions: path={`${ctx.phaseDir}/file.md`}
+    if (Node.isTemplateExpression(expr)) {
+      return extractPathTemplateContent(expr);
+    }
+
+    // Property access: path={ctx.phaseDir} -> $CTX_phaseDir
+    if (Node.isPropertyAccessExpression(expr)) {
+      return formatPropertyAccessAsShellVar(expr);
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract template literal content, converting RuntimeVar refs to shell syntax
+ *
+ * Template like: `${ctx.phaseDir}/${ctx.phaseId}-RESEARCH.md`
+ * Becomes: $CTX_phaseDir/$CTX_phaseId-RESEARCH.md
+ */
+function extractPathTemplateContent(expr: TemplateExpression): string {
+  const parts: string[] = [];
+
+  // Head: text before first ${...}
+  parts.push(expr.getHead().getLiteralText());
+
+  // Spans: each has expression + literal text after
+  for (const span of expr.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+
+    // Check if it's a property access (RuntimeVar reference)
+    if (Node.isPropertyAccessExpression(spanExpr)) {
+      parts.push(formatPropertyAccessAsShellVar(spanExpr));
+    } else {
+      // Preserve other expressions as ${...} syntax
+      parts.push(`\${${spanExpr.getText()}}`);
+    }
+
+    parts.push(span.getLiteral().getLiteralText());
+  }
+
+  return parts.join('');
+}
+
+/**
+ * Format property access expression as shell variable
+ *
+ * ctx.phaseDir -> $CTX_phaseDir
+ * ctx.flags.research -> $CTX_flags_research
+ */
+function formatPropertyAccessAsShellVar(expr: PropertyAccessExpression): string {
+  const parts: string[] = [];
+  let current: Node = expr;
+
+  // Walk up the property access chain
+  while (Node.isPropertyAccessExpression(current)) {
+    const propAccess = current as PropertyAccessExpression;
+    parts.unshift(propAccess.getName());
+    current = propAccess.getExpression();
+  }
+
+  // Get the base identifier (e.g., 'ctx')
+  if (Node.isIdentifier(current)) {
+    const baseName = current.getText().toUpperCase(); // ctx -> CTX
+    return `$${baseName}_${parts.join('_')}`;
+  }
+
+  // Fallback: just use the text as-is
+  return `\${${expr.getText()}}`;
 }
 
 /**

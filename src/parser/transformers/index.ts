@@ -114,6 +114,7 @@ export {
   transformElse,
   transformLoop,
   transformOnStatus,
+  transformOnStatusDefault,
   extractOutputDeclarations,
   extractStateRefDeclarations,
 } from './control.js';
@@ -186,6 +187,18 @@ export {
   transformCustomComponent,
   extractTemplateText,
 } from './markdown.js';
+
+// ============================================================================
+// Contract Component Transformers
+// ============================================================================
+
+// Note: transformRole, transformUpstreamInput, transformDownstreamConsumer, transformMethodology
+// are no longer exported. Those components are now composites that wrap XmlBlock.
+export {
+  transformStructuredReturns,
+  transformReturn,
+  isContractComponent,
+} from './contract.js';
 
 // ============================================================================
 // Runtime Transformers

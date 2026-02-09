@@ -27,6 +27,7 @@ import type {
   ListNode,
   OfferNextNode,
   OnStatusNode,
+  OnStatusDefaultNode,
   ParagraphNode,
   ReadStateNode,
   ReadFilesNode,
@@ -34,16 +35,32 @@ import type {
   SkillDocumentNode,
   SkillFileNode,
   SkillFrontmatterNode,
+  StructuredReturnsNode,
   SuccessCriteriaNode,
   StepNode,
   StepVariant,
   TableNode,
+  TaskDefNode,
+  TaskPipelineNode,
+  TeamNode,
+  TeammateNode,
+  ShutdownSequenceNode,
+  WorkflowNode,
   TypeReference,
   WriteStateNode,
   XmlBlockNode,
 } from '../ir/index.js';
 import { resolveTypeImport, extractInterfaceProperties } from '../parser/parser.js';
 import { assertNever } from './utils.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam, emitShutdownSequence, emitWorkflow } from './swarm-emitter.js';
+
+/**
+ * Context for emission state that persists across emitBlock calls
+ */
+export interface EmitContext {
+  /** Resolver for mapping task UUIDs to sequential numeric IDs */
+  taskResolver?: TaskIdResolver;
+}
 
 /**
  * Context for tracking nested list state
@@ -61,6 +78,7 @@ interface ListContext {
  */
 export class MarkdownEmitter {
   private listStack: ListContext[] = [];
+  private emitCtx: EmitContext = {};
 
   /**
    * Main entry point - emit a complete document
@@ -164,7 +182,7 @@ export class MarkdownEmitter {
 
     // Auto-generate structured_returns if outputType present
     if (doc.frontmatter.outputType && sourceFile) {
-      const structuredReturns = this.emitStructuredReturns(doc.frontmatter.outputType, sourceFile);
+      const structuredReturns = this.emitStructuredReturnsFromType(doc.frontmatter.outputType, sourceFile);
       if (structuredReturns) {
         parts.push(structuredReturns);
       }
@@ -248,6 +266,8 @@ export class MarkdownEmitter {
         return this.emitAssignGroup(node);
       case 'onStatus':
         return this.emitOnStatus(node);
+      case 'onStatusDefault':
+        return this.emitOnStatusDefault(node);
       case 'readState':
         return this.emitReadState(node);
       case 'writeState':
@@ -262,6 +282,26 @@ export class MarkdownEmitter {
         // MCP servers are not emitted via markdown emitter
         // They go through settings.ts emitter to settings.json
         throw new Error('MCPServerNode should not be emitted via markdown emitter');
+      // Contract components
+      // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+      // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
+      case 'structuredReturns':
+        return this.emitStructuredReturns(node);
+      // Swarm nodes
+      case 'taskDef':
+        this.emitCtx.taskResolver ??= new TaskIdResolver();
+        return emitTaskDef(node, this.emitCtx.taskResolver);
+      case 'taskPipeline':
+        this.emitCtx.taskResolver ??= new TaskIdResolver();
+        return emitTaskPipeline(node, this.emitCtx.taskResolver);
+      case 'team':
+        return emitTeam(node);
+      case 'teammate':
+        throw new Error('TeammateNode should be emitted via Team parent, not directly');
+      case 'shutdownSequence':
+        return emitShutdownSequence(node);
+      case 'workflow':
+        return emitWorkflow(node, (block) => this.emitBlock(block));
       // Runtime-specific nodes - use V3 emitter for these
       case 'spawnAgent':
       case 'if':
@@ -580,17 +620,39 @@ export class MarkdownEmitter {
         line = `${variableName}=$(${assignment.content})`;
         break;
       case 'value': {
-        // Static value: quote if contains spaces
+        // Static value: quote by default (unless raw option set)
         const val = assignment.content;
-        line = /\s/.test(val)
-          ? `${variableName}="${val}"`
-          : `${variableName}=${val}`;
+        if (assignment.raw) {
+          // Raw option: emit unquoted
+          line = `${variableName}=${val}`;
+        } else {
+          // Quote by default (safe for spaces and special chars)
+          line = `${variableName}="${val}"`;
+        }
         break;
       }
       case 'env':
         // Environment variable: VAR=$ENV
         line = `${variableName}=$${assignment.content}`;
         break;
+      case 'file': {
+        // File read: VAR=$(cat path) or VAR=$(cat path 2>/dev/null)
+        const quotedPath = this.smartQuotePath(assignment.path);
+        if (assignment.optional) {
+          line = `${variableName}=$(cat ${quotedPath} 2>/dev/null)`;
+        } else {
+          line = `${variableName}=$(cat ${quotedPath})`;
+        }
+        break;
+      }
+      case 'runtimeFn': {
+        // Runtime function: VAR=$(node .claude/runtime/runtime.js fnName '{"key": "value"}')
+        const argsJson = JSON.stringify(assignment.args);
+        // Escape single quotes in JSON for bash
+        const escapedJson = argsJson.replace(/'/g, "'\\''");
+        line = `${variableName}=$(node .claude/runtime/runtime.js ${assignment.fnName} '${escapedJson}')`;
+        break;
+      }
     }
 
     // Prepend comment if present
@@ -658,6 +720,28 @@ export class MarkdownEmitter {
 
     // Emit status header
     parts.push(`**On ${node.status}:**`);
+
+    // Emit block content with blank line after header
+    for (const child of node.children) {
+      parts.push(this.emitBlock(child));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Emit OnStatusDefault node as prose pattern
+   *
+   * Output format:
+   * **On any other status:**
+   *
+   * {content}
+   */
+  private emitOnStatusDefault(node: OnStatusDefaultNode): string {
+    const parts: string[] = [];
+
+    // Emit default status header
+    parts.push('**On any other status:**');
 
     // Emit block content with blank line after header
     for (const child of node.children) {
@@ -739,6 +823,55 @@ export class MarkdownEmitter {
     return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
   }
 
+
+  /**
+   * Smart quote path for shell: quote variable parts, leave glob parts unquoted
+   *
+   * Examples:
+   * - .planning/STATE.md -> .planning/STATE.md (no change)
+   * - $CTX_phaseDir/file.md -> "$CTX_phaseDir"/file.md
+   * - $CTX_phaseDir/*-PLAN.md -> "$CTX_phaseDir"/*-PLAN.md
+   * - path with space.md -> "path with space.md"
+   */
+  private smartQuotePath(path: string): string {
+    // No special chars - return as-is
+    if (!/[$\s*?[\]]/.test(path)) {
+      return path;
+    }
+
+    // Has glob chars (* ? [ ]) - need to quote carefully
+    const hasGlob = /[*?[\]]/.test(path);
+    const hasVar = /\$/.test(path);
+    // Check if $ is a shell variable (uppercase) vs literal $ (lowercase/other)
+    const hasShellVar = /\$[A-Z_][A-Z0-9_]*/.test(path);
+
+    // No variable reference (or only literal $), no glob - quote entire path
+    if ((!hasVar || !hasShellVar) && !hasGlob) {
+      return `"${path}"`;
+    }
+
+    // Has shell variables or globs - quote segment by segment for proper expansion
+    // Split on / and quote segments containing $ or spaces
+    const segments = path.split('/');
+    const quotedSegments = segments.map(seg => {
+      // Segment with shell variable or space (but no glob) - quote it
+      if (/(\$[A-Z_][A-Z0-9_]*|\s)/.test(seg) && !/[*?[\]]/.test(seg)) {
+        return `"${seg}"`;
+      }
+      // Segment with both var and glob (rare) - quote the var part only
+      // e.g., $DIR*-PLAN.md - this is unusual, leave as-is and warn
+      if (/\$[A-Z_][A-Z0-9_]*/.test(seg) && /[*?[\]]/.test(seg)) {
+        // Best effort: wrap variable references in quotes
+        // $VAR*-PLAN.md -> "$VAR"*-PLAN.md
+        return seg.replace(/(\$[A-Z_][A-Z0-9_]*)/g, '"$1"');
+      }
+      // Pure glob or plain text - leave unquoted
+      return seg;
+    });
+
+    return quotedSegments.join('/');
+  }
+
   /**
    * Emit PromptTemplateNode as markdown code fence
    *
@@ -811,13 +944,31 @@ export class MarkdownEmitter {
     return parts.join('\n\n');
   }
 
+  // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
+  // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
+
+  /**
+   * Emit StructuredReturns with ## headings for each status
+   */
+  private emitStructuredReturns(node: StructuredReturnsNode): string {
+    const sections = node.returns.map(returnNode => {
+      const heading = `## ${returnNode.status}`;
+      const content = returnNode.children
+        .map(c => this.emitBlock(c))
+        .join('\n\n');
+      return content ? `${heading}\n\n${content}` : heading;
+    }).join('\n\n');
+
+    return `<structured_returns>\n\n${sections}\n\n</structured_returns>`;
+  }
+
   /**
    * Generate <structured_returns> section from output type interface
    *
    * Resolves the TypeReference to its interface definition, extracts properties,
    * and generates status-specific templates based on field names.
    */
-  private emitStructuredReturns(outputType: TypeReference, sourceFile: SourceFile): string | null {
+  private emitStructuredReturnsFromType(outputType: TypeReference, sourceFile: SourceFile): string | null {
     // Resolve the interface
     const resolved = resolveTypeImport(outputType.name, sourceFile);
     if (!resolved?.interface) {

@@ -57,8 +57,8 @@ export function extractVariableDeclarations(
 
     const funcName = callExpr.getText();
 
-    // Handle useVariable() call
-    if (funcName === 'useVariable') {
+    // Handle useVariable() or useRuntimeVar() call (unified variable API)
+    if (funcName === 'useVariable' || funcName === 'useRuntimeVar') {
       const args = initializer.getArguments();
       if (args.length < 1) return;
 

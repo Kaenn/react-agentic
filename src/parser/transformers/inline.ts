@@ -121,6 +121,25 @@ export function transformToInline(
     const expr = node.getExpression();
     if (!expr) return null;
 
+    // Check for component prop substitution: {propName} or {props.propName}
+    if (ctx.componentProps) {
+      // Direct identifier: {title}, {name}
+      if (Node.isIdentifier(expr)) {
+        const propName = expr.getText();
+        if (ctx.componentProps.has(propName)) {
+          return { kind: 'text', value: String(ctx.componentProps.get(propName)) };
+        }
+      }
+      // Property access: {props.title}, {props.name}
+      if (Node.isPropertyAccessExpression(expr)) {
+        const objName = expr.getExpression().getText();
+        const propName = expr.getName();
+        if (objName === 'props' && ctx.componentProps.has(propName)) {
+          return { kind: 'text', value: String(ctx.componentProps.get(propName)) };
+        }
+      }
+    }
+
     // String literals: {' '} or {'text'}
     if (Node.isStringLiteral(expr)) {
       const value = expr.getLiteralValue();

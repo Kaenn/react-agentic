@@ -126,6 +126,9 @@ export interface RuntimeTransformContext {
 
   /** Current component children during expansion (for children substitution) */
   componentChildren: BlockNode[] | null;
+
+  /** Current component prop expressions (for resolving prop identifiers in conditions) */
+  componentPropExpressions: Map<string, import('ts-morph').Expression> | null;
 }
 
 // ============================================================================
@@ -171,6 +174,7 @@ export function createRuntimeContext(
     componentExpansionStack: new Set(),
     componentProps: null,
     componentChildren: null,
+    componentPropExpressions: null,
     createError: (message: string, node: Node) => {
       const startLine = node.getStartLineNumber();
       const file = node.getSourceFile().getFilePath();

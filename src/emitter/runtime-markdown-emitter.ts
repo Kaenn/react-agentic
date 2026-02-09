@@ -11,6 +11,7 @@
  */
 
 import matter from 'gray-matter';
+import * as os from 'os';
 import type {
   DocumentNode,
   BlockNode,
@@ -27,9 +28,18 @@ import type {
   RuntimeVarDeclNode,
   InputValue,
   RuntimeCallArgValue,
+  AssignNode,
+  AssignGroupNode,
+  TaskDefNode,
+  TaskPipelineNode,
+  TeamNode,
+  TeammateNode,
+  ShutdownSequenceNode,
+  WorkflowNode,
 } from '../ir/index.js';
 import type { InlineNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
+import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam, emitShutdownSequence, emitWorkflow } from './swarm-emitter.js';
 
 // ============================================================================
 // jq Expression Generation
@@ -45,6 +55,26 @@ import { assertNever } from './utils.js';
 function toJqExpression(ref: RuntimeVarRefNode): string {
   const jqPath = ref.path.length === 0 ? '.' : '.' + ref.path.join('.');
   return `$(echo "$${ref.varName}" | jq -r '${jqPath}')`;
+}
+
+/**
+ * Convert RuntimeVarRefNode to simple variable reference notation
+ *
+ * Claude Code understands variable filling patterns directly without needing
+ * explicit bash/jq commands. It can resolve $VAR.property from its context.
+ *
+ * @example
+ * toVarRef({ varName: 'CTX', path: ['user', 'name'] })
+ * // Returns: $CTX.user.name
+ *
+ * toVarRef({ varName: 'PROMPT', path: [] })
+ * // Returns: $PROMPT
+ */
+function toVarRef(ref: RuntimeVarRefNode): string {
+  if (ref.path.length === 0) {
+    return `$${ref.varName}`;
+  }
+  return `$${ref.varName}.${ref.path.join('.')}`;
 }
 
 /**
@@ -136,15 +166,16 @@ function conditionToShell(condition: Condition): string {
 /**
  * Convert Condition to prose-friendly string
  *
- * Used in markdown output like: **If ctx.error:**
+ * Used in markdown output like: **If $CTX.error:**
  */
 function conditionToProse(condition: Condition): string {
   switch (condition.type) {
     case 'ref': {
-      const path = condition.ref.path.length === 0
-        ? condition.ref.varName.toLowerCase()
-        : `${condition.ref.varName.toLowerCase()}.${condition.ref.path.join('.')}`;
-      return path;
+      const { varName, path } = condition.ref;
+      if (path.length === 0) {
+        return `$${varName}`;
+      }
+      return `$${varName}.${path.join('.')}`;
     }
 
     case 'literal':
@@ -187,6 +218,13 @@ function conditionToProse(condition: Condition): string {
  * Emitter for V3 documents
  */
 export class RuntimeMarkdownEmitter {
+  /** Build configuration (for agentsDir, etc.) */
+  private config?: Partial<import('../cli/config.js').ReactAgenticConfig>;
+
+  constructor(config?: Partial<import('../cli/config.js').ReactAgenticConfig>) {
+    this.config = config;
+  }
+
   /**
    * Emit a complete V3 document
    */
@@ -286,10 +324,15 @@ export class RuntimeMarkdownEmitter {
       case 'indent':
         return this.emitIndent(node as import('../ir/nodes.js').IndentNode);
 
-      // V1 nodes that shouldn't appear in runtime documents
+      // Assign nodes (supported in V3 via unified variable API)
       case 'assign':
+        return this.emitAssign(node as AssignNode);
       case 'assignGroup':
+        return this.emitAssignGroup(node as AssignGroupNode);
+
+      // V1 nodes that shouldn't appear in runtime documents
       case 'onStatus':
+      case 'onStatusDefault':
       case 'readState':
       case 'writeState':
       case 'readFiles':
@@ -300,6 +343,26 @@ export class RuntimeMarkdownEmitter {
       case 'mcpServer':
       case 'runtimeVarDecl':
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
+
+      // Contract components
+      // Note: Role, UpstreamInput, DownstreamConsumer, Methodology are now composites
+      // that emit XmlBlockNode. They are handled by the 'xmlBlock' case above.
+      case 'structuredReturns':
+        return this.emitStructuredReturns(node);
+
+      // Swarm nodes - delegate to swarm emitter
+      case 'taskDef':
+        return this.emitTaskDef(node);
+      case 'taskPipeline':
+        return this.emitTaskPipeline(node);
+      case 'team':
+        return emitTeam(node);
+      case 'teammate':
+        throw new Error('TeammateNode should be emitted via Team parent, not directly');
+      case 'shutdownSequence':
+        return emitShutdownSequence(node);
+      case 'workflow':
+        return emitWorkflow(node, (block) => this.emitBlock(block));
 
       default:
         return assertNever(node);
@@ -378,8 +441,10 @@ export class RuntimeMarkdownEmitter {
 
       case 'runtimeVarRef': {
         const { varName, path } = value.ref;
-        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
-        return `"$(echo "$${varName}" | jq -r '${jqPath}')"`;
+        if (path.length === 0) {
+          return `$${varName}`;
+        }
+        return `$${varName}.${path.join('.')}`;
       }
 
       case 'expression':
@@ -394,6 +459,15 @@ export class RuntimeMarkdownEmitter {
         const entries = Object.entries(value.value as Record<string, RuntimeCallArgValue>)
           .map(([k, v]) => `"${k}": ${this.formatArgForJson(v)}`);
         return `{${entries.join(', ')}}`;
+      }
+
+      case 'conditional': {
+        // Generate jq conditional expression
+        const { varName, path } = value.condition;
+        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
+        const trueVal = this.formatLiteralForJson(value.whenTrue);
+        const falseVal = this.formatLiteralForJson(value.whenFalse);
+        return `"$(echo "$${varName}" | jq -r 'if ${jqPath} then ${trueVal} else ${falseVal} end')"`;
       }
 
       default:
@@ -432,8 +506,48 @@ export class RuntimeMarkdownEmitter {
         return `{ ${entries.join(', ')} }`;
       }
 
+      case 'conditional': {
+        const { varName, path } = value.condition;
+        const condPath = path.length === 0 ? varName : `${varName}.${path.join('.')}`;
+        const trueDisplay = this.formatArgValue(value.whenTrue);
+        const falseDisplay = this.formatArgValue(value.whenFalse);
+        return `if $${condPath} then ${trueDisplay} else ${falseDisplay}`;
+      }
+
       default:
         return String(value);
+    }
+  }
+
+  /**
+   * Format a RuntimeCallArgValue as a jq-compatible literal for conditionals
+   */
+  private formatLiteralForJson(value: RuntimeCallArgValue): string {
+    switch (value.type) {
+      case 'literal':
+        if (value.value === null) return 'null';
+        if (typeof value.value === 'string') return `"${value.value}"`;
+        if (typeof value.value === 'boolean') return value.value ? 'true' : 'false';
+        return String(value.value);
+
+      case 'runtimeVarRef': {
+        const { varName, path } = value.ref;
+        const jqPath = path.length === 0 ? '.' : '.' + path.join('.');
+        // Return as jq expression that will be evaluated
+        return `($ENV.${varName} | fromjson | ${jqPath})`;
+      }
+
+      case 'conditional': {
+        // Recursively handle nested conditionals
+        const jqPath = value.condition.path.length === 0 ? '.' : '.' + value.condition.path.join('.');
+        const trueVal = this.formatLiteralForJson(value.whenTrue);
+        const falseVal = this.formatLiteralForJson(value.whenFalse);
+        return `(if ${jqPath} then ${trueVal} else ${falseVal} end)`;
+      }
+
+      default:
+        // For complex types (expressions), use string representation
+        return `"<complex>"`;
     }
   }
 
@@ -542,39 +656,97 @@ export class RuntimeMarkdownEmitter {
   }
 
   /**
+   * Format a string or RuntimeVarRefNode for Task() output
+   *
+   * For static strings: returns escaped string in quotes
+   * For RuntimeVarRefNode: returns simple variable reference (Claude Code understands these)
+   */
+  private formatSpawnAgentProp(value: string | RuntimeVarRefNode): string {
+    if (typeof value === 'string') {
+      return `"${value.replace(/"/g, '\\"')}"`;
+    }
+    // RuntimeVarRefNode - use simple variable reference notation
+    // Claude Code understands $VAR.path filling patterns from context
+    return toVarRef(value);
+  }
+
+  /**
    * Emit SpawnAgentNode as Task() syntax
    */
   private emitSpawnAgent(node: SpawnAgentNode): string {
     const escapeQuotes = (s: string): string => s.replace(/"/g, '\\"');
 
-    // Build prompt
+    // Build prompt - track if we have a RuntimeVarRef for concatenation
     let promptContent: string;
+    let hasVarRef = false;
+    let varRefContent = '';
+
     if (node.prompt) {
       promptContent = node.prompt;
     } else if (node.input) {
-      promptContent = this.formatInput(node.input);
+      const inputResult = this.formatInput(node.input);
+      if (inputResult.isVarRef) {
+        // Single RuntimeVarRef - will use concatenation
+        hasVarRef = true;
+        varRefContent = inputResult.content;
+        promptContent = ''; // Prefix will be added below
+      } else {
+        promptContent = inputResult.content;
+      }
     } else {
       promptContent = '';
     }
 
+    // Build prefix for readAgentFile
+    let prefix = '';
+    if (node.readAgentFile) {
+      const agentName = typeof node.agent === 'string'
+        ? node.agent
+        : node.agent.varName; // RuntimeVarRefNode case
+
+      // Construct path using agentsDir (expand ~ to home)
+      const agentsDir = this.config?.agentsDir || '~/.claude/agents/';
+      const expandedDir = agentsDir.startsWith('~')
+        ? agentsDir.replace('~', os.homedir())
+        : agentsDir;
+
+      // Ensure path ends with / for clean joining
+      const normalizedDir = expandedDir.endsWith('/') ? expandedDir : expandedDir + '/';
+      const agentFilePath = `${normalizedDir}${agentName}.md`;
+
+      prefix = `First, read ${agentFilePath} for your role and instructions.\\n\\n`;
+    }
+
     // Handle loadFromFile
-    let subagentType = node.agent;
+    let subagentType: string | RuntimeVarRefNode = node.agent;
     let promptOutput: string;
 
     if (node.loadFromFile) {
       subagentType = 'general-purpose';
-      const prefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
-      promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
+      const loadPrefix = `First, read ${node.loadFromFile} for your role and instructions.\\n\\n`;
+      if (hasVarRef) {
+        promptOutput = `"${escapeQuotes(loadPrefix + prefix)}" + ${varRefContent}`;
+      } else {
+        promptOutput = `"${escapeQuotes(loadPrefix + prefix + promptContent)}"`;
+      }
+    } else if (hasVarRef) {
+      // Use string concatenation for RuntimeVarRef
+      promptOutput = `"${escapeQuotes(prefix)}" + ${varRefContent}`;
     } else {
-      promptOutput = `"${escapeQuotes(promptContent)}"`;
+      promptOutput = `"${escapeQuotes(prefix + promptContent)}"`;
     }
+
+    // Format props - handle both static strings and RuntimeVar refs
+    const formattedAgent = this.formatSpawnAgentProp(subagentType);
+    const formattedModel = this.formatSpawnAgentProp(node.model);
+    const formattedDescription = this.formatSpawnAgentProp(node.description);
 
     const taskBlock = `\`\`\`
 Task(
   prompt=${promptOutput},
-  subagent_type="${escapeQuotes(subagentType)}",
-  model="${escapeQuotes(node.model)}",
-  description="${escapeQuotes(node.description)}"
+  subagent_type=${formattedAgent},
+  model=${formattedModel},
+  description=${formattedDescription}
 )
 \`\`\``;
 
@@ -587,30 +759,48 @@ Task(
   }
 
   /**
-   * Format V3 input for prompt
+   * Format V3 input for prompt - returns structured result for concatenation support
+   *
+   * When input is a single RuntimeVarRef property, returns it for string concatenation.
+   * Variable bindings keep the <input>{$var}</input> format for backward compatibility.
+   * Multiple properties or non-RuntimeVarRef use XML structure.
    */
-  private formatInput(input: import('../ir/index.js').SpawnAgentInput): string {
+  private formatInput(input: import('../ir/index.js').SpawnAgentInput): { content: string; isVarRef: boolean } {
     if (input.type === 'variable') {
-      return `<input>\n{$${input.varName.toLowerCase()}}\n</input>`;
+      // Variable binding - use XML wrapper format (backward compatible)
+      return { content: `<input>\n{$${input.varName.toLowerCase()}}\n</input>`, isVarRef: false };
     }
 
+    // Check if it's a single property with a RuntimeVarRef value
+    if (input.properties.length === 1) {
+      const prop = input.properties[0];
+      if (prop.value.type === 'runtimeVarRef') {
+        // Single RuntimeVarRef - use direct concatenation
+        return { content: toVarRef(prop.value.ref), isVarRef: true };
+      }
+    }
+
+    // Multiple properties or non-RuntimeVarRef - use XML structure
     const sections: string[] = [];
     for (const prop of input.properties) {
       const value = this.formatInputValue(prop.value);
       sections.push(`<${prop.name}>\n${value}\n</${prop.name}>`);
     }
-    return sections.join('\n\n');
+    return { content: sections.join('\n\n'), isVarRef: false };
   }
 
   /**
    * Format InputValue
+   *
+   * Uses simple variable reference notation ($VAR.path) instead of jq expressions.
+   * Claude Code understands variable filling patterns directly from its context.
    */
   private formatInputValue(value: InputValue): string {
     switch (value.type) {
       case 'string':
         return value.value;
       case 'runtimeVarRef':
-        return toJqExpression(value.ref);
+        return toVarRef(value.ref);
       case 'json':
         return JSON.stringify(value.value, null, 2);
     }
@@ -739,6 +929,170 @@ Task(
     const indent = ' '.repeat(node.spaces);
     return content.split('\n').map(line => line ? indent + line : line).join('\n');
   }
+
+  // Note: emitContractComponent removed - Role, UpstreamInput, DownstreamConsumer,
+  // Methodology are now composites that emit XmlBlockNode and use emitXmlBlock.
+
+  // ===========================================================================
+  // Assign Node Emitters (unified variable API support)
+  // ===========================================================================
+
+  /**
+   * Emit Assign node as bash code block with variable assignment
+   */
+  private emitAssign(node: AssignNode): string {
+    const line = this.emitAssignmentLine(node);
+    return `\`\`\`bash\n${line}\n\`\`\``;
+  }
+
+  /**
+   * Emit AssignGroup node as single bash code block
+   */
+  private emitAssignGroup(node: AssignGroupNode): string {
+    const lines: string[] = [];
+
+    for (let i = 0; i < node.assignments.length; i++) {
+      const assign = node.assignments[i];
+      const isFirst = i === 0;
+
+      // Add blank line before if not first AND (has comment OR has blankBefore)
+      if (!isFirst && (assign.comment || assign.blankBefore)) {
+        lines.push('');
+      }
+
+      lines.push(this.emitAssignmentLine(assign));
+    }
+
+    return `\`\`\`bash\n${lines.join('\n')}\n\`\`\``;
+  }
+
+  /**
+   * Generate assignment line for a single AssignNode (without code fence)
+   */
+  private emitAssignmentLine(node: AssignNode): string {
+    const { variableName, assignment, comment } = node;
+
+    let line: string;
+    switch (assignment.type) {
+      case 'bash':
+        line = `${variableName}=$(${assignment.content})`;
+        break;
+      case 'value': {
+        const val = assignment.content;
+        if (assignment.raw) {
+          line = `${variableName}=${val}`;
+        } else {
+          line = `${variableName}="${val}"`;
+        }
+        break;
+      }
+      case 'env':
+        line = `${variableName}=$${assignment.content}`;
+        break;
+      case 'file': {
+        const quotedPath = this.smartQuotePath(assignment.path);
+        if (assignment.optional) {
+          line = `${variableName}=$(cat ${quotedPath} 2>/dev/null)`;
+        } else {
+          line = `${variableName}=$(cat ${quotedPath})`;
+        }
+        break;
+      }
+      case 'runtimeFn': {
+        const argsJson = JSON.stringify(assignment.args);
+        const escapedJson = argsJson.replace(/'/g, "'\\''");
+        line = `${variableName}=$(node .claude/runtime/runtime.js ${assignment.fnName} '${escapedJson}')`;
+        break;
+      }
+    }
+
+    if (comment) {
+      return `# ${comment}\n${line}`;
+    }
+    return line;
+  }
+
+  /**
+   * Smart quote path for shell: quote variable parts, leave glob parts unquoted
+   *
+   * Examples:
+   * - .planning/STATE.md -> .planning/STATE.md (no change)
+   * - $CTX.phaseDir/file.md -> "$CTX.phaseDir"/file.md
+   * - $CTX.phaseDir/*-PLAN.md -> "$CTX.phaseDir"/*-PLAN.md
+   * - path with space.md -> "path with space.md"
+   */
+  private smartQuotePath(path: string): string {
+    // No special chars - return as-is
+    if (!/[$\s*?[\]]/.test(path)) {
+      return path;
+    }
+
+    // Has glob chars (* ? [ ]) - need to quote carefully
+    const hasGlob = /[*?[\]]/.test(path);
+
+    if (!hasGlob) {
+      // No globs - quote the whole thing if it has spaces or vars
+      return `"${path}"`;
+    }
+
+    // Has both vars/spaces AND globs - split and quote only var parts
+    // Strategy: find variable refs ($VAR or $VAR.path) and quote them
+    // Leave glob parts unquoted so shell expands them
+
+    // Split on path separators, quote segments with vars, leave others
+    const segments = path.split('/');
+    const quotedSegments = segments.map(seg => {
+      // If segment starts with $ or contains $, quote it
+      if (seg.includes('$')) {
+        return `"${seg}"`;
+      }
+      // If segment has glob, leave unquoted
+      if (/[*?[\]]/.test(seg)) {
+        return seg;
+      }
+      // Otherwise, quote if it has spaces
+      if (seg.includes(' ')) {
+        return `"${seg}"`;
+      }
+      return seg;
+    });
+
+    return quotedSegments.join('/');
+  }
+
+  /**
+   * Emit StructuredReturns with ## headings for each status
+   */
+  private emitStructuredReturns(node: import('../ir/nodes.js').StructuredReturnsNode): string {
+    const sections = node.returns.map(returnNode => {
+      const heading = `## ${returnNode.status}`;
+      const content = returnNode.children
+        .map(c => this.emitBlock(c as BlockNode))
+        .join('\n\n');
+      return content ? `${heading}\n\n${content}` : heading;
+    }).join('\n\n');
+
+    return `<structured_returns>\n\n${sections}\n\n</structured_returns>`;
+  }
+
+  /** Task ID resolver for swarm nodes - lazily initialized */
+  private taskResolver?: TaskIdResolver;
+
+  /**
+   * Emit TaskDefNode using swarm emitter
+   */
+  private emitTaskDef(node: TaskDefNode): string {
+    this.taskResolver ??= new TaskIdResolver();
+    return emitTaskDef(node, this.taskResolver);
+  }
+
+  /**
+   * Emit TaskPipelineNode using swarm emitter
+   */
+  private emitTaskPipeline(node: TaskPipelineNode): string {
+    this.taskResolver ??= new TaskIdResolver();
+    return emitTaskPipeline(node, this.taskResolver);
+  }
 }
 
 // ============================================================================
@@ -748,7 +1102,10 @@ Task(
 /**
  * Emit a V3 document to markdown
  */
-export function emitDocument(doc: DocumentNode): string {
-  const emitter = new RuntimeMarkdownEmitter();
+export function emitDocument(
+  doc: DocumentNode,
+  config?: Partial<import('../cli/config.js').ReactAgenticConfig>
+): string {
+  const emitter = new RuntimeMarkdownEmitter(config);
   return emitter.emit(doc);
 }

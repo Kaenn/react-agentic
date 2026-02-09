@@ -3,14 +3,14 @@
  *
  * Inline content transformation with RuntimeVar interpolation.
  * When encountering property access expressions on RuntimeVar proxies,
- * emits jq expressions for runtime resolution.
+ * emits shell variable syntax for runtime resolution.
  *
  * @example
  * // In TSX:
  * <p>Phase {ctx.phaseId}: {ctx.phaseName}</p>
  *
  * // Outputs:
- * Phase $(echo "$CTX" | jq -r '.phaseId'): $(echo "$CTX" | jq -r '.phaseName')
+ * Phase $CTX.phaseId: $CTX.phaseName
  */
 
 import { Node, JsxElement } from 'ts-morph';
@@ -26,7 +26,7 @@ import { extractAllText } from './html.js';
 /**
  * Transform JSX children to array of InlineNodes with RuntimeVar support
  *
- * Recognizes RuntimeVar property access and emits jq expressions for interpolation.
+ * Recognizes RuntimeVar property access and emits shell variable syntax for interpolation.
  */
 export function transformRuntimeInlineChildren(
   node: JsxElement,
@@ -175,8 +175,8 @@ function transformRuntimeToInline(
 
       const runtimeVar = ctx.runtimeVars.get(varName);
       if (runtimeVar) {
-        // This is a RuntimeVar reference - emit jq expression
-        const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
+        // This is a RuntimeVar reference - emit shell variable syntax
+        const value = `$${runtimeVar.varName}`;
         return { kind: 'text', value };
       }
       // Not a RuntimeVar or component prop - return raw text
@@ -226,7 +226,7 @@ function collectPropertyPath(expr: Node): string[] {
 /**
  * Transform property access expression to inline node
  *
- * If the root identifier is a RuntimeVar, emit a jq expression.
+ * If the root identifier is a RuntimeVar, emit shell variable syntax.
  * If it's a component prop access (props.xxx), substitute the value.
  * Otherwise, return the raw text.
  */
@@ -256,10 +256,13 @@ function transformPropertyAccess(
   const runtimeVar = ctx.runtimeVars.get(rootName);
 
   if (runtimeVar) {
-    // This is a RuntimeVar reference - emit jq expression
-    const jqPath = path.slice(1);
-    const jqSelector = jqPath.length === 0 ? '.' : '.' + jqPath.join('.');
-    const value = `$(echo "$${runtimeVar.varName}" | jq -r '${jqSelector}')`;
+    // This is a RuntimeVar reference - emit shell variable syntax
+    const varPath = path.slice(1);
+    // Format path with dot notation, using bracket notation for numeric indices
+    const pathStr = varPath.length === 0
+      ? ''
+      : varPath.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+    const value = `$${runtimeVar.varName}${pathStr}`;
     return { kind: 'text', value };
   }
 
@@ -276,7 +279,7 @@ function transformPropertyAccess(
  *
  * @example
  * `Phase ${ctx.phaseId}: ${ctx.phaseName}`
- * -> ["Phase ", $(jq), ": ", $(jq)]
+ * -> ["Phase ", $CTX.phaseId, ": ", $CTX.phaseName]
  */
 function transformTemplateLiteral(
   expr: Node,
@@ -314,7 +317,8 @@ function transformTemplateLiteral(
           // Check if it's a RuntimeVar
           const runtimeVar = ctx.runtimeVars.get(varName);
           if (runtimeVar) {
-            const value = `$(echo "$${runtimeVar.varName}" | jq -r '.')`;
+            // Emit shell variable syntax
+            const value = `$${runtimeVar.varName}`;
             result.push({ kind: 'text', value });
           } else {
             result.push({ kind: 'text', value: varName });

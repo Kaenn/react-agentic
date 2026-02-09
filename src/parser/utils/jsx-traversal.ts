@@ -287,6 +287,53 @@ export function findRootJsxElement(
 }
 
 /**
+ * Get the value of a boolean JSX attribute
+ *
+ * Handles:
+ * - Bare attribute (no value): attr -> true
+ * - Boolean literal: attr={true} or attr={false}
+ * - String literal: attr="true" or attr="false"
+ *
+ * Returns undefined if attribute is missing or not a boolean.
+ */
+export function getBooleanAttribute(
+  element: JsxOpeningElement | JsxSelfClosingElement,
+  name: string
+): boolean | undefined {
+  const attr = element.getAttribute(name);
+  if (!attr || !Node.isJsxAttribute(attr)) {
+    return undefined;
+  }
+
+  const init = attr.getInitializer();
+
+  // Bare attribute: <Tag autoChain /> -> true
+  if (!init) {
+    return true;
+  }
+
+  // String literal: attr="true" or attr="false"
+  if (Node.isStringLiteral(init)) {
+    const value = init.getLiteralValue();
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return undefined;
+  }
+
+  // JSX expression: attr={true} or attr={false}
+  if (Node.isJsxExpression(init)) {
+    const expr = init.getExpression();
+    if (expr) {
+      const text = expr.getText();
+      if (text === 'true') return true;
+      if (text === 'false') return false;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Get the value of a JSX array attribute by name
  *
  * Handles JSX expressions containing array literals: attr={["a", "b"]}

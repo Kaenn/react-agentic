@@ -74,10 +74,14 @@ export interface RuntimeBuildResult {
 export interface RuntimeBuildOptions {
   /** Output directory for commands */
   commandsOut: string;
+  /** Output directory for agents */
+  agentsOut: string;
   /** Output directory for runtime */
   runtimeOut: string;
   /** Dry run - don't write files */
   dryRun?: boolean;
+  /** Full config (for accessing agentsDir, etc.) */
+  config?: Partial<import('./config.js').ReactAgenticConfig>;
 }
 
 // ============================================================================
@@ -115,6 +119,16 @@ function findRuntimeRootElement(sourceFile: SourceFile): Node | null {
           result = unwrapped;
           traversal.stop();
           return;
+        }
+        // Handle arrow functions: export default () => (<Command>...</Command>)
+        if (Node.isArrowFunction(unwrapped)) {
+          const body = unwrapped.getBody();
+          const unwrappedBody = unwrapParens(body);
+          if (Node.isJsxElement(unwrappedBody) || Node.isJsxSelfClosingElement(unwrappedBody)) {
+            result = unwrappedBody;
+            traversal.stop();
+            return;
+          }
         }
       }
     }
@@ -265,7 +279,7 @@ export async function buildRuntimeFile(
   } else {
     // Transform Command element
     document = transformRuntimeCommand(rootElement, ctx);
-    markdown = emitDocument(document);
+    markdown = emitDocument(document, options.config);
   }
 
   // Phase 5: Extract runtime info (bundling happens at the end for all files)
@@ -296,10 +310,16 @@ export async function buildRuntimeFile(
   // Extract folder from metadata (if present) - only for Command documents
   const folder = document?.metadata?.folder;
 
-  // Determine output paths (with optional folder subdirectory)
-  const markdownPath = folder
-    ? path.join(options.commandsOut, folder, `${basename}.md`)
-    : path.join(options.commandsOut, `${basename}.md`);
+  // Determine output paths based on component type
+  // Agents go to agentsOut, Commands go to commandsOut (with optional folder subdirectory)
+  let markdownPath: string;
+  if (isAgent) {
+    markdownPath = path.join(options.agentsOut, `${basename}.md`);
+  } else if (folder) {
+    markdownPath = path.join(options.commandsOut, folder, `${basename}.md`);
+  } else {
+    markdownPath = path.join(options.commandsOut, `${basename}.md`);
+  }
   const runtimePath = path.join(options.runtimeOut, 'runtime.js');
 
   return {
