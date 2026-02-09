@@ -55,7 +55,7 @@ export class TaskIdResolver {
 function emitTaskDefCreate(node: TaskDefNode): string {
   const props: string[] = [
     `subject: "${escapeString(node.subject)}"`,
-    `description: "${escapeString(node.description)}"`,
+    `description: "${escapeString(node.prompt)}"`,
   ];
 
   if (node.activeForm) {
@@ -156,7 +156,8 @@ function emitSummaryTable(
     const deps = task.blockedByIds
       ?.map(id => resolver.get(id) ?? '?')
       .join(', ') || '-';
-    lines.push(`| ${numericId} | ${task.name} | ${task.description} | ${deps} |`);
+    const truncatedPrompt = task.prompt.length > 80 ? task.prompt.slice(0, 77) + '...' : task.prompt;
+    lines.push(`| ${numericId} | ${task.name} | ${truncatedPrompt} | ${deps} |`);
   }
 
   return lines.join('\n');

@@ -49,6 +49,13 @@ const Builder = defineWorker('builder', AgentType.GeneralPurpose);
 // Plugin types (compound-engineering)
 const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
 const Perf = defineWorker('perf', PluginAgentType.PerformanceOracle);
+
+// Imported Agent as type (cross-file resolution)
+import CodeReviewer from './agents/code-reviewer';   // default import
+import { SecurityAgent } from './agents/security';    // named import
+
+const Reviewer = defineWorker('reviewer', CodeReviewer);     // resolves Agent name from file
+const SecReview = defineWorker('sec-review', SecurityAgent);  // works with named imports too
 ```
 
 **AgentType enum (built-in):**
@@ -109,7 +116,7 @@ interface TeamRef {
 | Prop | Type | Required | Maps to |
 |------|------|----------|---------|
 | `task` | `TaskRef` | Yes | `subject` from defineTask |
-| `description` | `string` | Yes | `TaskCreate.description` |
+| `prompt` | `string` | Yes | `TaskCreate.prompt` |
 | `activeForm` | `string` | No | `TaskCreate.activeForm` |
 | `blockedBy` | `TaskRef[]` | No | `TaskUpdate.addBlockedBy` |
 
@@ -120,13 +127,13 @@ const Plan = defineTask('Create implementation plan', 'plan');
 
 <TaskDef
   task={Research}
-  description="Research OAuth2 best practices and compare providers"
+  prompt="Research OAuth2 best practices and compare providers"
   activeForm="Researching OAuth..."
 />
 
 <TaskDef
   task={Plan}
-  description="Create implementation plan based on research findings"
+  prompt="Create implementation plan based on research findings"
   activeForm="Planning..."
   blockedBy={[Research]}
 />
@@ -177,10 +184,10 @@ const Implement = defineTask('Build the feature', 'implement');
 const Test = defineTask('Write tests', 'test');
 
 <TaskPipeline title="OAuth Implementation" autoChain>
-  <TaskDef task={Research} description="Research OAuth2 providers" activeForm="Researching..." />
-  <TaskDef task={Plan} description="Design implementation approach" activeForm="Planning..." />
-  <TaskDef task={Implement} description="Build OAuth2 integration" activeForm="Implementing..." />
-  <TaskDef task={Test} description="Write and run tests" activeForm="Testing..." />
+  <TaskDef task={Research} prompt="Research OAuth2 providers" activeForm="Researching..." />
+  <TaskDef task={Plan} prompt="Design implementation approach" activeForm="Planning..." />
+  <TaskDef task={Implement} prompt="Build OAuth2 integration" activeForm="Implementing..." />
+  <TaskDef task={Test} prompt="Write and run tests" activeForm="Testing..." />
 </TaskPipeline>
 ```
 
@@ -242,7 +249,7 @@ const { research, plan, implement } = pipeline.tasks;
     <TaskDef
       key={stage.task.__id}
       task={stage.task}
-      description={stage.description ?? ''}
+      prompt={stage.prompt ?? ''}
       blockedBy={stage.blockedBy}
     />
   ))}
@@ -252,7 +259,7 @@ const { research, plan, implement } = pipeline.tasks;
 **Builder interface:**
 ```typescript
 interface PipelineBuilder {
-  task(subject: string, name?: string, description?: string): PipelineBuilder;
+  task(subject: string, name?: string, prompt?: string): PipelineBuilder;
   build(): Pipeline;
 }
 
@@ -264,7 +271,7 @@ interface Pipeline {
 
 interface PipelineStage {
   task: TaskRef;
-  description?: string;
+  prompt?: string;
   blockedBy: TaskRef[];  // Auto-set to previous task
 }
 ```
@@ -538,9 +545,9 @@ const ReviewTeam = defineTeam('feature-x', [Security, Perf]);
   </Team>
 
   <TaskPipeline title="Implementation" autoChain>
-    <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
-    <TaskDef task={Plan} description="Create plan" activeForm="Planning..." />
-    <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
+    <TaskDef task={Research} prompt="Research approach" activeForm="Researching..." />
+    <TaskDef task={Plan} prompt="Create plan" activeForm="Planning..." />
+    <TaskDef task={Implement} prompt="Build feature" activeForm="Building..." />
   </TaskPipeline>
 
   <ShutdownSequence workers={[Security, Perf]} reason="Feature complete" />
@@ -703,10 +710,10 @@ export const OAuthWorkflow = () => (
     </Team>
 
     <TaskPipeline title="OAuth Pipeline" autoChain>
-      <TaskDef task={Research} description="Research OAuth2 providers and best practices" activeForm="Researching..." />
-      <TaskDef task={Plan} description="Design implementation approach" activeForm="Planning..." />
-      <TaskDef task={Implement} description="Build OAuth2 integration" activeForm="Building..." />
-      <TaskDef task={Test} description="Write and run tests" activeForm="Testing..." />
+      <TaskDef task={Research} prompt="Research OAuth2 providers and best practices" activeForm="Researching..." />
+      <TaskDef task={Plan} prompt="Design implementation approach" activeForm="Planning..." />
+      <TaskDef task={Implement} prompt="Build OAuth2 integration" activeForm="Building..." />
+      <TaskDef task={Test} prompt="Write and run tests" activeForm="Testing..." />
     </TaskPipeline>
 
     <ShutdownSequence workers={[Researcher, Planner, Builder, Tester]} reason="OAuth implementation complete" />
@@ -743,9 +750,9 @@ const Implement = defineTask('Build the feature', 'implement');
 export default () => (
   <Command name="feature-pipeline" description="Feature implementation workflow">
     <TaskPipeline title="Feature Implementation" autoChain>
-      <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
-      <TaskDef task={Plan} description="Design solution" activeForm="Planning..." />
-      <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
+      <TaskDef task={Research} prompt="Research approach" activeForm="Researching..." />
+      <TaskDef task={Plan} prompt="Design solution" activeForm="Planning..." />
+      <TaskDef task={Implement} prompt="Build feature" activeForm="Building..." />
     </TaskPipeline>
   </Command>
 );
@@ -805,32 +812,32 @@ export default () => (
     <TaskPipeline title="OAuth Implementation" autoChain>
       <TaskDef
         task={Research}
-        description="Research OAuth2 providers (Google, GitHub, Auth0). Compare features, pricing, and integration complexity."
+        prompt="Research OAuth2 providers (Google, GitHub, Auth0). Compare features, pricing, and integration complexity."
         activeForm="Researching OAuth providers..."
       />
       <TaskDef
         task={SelectProvider}
-        description="Based on research, select the best provider for our use case. Document decision rationale."
+        prompt="Based on research, select the best provider for our use case. Document decision rationale."
         activeForm="Selecting provider..."
       />
       <TaskDef
         task={DesignFlow}
-        description="Design the authentication flow including login, callback, token refresh, and logout."
+        prompt="Design the authentication flow including login, callback, token refresh, and logout."
         activeForm="Designing auth flow..."
       />
       <TaskDef
         task={ImplementAuth}
-        description="Implement the OAuth2 integration following the designed flow."
+        prompt="Implement the OAuth2 integration following the designed flow."
         activeForm="Implementing OAuth..."
       />
       <TaskDef
         task={AddTests}
-        description="Write integration tests for the auth flow including edge cases."
+        prompt="Write integration tests for the auth flow including edge cases."
         activeForm="Writing tests..."
       />
       <TaskDef
         task={Documentation}
-        description="Update API docs and add authentication guide for developers."
+        prompt="Update API docs and add authentication guide for developers."
         activeForm="Updating docs..."
       />
     </TaskPipeline>
@@ -865,30 +872,30 @@ export default () => (
     <TaskPipeline title="PR Analysis">
       <TaskDef
         task={FetchPR}
-        description="Fetch PR metadata, changed files, and commit history."
+        prompt="Fetch PR metadata, changed files, and commit history."
         activeForm="Fetching PR..."
       />
       <TaskDef
         task={AnalyzeChanges}
-        description="Analyze the scope and impact of changes."
+        prompt="Analyze the scope and impact of changes."
         activeForm="Analyzing changes..."
         blockedBy={[FetchPR]}
       />
       <TaskDef
         task={SecurityReview}
-        description="Review for security vulnerabilities (OWASP top 10, auth issues)."
+        prompt="Review for security vulnerabilities (OWASP top 10, auth issues)."
         activeForm="Security review..."
         blockedBy={[AnalyzeChanges]}
       />
       <TaskDef
         task={PerformanceReview}
-        description="Review for performance issues (N+1 queries, memory leaks)."
+        prompt="Review for performance issues (N+1 queries, memory leaks)."
         activeForm="Performance review..."
         blockedBy={[AnalyzeChanges]}
       />
       <TaskDef
         task={GenerateReport}
-        description="Compile findings into a structured review report."
+        prompt="Compile findings into a structured review report."
         activeForm="Generating report..."
         blockedBy={[SecurityReview, PerformanceReview]}
       />
@@ -946,10 +953,10 @@ export default () => (
       </Team>
 
       <TaskPipeline title="Migration Steps" autoChain>
-        <TaskDef task={PlanMigration} description="Create migration plan" activeForm="Planning..." />
-        <TaskDef task={BackupData} description="Backup current data" activeForm="Backing up..." />
-        <TaskDef task={RunMigration} description="Run migration scripts" activeForm="Migrating..." />
-        <TaskDef task={ValidateData} description="Validate migrated data" activeForm="Validating..." />
+        <TaskDef task={PlanMigration} prompt="Create migration plan" activeForm="Planning..." />
+        <TaskDef task={BackupData} prompt="Backup current data" activeForm="Backing up..." />
+        <TaskDef task={RunMigration} prompt="Run migration scripts" activeForm="Migrating..." />
+        <TaskDef task={ValidateData} prompt="Validate migrated data" activeForm="Validating..." />
       </TaskPipeline>
 
       <ShutdownSequence workers={[Planner, Executor, Validator]} reason="Migration complete" />
@@ -995,7 +1002,7 @@ Phase 6 is complete when:
 |-----|-----------------|
 | `<Team team={ref}>` | `Teammate({ operation: "spawnTeam", team_name: ref.name })` |
 | `<Teammate worker={ref} prompt={...}>` | `Task({ team_name, name: ref.name, subagent_type: ref.type, prompt, run_in_background: true })` |
-| `<TaskDef task={ref} description={...}>` | `TaskCreate({ subject: ref.subject, description })` |
+| `<TaskDef task={ref} prompt={...}>` | `TaskCreate({ subject: ref.subject, description: prompt })` |
 | `blockedBy={[ref1, ref2]}` | `TaskUpdate({ taskId, addBlockedBy: ["1", "2"] })` (IDs resolved via `__id` at emit time) |
 | `<ShutdownSequence workers={[...]}>` | `Teammate({ operation: "requestShutdown", target_agent_id })` then `Teammate({ operation: "cleanup" })` |
 

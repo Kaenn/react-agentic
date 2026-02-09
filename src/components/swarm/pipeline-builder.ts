@@ -13,8 +13,8 @@ import { defineTask, type TaskRef } from './refs.js';
 export interface PipelineStage {
   /** Task reference for this stage */
   task: TaskRef;
-  /** Optional description override */
-  description?: string;
+  /** Optional prompt override */
+  prompt?: string;
   /** Tasks that block this stage */
   blockedBy: TaskRef[];
 }
@@ -43,9 +43,9 @@ export interface PipelineBuilder {
    *
    * @param subject - Human-readable task title (maps to TaskCreate.subject)
    * @param name - Optional short label for diagrams (derived from subject if not provided)
-   * @param description - Optional description for the stage
+   * @param prompt - Optional prompt for the stage
    */
-  task(subject: string, name?: string, description?: string): PipelineBuilder;
+  task(subject: string, name?: string, prompt?: string): PipelineBuilder;
 
   /**
    * Finalize and return the pipeline
@@ -65,7 +65,7 @@ class PipelineBuilderImpl implements PipelineBuilder {
     this.title = title;
   }
 
-  task(subject: string, name?: string, description?: string): PipelineBuilder {
+  task(subject: string, name?: string, prompt?: string): PipelineBuilder {
     const taskRef = defineTask(subject, name);
     const effectiveName = taskRef.name;
 
@@ -77,7 +77,7 @@ class PipelineBuilderImpl implements PipelineBuilder {
 
     this.stages.push({
       task: taskRef,
-      description,
+      prompt,
       blockedBy,
     });
 

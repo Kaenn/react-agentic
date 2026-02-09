@@ -7,6 +7,42 @@
 
 import { describe, it, expect } from 'vitest';
 import { transformAgentContent, expectAgentTransformError, transformCommandContent } from '../_helpers/test-utils.js';
+import {
+  createProject,
+  parseSource,
+  findRootJsxElement,
+  Transformer,
+} from '../../../src/index.js';
+import { emitAgent } from '../../../src/emitter/index.js';
+
+let externalTestCounter = 0;
+
+/**
+ * Build an Agent document with external files in the same project.
+ * Enables cross-file import resolution testing (e.g., defineWorker with imported Agent).
+ */
+function buildAgentWithExternals(
+  mainTsx: string,
+  externalFiles: Record<string, string>
+): string {
+  const project = createProject();
+
+  // Add external files first so imports resolve
+  for (const [filename, content] of Object.entries(externalFiles)) {
+    project.createSourceFile(filename, content);
+  }
+
+  // Add main file
+  const mainFilename = `test-agent-ext-${externalTestCounter++}.tsx`;
+  const source = project.createSourceFile(mainFilename, mainTsx);
+
+  const root = findRootJsxElement(source);
+  if (!root) throw new Error('No JSX found');
+
+  const transformer = new Transformer();
+  const doc = transformer.transform(root, source);
+  return emitAgent(doc as any);
+}
 
 describe('<Workflow>', () => {
   describe('type safety', () => {
@@ -70,7 +106,7 @@ describe('<Workflow>', () => {
                   <Teammate worker={Security} description="Review" prompt="Review code..." />
                 </Team>
                 <TaskPipeline title="Tasks">
-                  <TaskDef task={Research} description="Research phase" />
+                  <TaskDef task={Research} prompt="Research phase" />
                 </TaskPipeline>
                 <ShutdownSequence workers={[Security]} />
               </Workflow>
@@ -265,7 +301,7 @@ describe('<Workflow>', () => {
                   <Teammate worker={Security} description="Review" prompt="Review..." />
                 </Team>
                 <TaskPipeline>
-                  <TaskDef task={Research} description="Research phase" />
+                  <TaskDef task={Research} prompt="Research phase" />
                 </TaskPipeline>
               </Workflow>
             </Agent>
@@ -317,7 +353,7 @@ describe('<Workflow>', () => {
                   <Teammate worker={Security} description="Review" prompt="Review..." />
                 </Team>
                 <TaskPipeline title="Implementation">
-                  <TaskDef task={Research} description="Research phase" />
+                  <TaskDef task={Research} prompt="Research phase" />
                 </TaskPipeline>
               </Workflow>
             </Agent>
@@ -462,9 +498,9 @@ describe('<Workflow>', () => {
                 </Team>
 
                 <TaskPipeline title="Implementation" autoChain>
-                  <TaskDef task={Research} description="Research best practices" />
-                  <TaskDef task={Plan} description="Create detailed plan" />
-                  <TaskDef task={Build} description="Build the feature" />
+                  <TaskDef task={Research} prompt="Research best practices" />
+                  <TaskDef task={Plan} prompt="Create detailed plan" />
+                  <TaskDef task={Build} prompt="Build the feature" />
                 </TaskPipeline>
 
                 <ShutdownSequence workers={[Security, Perf]} reason="Feature complete" />
@@ -498,5 +534,139 @@ describe('<Workflow>', () => {
       expect(output).toContain('target_agent_id: "perf"');
       expect(output).toContain('~/.claude/teams/feature-review/inboxes/team-lead.json');
     });
+  });
+});
+
+describe('defineWorker with imported Agent', () => {
+  it('resolves default-imported Agent name as workerType', () => {
+    const output = buildAgentWithExternals(
+      `
+        import CodeReviewer from './agents/code-reviewer';
+
+        const Reviewer = defineWorker('reviewer', CodeReviewer);
+        const ReviewTeam = defineTeam('review');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <Workflow name="Review" team={ReviewTeam}>
+                <Team team={ReviewTeam}>
+                  <Teammate worker={Reviewer} description="Code review" prompt="Review code..." />
+                </Team>
+              </Workflow>
+            </Agent>
+          );
+        }
+      `,
+      {
+        './agents/code-reviewer.tsx': `
+          export default () => (
+            <Agent name="code-reviewer" description="Reviews code for quality">
+              <p>Review code for quality issues.</p>
+            </Agent>
+          );
+        `,
+      }
+    );
+
+    // workerType should resolve to the Agent's name attribute "code-reviewer"
+    expect(output).toContain('subagent_type: "code-reviewer"');
+  });
+
+  it('resolves named-imported Agent name as workerType', () => {
+    const output = buildAgentWithExternals(
+      `
+        import { SecurityAgent } from './agents/security';
+
+        const Security = defineWorker('security', SecurityAgent);
+        const Team1 = defineTeam('sec-team');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <Workflow name="Security Review" team={Team1}>
+                <Team team={Team1}>
+                  <Teammate worker={Security} description="Security audit" prompt="Audit..." />
+                </Team>
+              </Workflow>
+            </Agent>
+          );
+        }
+      `,
+      {
+        './agents/security.tsx': `
+          export const SecurityAgent = () => (
+            <Agent name="security-sentinel" description="Security analysis">
+              <p>Analyze for vulnerabilities.</p>
+            </Agent>
+          );
+        `,
+      }
+    );
+
+    expect(output).toContain('subagent_type: "security-sentinel"');
+  });
+
+  it('throws when imported Agent cannot be resolved', () => {
+    expect(() =>
+      buildAgentWithExternals(
+        `
+          import UnknownAgent from './agents/unknown';
+
+          const Worker = defineWorker('worker', UnknownAgent);
+          const Team1 = defineTeam('team');
+
+          export default function Doc() {
+            return (
+              <Agent name="test" description="test">
+                <Workflow name="Test" team={Team1}>
+                  <Team team={Team1}>
+                    <Teammate worker={Worker} description="Test" prompt="Test..." />
+                  </Team>
+                </Workflow>
+              </Agent>
+            );
+          }
+        `,
+        {
+          // File exists but has no <Agent> component
+          './agents/unknown.tsx': `
+            export default function NotAnAgent() {
+              return <p>Just a component</p>;
+            }
+          `,
+        }
+      )
+    ).toThrow(/Could not resolve import 'UnknownAgent'/);
+  });
+
+  it('resolves self-closing Agent syntax', () => {
+    const output = buildAgentWithExternals(
+      `
+        import PerfAgent from './agents/perf';
+
+        const Perf = defineWorker('perf', PerfAgent);
+        const Team1 = defineTeam('perf-team');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <Workflow name="Perf" team={Team1}>
+                <Team team={Team1}>
+                  <Teammate worker={Perf} description="Perf review" prompt="Review..." />
+                </Team>
+              </Workflow>
+            </Agent>
+          );
+        }
+      `,
+      {
+        './agents/perf.tsx': `
+          export default () => <Agent name="performance-oracle" description="Performance analysis" />;
+        `,
+      }
+    );
+
+    expect(output).toContain('subagent_type: "performance-oracle"');
   });
 });

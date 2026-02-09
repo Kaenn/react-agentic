@@ -40,8 +40,8 @@ export interface WorkflowProps {
  *     <Teammate worker={Security} description="Security review" prompt="..." />
  *   </Team>
  *   <TaskPipeline title="Implementation">
- *     <TaskDef task={Research} description="Research best practices" />
- *     <TaskDef task={Plan} description="Plan implementation" blockedBy={[Research]} />
+ *     <TaskDef task={Research} prompt="Research best practices" />
+ *     <TaskDef task={Plan} prompt="Plan implementation" blockedBy={[Research]} />
  *   </TaskPipeline>
  *   <ShutdownSequence workers={[Security]} reason="Feature complete" />
  * </Workflow>

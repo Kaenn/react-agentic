@@ -14,9 +14,9 @@ const Implement = defineTask('Build the feature', 'implement');
 export default () => (
   <Command name="feature-pipeline" description="Feature implementation workflow">
     <TaskPipeline title="Feature Implementation" autoChain>
-      <TaskDef task={Research} description="Research approach" activeForm="Researching..." />
-      <TaskDef task={Plan} description="Design solution" activeForm="Planning..." />
-      <TaskDef task={Implement} description="Build feature" activeForm="Building..." />
+      <TaskDef task={Research} prompt="Research approach" activeForm="Researching..." />
+      <TaskDef task={Plan} prompt="Design solution" activeForm="Planning..." />
+      <TaskDef task={Implement} prompt="Build feature" activeForm="Building..." />
     </TaskPipeline>
   </Command>
 );
@@ -111,7 +111,7 @@ Defines a single task in a pipeline.
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `task` | `TaskRef` | Yes | Task reference from `defineTask()` |
-| `description` | `string` | Yes | Task description (maps to `TaskCreate.description`) |
+| `prompt` | `string` | Yes | Task prompt (maps to `TaskCreate.description`) |
 | `activeForm` | `string` | No | Present-tense form shown during execution |
 | `blockedBy` | `TaskRef[]` | No | Tasks that must complete before this one |
 
@@ -121,13 +121,13 @@ const Plan = defineTask('Create plan', 'plan');
 
 <TaskDef
   task={Research}
-  description="Research OAuth2 providers and compare options"
+  prompt="Research OAuth2 providers and compare options"
   activeForm="Researching..."
 />
 
 <TaskDef
   task={Plan}
-  description="Create implementation plan based on research"
+  prompt="Create implementation plan based on research"
   activeForm="Planning..."
   blockedBy={[Research]}
 />
@@ -156,9 +156,9 @@ Groups tasks into a pipeline with optional auto-chaining.
 
 ```tsx
 <TaskPipeline title="OAuth Implementation" autoChain>
-  <TaskDef task={Research} description="Research providers" activeForm="Researching..." />
-  <TaskDef task={Plan} description="Create plan" activeForm="Planning..." />
-  <TaskDef task={Implement} description="Build integration" activeForm="Building..." />
+  <TaskDef task={Research} prompt="Research providers" activeForm="Researching..." />
+  <TaskDef task={Plan} prompt="Create plan" activeForm="Planning..." />
+  <TaskDef task={Implement} prompt="Build integration" activeForm="Building..." />
 </TaskPipeline>
 ```
 
@@ -166,11 +166,11 @@ Groups tasks into a pipeline with optional auto-chaining.
 
 ```tsx
 <TaskPipeline title="PR Review">
-  <TaskDef task={Fetch} description="Fetch PR" />
-  <TaskDef task={Analyze} description="Analyze changes" blockedBy={[Fetch]} />
-  <TaskDef task={Security} description="Security review" blockedBy={[Analyze]} />
-  <TaskDef task={Perf} description="Performance review" blockedBy={[Analyze]} />
-  <TaskDef task={Report} description="Generate report" blockedBy={[Security, Perf]} />
+  <TaskDef task={Fetch} prompt="Fetch PR" />
+  <TaskDef task={Analyze} prompt="Analyze changes" blockedBy={[Fetch]} />
+  <TaskDef task={Security} prompt="Security review" blockedBy={[Analyze]} />
+  <TaskDef task={Perf} prompt="Performance review" blockedBy={[Analyze]} />
+  <TaskDef task={Report} prompt="Generate report" blockedBy={[Security, Perf]} />
 </TaskPipeline>
 ```
 
@@ -314,9 +314,9 @@ Orchestrates Team, TaskPipeline, and ShutdownSequence with context propagation.
   </Team>
 
   <TaskPipeline title="Implementation" autoChain>
-    <TaskDef task={Research} description="Research" />
-    <TaskDef task={Plan} description="Plan" />
-    <TaskDef task={Implement} description="Build" />
+    <TaskDef task={Research} prompt="Research" />
+    <TaskDef task={Plan} prompt="Plan" />
+    <TaskDef task={Implement} prompt="Build" />
   </TaskPipeline>
 
   <ShutdownSequence workers={[Security, Perf]} reason="Complete" />

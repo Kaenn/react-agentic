@@ -38,30 +38,30 @@ export default () => (
     <TaskPipeline title="PR Analysis">
       <TaskDef
         task={FetchPR}
-        description="Fetch PR metadata, changed files, and commit history from GitHub."
+        prompt="Fetch PR metadata, changed files, and commit history from GitHub."
         activeForm="Fetching PR..."
       />
       <TaskDef
         task={AnalyzeChanges}
-        description="Analyze the scope and impact of changes. Identify high-risk areas."
+        prompt="Analyze the scope and impact of changes. Identify high-risk areas."
         activeForm="Analyzing changes..."
         blockedBy={[FetchPR]}
       />
       <TaskDef
         task={SecurityReview}
-        description="Review for security vulnerabilities (OWASP top 10, auth issues, injection attacks)."
+        prompt="Review for security vulnerabilities (OWASP top 10, auth issues, injection attacks)."
         activeForm="Security review..."
         blockedBy={[AnalyzeChanges]}
       />
       <TaskDef
         task={PerformanceReview}
-        description="Review for performance issues (N+1 queries, memory leaks, inefficient algorithms)."
+        prompt="Review for performance issues (N+1 queries, memory leaks, inefficient algorithms)."
         activeForm="Performance review..."
         blockedBy={[AnalyzeChanges]}
       />
       <TaskDef
         task={GenerateReport}
-        description="Compile findings from security and performance reviews into a structured report."
+        prompt="Compile findings from security and performance reviews into a structured report."
         activeForm="Generating report..."
         blockedBy={[SecurityReview, PerformanceReview]}
       />

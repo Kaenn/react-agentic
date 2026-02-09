@@ -31,32 +31,32 @@ export default () => (
     <TaskPipeline title="OAuth Implementation" autoChain>
       <TaskDef
         task={Research}
-        description="Research OAuth2 providers (Google, GitHub, Auth0). Compare features, pricing, and integration complexity."
+        prompt="Research OAuth2 providers (Google, GitHub, Auth0). Compare features, pricing, and integration complexity."
         activeForm="Researching OAuth providers..."
       />
       <TaskDef
         task={SelectProvider}
-        description="Based on research, select the best provider for our use case. Document decision rationale."
+        prompt="Based on research, select the best provider for our use case. Document decision rationale."
         activeForm="Selecting provider..."
       />
       <TaskDef
         task={DesignFlow}
-        description="Design the authentication flow including login, callback, token refresh, and logout."
+        prompt="Design the authentication flow including login, callback, token refresh, and logout."
         activeForm="Designing auth flow..."
       />
       <TaskDef
         task={ImplementAuth}
-        description="Implement the OAuth2 integration following the designed flow."
+        prompt="Implement the OAuth2 integration following the designed flow."
         activeForm="Implementing OAuth..."
       />
       <TaskDef
         task={AddTests}
-        description="Write integration tests for the auth flow including edge cases."
+        prompt="Write integration tests for the auth flow including edge cases."
         activeForm="Writing tests..."
       />
       <TaskDef
         task={Documentation}
-        description="Update API docs and add authentication guide for developers."
+        prompt="Update API docs and add authentication guide for developers."
         activeForm="Updating docs..."
       />
     </TaskPipeline>

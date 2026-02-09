@@ -20,17 +20,17 @@ export default () => (
     <TaskPipeline title="OAuth Implementation" autoChain>
       <TaskDef
         task={Research}
-        description="Research OAuth2 providers and select the best option"
+        prompt="Research OAuth2 providers and select the best option"
         activeForm="Researching..."
       />
       <TaskDef
         task={Plan}
-        description="Create detailed implementation plan based on research"
+        prompt="Create detailed implementation plan based on research"
         activeForm="Planning..."
       />
       <TaskDef
         task={Implement}
-        description="Build the OAuth2 integration following the plan"
+        prompt="Build the OAuth2 integration following the plan"
         activeForm="Building..."
       />
     </TaskPipeline>

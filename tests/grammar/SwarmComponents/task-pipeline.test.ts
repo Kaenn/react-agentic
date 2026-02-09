@@ -10,7 +10,7 @@ import { transformAgentContent } from '../_helpers/test-utils.js';
 
 describe('<TaskDef>', () => {
   describe('type safety', () => {
-    it('compiles with task and description props', () => {
+    it('compiles with task and prompt props', () => {
       const content = `
         import { defineTask } from 'react-agentic';
 
@@ -19,7 +19,7 @@ describe('<TaskDef>', () => {
         export default function Doc() {
           return (
             <Agent name="test" description="test">
-              <TaskDef task={Research} description="Research OAuth providers" />
+              <TaskDef task={Research} prompt="Research OAuth providers" />
             </Agent>
           );
         }
@@ -36,7 +36,7 @@ describe('<TaskDef>', () => {
         export default function Doc() {
           return (
             <Agent name="test" description="test">
-              <TaskDef task={Research} description="Research OAuth providers" activeForm="Researching..." />
+              <TaskDef task={Research} prompt="Research OAuth providers" activeForm="Researching..." />
             </Agent>
           );
         }
@@ -54,8 +54,8 @@ describe('<TaskDef>', () => {
         export default function Doc() {
           return (
             <Agent name="test" description="test">
-              <TaskDef task={Research} description="Research phase" />
-              <TaskDef task={Plan} description="Planning phase" blockedBy={[Research]} />
+              <TaskDef task={Research} prompt="Research phase" />
+              <TaskDef task={Plan} prompt="Planning phase" blockedBy={[Research]} />
             </Agent>
           );
         }
@@ -74,7 +74,7 @@ describe('<TaskDef>', () => {
         export default function Doc() {
           return (
             <Agent name="test" description="test">
-              <TaskDef task={Research} description="Research OAuth providers" />
+              <TaskDef task={Research} prompt="Research OAuth providers" />
             </Agent>
           );
         }
@@ -93,12 +93,83 @@ describe('<TaskDef>', () => {
         export default function Doc() {
           return (
             <Agent name="test" description="test">
-              <TaskDef task={Research} description="Research" activeForm="Researching..." />
+              <TaskDef task={Research} prompt="Research" activeForm="Researching..." />
             </Agent>
           );
         }
       `, true);
       expect(output).toContain('activeForm: "Researching..."');
+    });
+  });
+
+  describe('<Prompt> child support', () => {
+    it('accepts <Prompt> child as alternative to prompt prop', () => {
+      const output = transformAgentContent(`
+        import { defineTask } from 'react-agentic';
+
+        const Research = defineTask('Research OAuth');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <TaskDef task={Research} activeForm="Researching...">
+                <Prompt>
+                  <p>Research OAuth2 providers thoroughly.</p>
+                  <ul>
+                    <li>Compare pricing</li>
+                    <li>Evaluate security features</li>
+                  </ul>
+                </Prompt>
+              </TaskDef>
+            </Agent>
+          );
+        }
+      `, true);
+      expect(output).toContain('TaskCreate({');
+      expect(output).toContain('description:');
+      expect(output).toContain('Research OAuth2 providers thoroughly');
+    });
+
+    it('throws when both prompt prop and <Prompt> child provided', () => {
+      const content = `
+        import { defineTask } from 'react-agentic';
+
+        const Research = defineTask('Research OAuth');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <TaskDef task={Research} prompt="Research OAuth providers">
+                <Prompt>
+                  <p>Conflicting prompt content</p>
+                </Prompt>
+              </TaskDef>
+            </Agent>
+          );
+        }
+      `;
+      expect(() => transformAgentContent(content, true)).toThrow(
+        'TaskDef cannot have both a prompt prop and <Prompt> child'
+      );
+    });
+
+    it('throws when neither prompt prop nor <Prompt> child provided', () => {
+      const content = `
+        import { defineTask } from 'react-agentic';
+
+        const Research = defineTask('Research OAuth');
+
+        export default function Doc() {
+          return (
+            <Agent name="test" description="test">
+              <TaskDef task={Research} />
+            </Agent>
+          );
+        }
+      `;
+      expect(() => transformAgentContent(content, true)).toThrow(
+        'TaskDef requires either a prompt prop or <Prompt> child'
+      );
     });
   });
 });
@@ -115,7 +186,7 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
+                <TaskDef task={Research} prompt="Research phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -134,7 +205,7 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline title="OAuth Implementation">
-                <TaskDef task={Research} description="Research phase" />
+                <TaskDef task={Research} prompt="Research phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -154,8 +225,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline autoChain>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -176,7 +247,7 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline title="OAuth Implementation">
-                <TaskDef task={Research} description="Research phase" />
+                <TaskDef task={Research} prompt="Research phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -196,8 +267,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -219,8 +290,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -241,7 +312,7 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
+                <TaskDef task={Research} prompt="Research phase" />
               </TaskPipeline>
             </Agent>
           );
@@ -263,8 +334,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" blockedBy={[Research]} />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" blockedBy={[Research]} />
               </TaskPipeline>
             </Agent>
           );
@@ -286,8 +357,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" blockedBy={[Research]} />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" blockedBy={[Research]} />
               </TaskPipeline>
             </Agent>
           );
@@ -307,8 +378,8 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline>
-                <TaskDef task={Research} description="Research phase" />
-                <TaskDef task={Plan} description="Plan phase" blockedBy={[Research]} />
+                <TaskDef task={Research} prompt="Research phase" />
+                <TaskDef task={Plan} prompt="Plan phase" blockedBy={[Research]} />
               </TaskPipeline>
             </Agent>
           );
@@ -332,9 +403,9 @@ describe('<TaskPipeline>', () => {
           return (
             <Agent name="test" description="test">
               <TaskPipeline autoChain>
-                <TaskDef task={Step1} description="First step" />
-                <TaskDef task={Step2} description="Second step" />
-                <TaskDef task={Step3} description="Third step" />
+                <TaskDef task={Step1} prompt="First step" />
+                <TaskDef task={Step2} prompt="Second step" />
+                <TaskDef task={Step3} prompt="Third step" />
               </TaskPipeline>
             </Agent>
           );

@@ -51,7 +51,7 @@ describe('emitTaskDef', () => {
       taskId: 'task-1',
       subject: 'Research OAuth',
       name: 'research',
-      description: 'Research OAuth providers',
+      prompt: 'Research OAuth providers',
     };
 
     const output = emitTaskDef(node, resolver);
@@ -70,7 +70,7 @@ describe('emitTaskDef', () => {
       taskId: 'task-1',
       subject: 'Research OAuth',
       name: 'research',
-      description: 'Research OAuth providers',
+      prompt: 'Research OAuth providers',
       activeForm: 'Researching...',
     };
 
@@ -89,7 +89,7 @@ describe('emitTaskDef', () => {
       taskId: 'task-2',
       subject: 'Plan Implementation',
       name: 'plan',
-      description: 'Create implementation plan',
+      prompt: 'Create implementation plan',
       blockedByIds: ['task-blocker'],
     };
 
@@ -108,7 +108,7 @@ describe('emitTaskDef', () => {
       taskId: 'task-1',
       subject: 'Test "quoted" string',
       name: 'test',
-      description: 'Line1\nLine2',
+      prompt: 'Line1\nLine2',
     };
 
     const output = emitTaskDef(node, resolver);
@@ -139,8 +139,8 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: false,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', description: 'Research phase' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', description: 'Planning phase' },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', prompt: 'Research phase' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', prompt: 'Planning phase' },
       ],
     };
 
@@ -159,8 +159,8 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: false,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', description: 'Research phase' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', description: 'Planning phase', blockedByIds: ['task-1'] },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', prompt: 'Research phase' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', prompt: 'Planning phase', blockedByIds: ['task-1'] },
       ],
     };
 
@@ -175,8 +175,8 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: false,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', description: 'Research phase' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', description: 'Planning phase' },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', prompt: 'Research phase' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', prompt: 'Planning phase' },
       ],
     };
 
@@ -193,8 +193,8 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: false,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', description: 'Research phase' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', description: 'Planning phase', blockedByIds: ['task-1'] },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', prompt: 'Research phase' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', prompt: 'Planning phase', blockedByIds: ['task-1'] },
       ],
     };
 
@@ -210,8 +210,8 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: false,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', description: 'Research phase' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', description: 'Planning phase', blockedByIds: ['task-1'] },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Research', name: 'research', prompt: 'Research phase' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Plan', name: 'plan', prompt: 'Planning phase', blockedByIds: ['task-1'] },
       ],
     };
 
@@ -228,9 +228,9 @@ describe('emitTaskPipeline', () => {
       kind: 'taskPipeline',
       autoChain: true,
       children: [
-        { kind: 'taskDef', taskId: 'task-1', subject: 'Step 1', name: 'step1', description: 'First step' },
-        { kind: 'taskDef', taskId: 'task-2', subject: 'Step 2', name: 'step2', description: 'Second step', blockedByIds: ['task-1'] },
-        { kind: 'taskDef', taskId: 'task-3', subject: 'Step 3', name: 'step3', description: 'Third step', blockedByIds: ['task-2'] },
+        { kind: 'taskDef', taskId: 'task-1', subject: 'Step 1', name: 'step1', prompt: 'First step' },
+        { kind: 'taskDef', taskId: 'task-2', subject: 'Step 2', name: 'step2', prompt: 'Second step', blockedByIds: ['task-1'] },
+        { kind: 'taskDef', taskId: 'task-3', subject: 'Step 3', name: 'step3', prompt: 'Third step', blockedByIds: ['task-2'] },
       ],
     };
 

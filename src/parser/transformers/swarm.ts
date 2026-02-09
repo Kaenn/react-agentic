@@ -4,7 +4,7 @@
  * Transforms TaskDef, TaskPipeline, Team, and Teammate JSX components to IR nodes.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, SourceFile, SyntaxKind } from 'ts-morph';
 import type { TaskDefNode, TaskPipelineNode, TeamNode, TeammateNode, ShutdownSequenceNode, WorkflowNode } from '../../ir/swarm-nodes.js';
 import type { BaseBlockNode } from '../../ir/nodes.js';
 import type { TransformContext } from './types.js';
@@ -150,10 +150,20 @@ export function transformTaskDef(
     throw ctx.createError('TaskDef requires a task prop with a defineTask() reference', node);
   }
 
-  // Extract description prop (required)
-  const description = getAttributeValue(openingElement, 'description');
-  if (!description) {
-    throw ctx.createError('TaskDef requires a description prop', node);
+  // Extract prompt: prefer prompt prop, fall back to <Prompt> child
+  let prompt: string | undefined;
+  const promptProp = getAttributeValue(openingElement, 'prompt');
+  let promptChild: string | undefined;
+  if (Node.isJsxElement(node)) {
+    promptChild = extractPromptChild(node, ctx);
+  }
+
+  if (promptProp && promptChild) {
+    throw ctx.createError('TaskDef cannot have both a prompt prop and <Prompt> child', node);
+  }
+  prompt = promptProp || promptChild;
+  if (!prompt) {
+    throw ctx.createError('TaskDef requires either a prompt prop or <Prompt> child', node);
   }
 
   // Extract activeForm prop (optional)
@@ -167,7 +177,7 @@ export function transformTaskDef(
     taskId: taskRef.taskId,
     subject: taskRef.subject,
     name: taskRef.name,
-    description,
+    prompt,
     activeForm: activeForm || undefined,
     blockedByIds: blockedByIds.length > 0 ? blockedByIds : undefined,
   };
@@ -292,6 +302,82 @@ function resolveEnumValue(enumAccess: string): string {
 }
 
 /**
+ * Extract agent name from a source file containing an <Agent> component
+ *
+ * Searches JSX in file for <Agent name="..."> and returns the name value.
+ */
+function extractAgentNameFromFile(sourceFile: SourceFile): string | null {
+  for (const descendant of sourceFile.getDescendantsOfKind(SyntaxKind.JsxOpeningElement)) {
+    const tagName = descendant.getTagNameNode().getText();
+    if (tagName === 'Agent') {
+      const nameAttr = descendant.getAttribute('name');
+      if (nameAttr && Node.isJsxAttribute(nameAttr)) {
+        const init = nameAttr.getInitializer();
+        if (init && Node.isStringLiteral(init)) {
+          return init.getLiteralValue();
+        }
+      }
+    }
+  }
+
+  // Also check self-closing elements
+  for (const descendant of sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement)) {
+    const tagName = descendant.getTagNameNode().getText();
+    if (tagName === 'Agent') {
+      const nameAttr = descendant.getAttribute('name');
+      if (nameAttr && Node.isJsxAttribute(nameAttr)) {
+        const init = nameAttr.getInitializer();
+        if (init && Node.isStringLiteral(init)) {
+          return init.getLiteralValue();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolve an agent name from an imported identifier
+ *
+ * When defineWorker receives an imported Agent component as its type argument,
+ * this resolves the import to find the <Agent name="..."> in the imported file.
+ */
+function resolveAgentNameFromImport(varName: string, ctx: TransformContext): string | null {
+  const sourceFile = ctx.sourceFile;
+  if (!sourceFile) return null;
+
+  for (const importDecl of sourceFile.getImportDeclarations()) {
+    const defaultImport = importDecl.getDefaultImport();
+    if (defaultImport?.getText() === varName) {
+      const importedFile = importDecl.getModuleSpecifierSourceFile();
+      if (!importedFile) return null;
+
+      // Check for circular imports
+      const filePath = importedFile.getFilePath();
+      if (ctx.visitedPaths.has(filePath)) return null;
+
+      return extractAgentNameFromFile(importedFile);
+    }
+
+    // Also check named imports
+    for (const namedImport of importDecl.getNamedImports()) {
+      if (namedImport.getName() === varName) {
+        const importedFile = importDecl.getModuleSpecifierSourceFile();
+        if (!importedFile) return null;
+
+        const filePath = importedFile.getFilePath();
+        if (ctx.visitedPaths.has(filePath)) return null;
+
+        return extractAgentNameFromFile(importedFile);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extract an enum value from a JSX attribute
  *
  * Handles both string literals and property access expressions (enums).
@@ -396,6 +482,24 @@ function extractWorkerRefFromAttribute(
                   // Handle enum access like AgentType.Explore or PluginAgentType.SecuritySentinel
                   const enumText = typeArg.getText();
                   workerType = resolveEnumValue(enumText);
+                } else if (Node.isIdentifier(typeArg)) {
+                  // Handle imported Agent as type: defineWorker('name', MyAgent)
+                  const agentVarName = typeArg.getText();
+                  const resolvedName = resolveAgentNameFromImport(agentVarName, ctx);
+                  if (resolvedName) {
+                    workerType = resolvedName;
+                  } else {
+                    // Check if it's an enum member without dot notation
+                    const enumMatch = resolveEnumValue(agentVarName);
+                    if (enumMatch !== agentVarName) {
+                      workerType = enumMatch;
+                    } else {
+                      throw ctx.createError(
+                        `Could not resolve import '${agentVarName}'. Use a string literal instead.`,
+                        typeArg
+                      );
+                    }
+                  }
                 }
 
                 // Get model (third arg, optional)

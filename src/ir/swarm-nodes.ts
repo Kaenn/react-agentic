@@ -18,8 +18,8 @@ export interface TaskDefNode {
   subject: string;
   /** TaskRef.name - short label for mermaid diagrams */
   name: string;
-  /** Full description for TaskCreate.description */
-  description: string;
+  /** Full prompt/description for TaskCreate.description */
+  prompt: string;
   /** Present continuous form for spinner display */
   activeForm?: string;
   /** TaskRef.__id values of tasks that must complete first */

@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import type { ReactNode } from 'react';
 import type { AgentType, PluginAgentType, Model } from './enums.js';
 
 // =============================================================================
@@ -85,21 +86,27 @@ export interface WorkerRef {
  * Creates a type-safe worker reference.
  *
  * @param name - Worker identifier
- * @param type - Claude Code subagent_type (use AgentType or PluginAgentType enums)
+ * @param type - Claude Code subagent_type. Use AgentType/PluginAgentType enums,
+ *   a string literal, or an imported Agent component (resolves name at compile time).
  * @param model - Optional model preference (use Model enum)
  *
  * @example
  * const Explorer = defineWorker('explorer', AgentType.Explore, Model.Haiku);
  * const Security = defineWorker('security', PluginAgentType.SecuritySentinel);
+ * // Imported Agent — name resolved at compile time:
+ * import CodeReviewer from './agents/code-reviewer';
+ * const Reviewer = defineWorker('reviewer', CodeReviewer);
  */
 export function defineWorker(
   name: string,
-  type: AgentType | PluginAgentType | string,
+  type: AgentType | PluginAgentType | string | ReactNode,
   model?: Model | string
 ): WorkerRef {
   return {
     name,
-    type,
+    // When type is a ReactNode (imported Agent), the compiler resolves the
+    // agent name from the AST at build time. The runtime value is unused.
+    type: type as string,
     model,
     __id: randomUUID(),
     __isWorkerRef: true,

@@ -5,6 +5,7 @@
  * Emits as Claude Code's TaskCreate syntax.
  */
 
+import type { ReactNode } from 'react';
 import type { TaskRef } from './refs.js';
 
 /**
@@ -13,12 +14,14 @@ import type { TaskRef } from './refs.js';
 export interface TaskDefProps {
   /** Task reference created with defineTask() */
   task: TaskRef;
-  /** Full description of what the task accomplishes */
-  description: string;
+  /** Full prompt/description of what the task accomplishes (alternative to <Prompt> child) */
+  prompt?: string;
   /** Present continuous form for spinner display (e.g., "Researching...") */
   activeForm?: string;
   /** Tasks that must complete before this one can start */
   blockedBy?: TaskRef[];
+  /** Children (supports <Prompt> child as alternative to prompt prop) */
+  children?: ReactNode;
 }
 
 /**
