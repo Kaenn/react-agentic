@@ -81,14 +81,27 @@ export function isInlineElement(tagName: string): boolean {
 }
 
 /**
- * Special component names that are NOT custom user components
+ * Built-in component names that are NOT custom user components.
+ *
+ * Single source of truth — used by both V1 (dispatch.ts) and V3 (runtime-dispatch.ts)
+ * transformers to distinguish framework components from user-defined composites.
  */
-export const SPECIAL_COMPONENTS = new Set([
-  'Command', 'Markdown', 'XmlBlock', 'Agent', 'SpawnAgent', 'Assign', 'AssignGroup', 'If', 'Else', 'Loop', 'OnStatus',
-  'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
-  'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
+export const BUILTIN_COMPONENTS = new Set([
+  // Core document components
+  'Command', 'Agent', 'SpawnAgent', 'Markdown', 'XmlBlock', 'Assign', 'AssignGroup',
+  // Control flow
+  'If', 'Else', 'Loop', 'Break', 'Return', 'AskUser',
+  // Status handling
+  'OnStatus', 'OnStatusDefault',
+  // Skill components
+  'Skill', 'SkillFile', 'SkillStatic',
+  // State components
+  'ReadState', 'WriteState', 'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation',
+  // Structured components
+  'Table', 'List',
   // Semantic workflow components
-  'ExecutionContext',
+  'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
   // Swarm components
   'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt', 'ShutdownSequence', 'Workflow',
   // Step workflow primitive
@@ -99,11 +112,16 @@ export const SPECIAL_COMPONENTS = new Set([
   'ReadFiles',
   // Template primitives
   'PromptTemplate',
+  // Indent
+  'Indent',
   // Agent contract composites (emit as XmlBlock directly, no import needed)
   'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
-  // Swarm components
-  'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt',
+  // Structured returns
+  'StructuredReturns', 'StatusReturn', 'ReturnStatus',
 ]);
+
+/** @deprecated Use BUILTIN_COMPONENTS instead */
+export const SPECIAL_COMPONENTS = BUILTIN_COMPONENTS;
 
 /**
  * Check if a tag name represents a custom user-defined component
@@ -115,7 +133,7 @@ export const SPECIAL_COMPONENTS = new Set([
  */
 export function isCustomComponent(tagName: string): boolean {
   if (HTML_ELEMENTS.has(tagName)) return false;
-  if (SPECIAL_COMPONENTS.has(tagName)) return false;
+  if (BUILTIN_COMPONENTS.has(tagName)) return false;
   // React convention: custom components start with uppercase
   return /^[A-Z]/.test(tagName);
 }

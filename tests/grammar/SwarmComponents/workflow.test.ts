@@ -11,8 +11,8 @@ import {
   createProject,
   parseSource,
   findRootJsxElement,
-  Transformer,
 } from '../../../src/index.js';
+import { transformDocument } from '../../../src/parser/transformers/document.js';
 import { emitAgent } from '../../../src/emitter/index.js';
 
 let externalTestCounter = 0;
@@ -39,8 +39,7 @@ function buildAgentWithExternals(
   const root = findRootJsxElement(source);
   if (!root) throw new Error('No JSX found');
 
-  const transformer = new Transformer();
-  const doc = transformer.transform(root, source);
+  const doc = transformDocument(root, source);
   return emitAgent(doc as any);
 }
 

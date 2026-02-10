@@ -180,7 +180,6 @@ export {
 export { createProject } from './parser/utils/project.js';
 export {
   findRootJsxElement,
-  transform,
   getAttributeValue,
   resolveTypeImport,
   extractInterfaceProperties,
@@ -197,11 +196,12 @@ export {
   getArrayAttributeValue,
   extractVariableDeclarations,
   extractInputObjectLiteral,
-  // V1 Transformer class
-  Transformer,
   type JsxChild,
   type ExtractedVariable,
 } from './parser/index.js';
+
+// Static document transformer (Agent, Skill, MCPConfig, State)
+export { transformDocument } from './parser/transformers/document.js';
 
 // ============================================================================
 // Schema Primitives

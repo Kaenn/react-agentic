@@ -6,10 +6,14 @@
  */
 
 import { Node, JsxElement, JsxSelfClosingElement, JsxFragment, TemplateExpression, BinaryExpression, PropertyAccessExpression, ArrowFunction, FunctionExpression, FunctionDeclaration, SourceFile, Block as TsBlock } from 'ts-morph';
-import type { BlockNode, XmlBlockNode, GroupNode } from '../../ir/index.js';
+import type { BlockNode, BaseBlockNode, XmlBlockNode, GroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import { getAttributeValue, resolveComponentImport } from '../utils/index.js';
 import { isValidXmlName, isCustomComponent } from './shared.js';
+// Circular import: dispatch.ts imports from markdown.ts and vice versa.
+// ESM handles this correctly because these are used only inside functions
+// (after all modules are fully initialized), not at top-level.
+import { transformToBlock, transformBlockChildren } from './dispatch.js';
 
 /**
  * Transform XmlBlock component to XmlBlockNode IR
@@ -36,12 +40,9 @@ export function transformXmlBlock(
     );
   }
 
-  // Import transformBlockChildren from dispatch to avoid circular dependency
-  const { transformBlockChildren } = require('./dispatch.js');
-
   // Transform children as blocks (with If/Else sibling detection)
   const children = Node.isJsxElement(node)
-    ? transformBlockChildren(node.getJsxChildren(), ctx)
+    ? transformBlockChildren(node.getJsxChildren(), ctx) as BaseBlockNode[]
     : [];
 
   return {
@@ -342,10 +343,6 @@ function transformComponentJsx(
   jsx: JsxElement | JsxSelfClosingElement | JsxFragment,
   ctx: TransformContext
 ): BlockNode | null {
-  // Import functions from dispatch/html to avoid circular dependency
-  const { transformToBlock, transformBlockChildren } = require('./dispatch.js');
-  const { transformFragmentChildren } = require('./html.js');
-
   // Extract props from usage site
   const props = extractPropsFromUsage(node);
 
@@ -377,7 +374,7 @@ function transformComponentJsx(
     // Transform the resolved JSX
     if (Node.isJsxFragment(jsx)) {
       // Fragment: transform children and wrap in GroupNode if multiple blocks
-      const blocks = transformFragmentChildren(jsx, ctx);
+      const blocks = transformBlockChildren(jsx.getJsxChildren(), ctx);
       if (blocks.length === 0) {
         result = null;
       } else if (blocks.length === 1) {

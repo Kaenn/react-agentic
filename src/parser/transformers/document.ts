@@ -15,9 +15,12 @@ import {
   Node,
   JsxElement,
   JsxSelfClosingElement,
+  JsxFragment,
   JsxOpeningElement,
   ArrowFunction,
+  SourceFile,
 } from 'ts-morph';
+import { TranspileError, getNodeLocation, getSourceCode } from '../../cli/errors.js';
 import type {
   DocumentNode,
   AgentDocumentNode,
@@ -50,9 +53,82 @@ import {
   analyzeRenderPropsChildren,
   extractStateSchema,
   extractSqlArguments,
+  extractVariableDeclarations,
 } from '../utils/index.js';
 import type { TransformContext } from './types.js';
 import { transformBlockChildren as dispatchTransformBlockChildren } from './dispatch.js';
+import { extractOutputDeclarations, extractStateRefDeclarations } from './control.js';
+
+// ============================================================================
+// Top-Level Transform Entry Point
+// ============================================================================
+
+/**
+ * Transform a root JSX element into a document IR node.
+ *
+ * Replaces the Transformer class — builds a TransformContext, extracts
+ * declarations, then routes to the appropriate document transformer.
+ *
+ * Command documents throw; they must use the runtime transformer
+ * (transformRuntimeCommand) which supports runtime features.
+ */
+export function transformDocument(
+  node: JsxElement | JsxSelfClosingElement | JsxFragment,
+  sourceFile?: SourceFile
+): AgentDocumentNode | SkillDocumentNode | MCPConfigDocumentNode | StateDocumentNode {
+  // Build TransformContext (same as former Transformer.buildContext())
+  const visitedPaths = new Set<string>();
+  const variables = sourceFile ? extractVariableDeclarations(sourceFile) : new Map();
+  const outputs = sourceFile ? extractOutputDeclarations(sourceFile) : new Map();
+  const stateRefs = sourceFile ? extractStateRefDeclarations(sourceFile) : new Map();
+
+  if (sourceFile) {
+    visitedPaths.add(sourceFile.getFilePath());
+  }
+
+  const createError = (message: string, errNode: Node): TranspileError => {
+    const location = getNodeLocation(errNode);
+    const sourceCode = getSourceCode(errNode.getSourceFile());
+    return new TranspileError(message, location, sourceCode);
+  };
+
+  const ctx: TransformContext = {
+    sourceFile,
+    visitedPaths,
+    variables,
+    outputs,
+    stateRefs,
+    renderPropsContext: undefined,
+    createError,
+    transformBlockChildren: (children: Node[], _ctx: TransformContext) =>
+      dispatchTransformBlockChildren(children, ctx),
+  };
+
+  // Route by root element name
+  if (Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node)) {
+    const name = getElementName(node);
+    if (name === 'Command') {
+      throw createError(
+        'This transformer is deprecated for Commands. Use the runtime transformer (transformRuntimeCommand) instead.',
+        node
+      );
+    }
+    if (name === 'Agent') return transformAgent(node, ctx);
+    if (name === 'Skill') return transformSkill(node, ctx);
+    if (name === 'MCPConfig') return transformMCPConfig(node, ctx);
+    if (name === 'State') return transformState(node, ctx);
+  }
+
+  if (Node.isJsxFragment(node)) {
+    throw new Error(
+      'JSX Fragment not supported. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use runtime transformer for <Command>.'
+    );
+  }
+
+  throw new Error(
+    'Unknown root element. Use a document wrapper: <Agent>, <Skill>, <MCPConfig>, <State>, or use runtime transformer for <Command>.'
+  );
+}
 
 // ============================================================================
 // Helper Functions

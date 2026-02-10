@@ -34,6 +34,7 @@ export {
   // Constants
   HTML_ELEMENTS,
   INLINE_ELEMENTS,
+  BUILTIN_COMPONENTS,
   SPECIAL_COMPONENTS,
 } from './shared.js';
 
@@ -48,6 +49,7 @@ export { transformToBlock, transformBlockChildren } from './dispatch.js';
 // ============================================================================
 
 export {
+  transformDocument,
   transformCommand,
   transformAgent,
   transformSkill,

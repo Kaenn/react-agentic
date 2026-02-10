@@ -8,7 +8,7 @@ import {
   extractInterfaceProperties,
   extractPromptPlaceholders,
 } from '../../src/parser/parser.js';
-import { transform } from '../../src/parser/transformer.js';
+import { transformDocument } from '../../src/parser/transformers/document.js';
 import { transformRuntimeCommand, createRuntimeContext } from '../../src/parser/transformers/index.js';
 
 describe('Cross-file validation', () => {

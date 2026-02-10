@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createProject, findRootJsxElement } from '../../src/parser/parser.js';
-import { Transformer } from '../../src/parser/transformer.js';
+import { transformDocument } from '../../src/parser/transformers/document.js';
 import type { AgentDocumentNode } from '../../src/ir/index.js';
 
 /**
@@ -12,8 +12,7 @@ function transformTsx(tsx: string): AgentDocumentNode {
   const source = project.createSourceFile('test.tsx', tsx, { overwrite: true });
   const root = findRootJsxElement(source);
   if (!root) throw new Error('No JSX found');
-  const transformer = new Transformer();
-  const doc = transformer.transform(root);
+  const doc = transformDocument(root);
   if (doc.kind !== 'agentDocument') {
     throw new Error(`Expected agentDocument, got ${doc.kind}`);
   }

@@ -11,11 +11,11 @@ import {
   createProject,
   parseSource,
   findRootJsxElement,
-  Transformer,
   createRuntimeContext,
   transformRuntimeCommand,
   type DocumentNode,
 } from '../../../src/index.js';
+import { transformDocument } from '../../../src/parser/transformers/document.js';
 import { emit, emitAgent, emitDocument } from '../../../src/emitter/index.js';
 import type { AgentDocumentNode } from '../../../src/ir/index.js';
 import {
@@ -37,8 +37,7 @@ export function transformAgentTsx(tsx: string): AgentDocumentNode {
   const source = parseSource(project, tsx, fileName);
   const root = findRootJsxElement(source);
   if (!root) throw new Error('No JSX found');
-  const transformer = new Transformer();
-  return transformer.transform(root, source) as AgentDocumentNode;
+  return transformDocument(root, source) as AgentDocumentNode;
 }
 
 /**

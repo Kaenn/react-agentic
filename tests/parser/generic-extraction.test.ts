@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createProject, parseSource, findRootJsxElement, extractTypeArguments } from '../../src/parser/parser.js';
-import { transform } from '../../src/parser/transformer.js';
+import { transformDocument } from '../../src/parser/transformers/document.js';
 import { transformRuntimeCommand, createRuntimeContext } from '../../src/parser/transformers/index.js';
 import { Node } from 'ts-morph';
 
@@ -77,7 +77,7 @@ describe('extractTypeArguments', () => {
     `;
     const sourceFile = parseSource(project, source, 'test.tsx');
     const root = findRootJsxElement(sourceFile);
-    const doc = transform(root!, sourceFile);
+    const doc = transformDocument(root!, sourceFile);
 
     expect(doc.kind).toBe('agentDocument');
     if (doc.kind === 'agentDocument') {
@@ -112,7 +112,7 @@ describe('extractTypeArguments', () => {
     `;
     const sourceFile = parseSource(project, source, 'test.tsx');
     const root = findRootJsxElement(sourceFile);
-    const doc = transform(root!, sourceFile);
+    const doc = transformDocument(root!, sourceFile);
 
     expect(doc.kind).toBe('agentDocument');
     if (doc.kind === 'agentDocument') {
@@ -163,7 +163,7 @@ describe('extractTypeArguments', () => {
     `;
     const sourceFile = parseSource(project, source, 'test.tsx');
     const root = findRootJsxElement(sourceFile);
-    const doc = transform(root!, sourceFile);
+    const doc = transformDocument(root!, sourceFile);
 
     expect(doc.kind).toBe('agentDocument');
     if (doc.kind === 'agentDocument') {

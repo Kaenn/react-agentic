@@ -24,7 +24,7 @@ import { transformRuntimeInlineChildren } from './runtime-inline.js';
 
 // Shared element transformers
 import { transformList, transformBlockquote, transformCodeBlock } from './html.js';
-import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper } from './semantic.js';
+import { transformTable, transformPropList, transformXmlSection, transformXmlWrapper, transformSuccessCriteria, transformOfferNext } from './semantic.js';
 import { transformXmlBlock, transformMarkdown } from './markdown.js';
 import { transformAssign, transformAssignGroup } from './variables.js';
 import { transformTaskDef, transformTaskPipeline, transformTeam, transformShutdownSequence, transformWorkflow } from './swarm.js';
@@ -1419,6 +1419,16 @@ function transformRuntimeElement(
   // XmlSection
   if (name === 'XmlSection') {
     return transformXmlSection(node, sharedCtx) as BlockNode;
+  }
+
+  // SuccessCriteria
+  if (name === 'SuccessCriteria') {
+    return transformSuccessCriteria(node, sharedCtx) as BlockNode;
+  }
+
+  // OfferNext
+  if (name === 'OfferNext') {
+    return transformOfferNext(node, sharedCtx) as BlockNode;
   }
 
   // XML wrapper components

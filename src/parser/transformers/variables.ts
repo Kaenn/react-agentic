@@ -9,8 +9,23 @@ import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExp
 import type { AssignNode, AssignGroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
-import { extractTemplateContent } from './shared.js';
 import { extractTemplateContentWithRuntimeVars } from './runtime-utils.js';
+
+/**
+ * Extract path/command from a template expression, converting ${expr} to $expr.
+ *
+ * Used in V1 (static) context for Assign from={bash(`cmd ${VAR}`)} patterns.
+ * Converts TypeScript template expressions to shell variable references.
+ */
+function extractTemplatePath(tmpl: TemplateExpression): string {
+  let result = tmpl.getHead().getLiteralText();
+  for (const span of tmpl.getTemplateSpans()) {
+    const spanExpr = span.getExpression();
+    result += '$' + spanExpr.getText();
+    result += span.getLiteral().getLiteralText();
+  }
+  return result;
+}
 
 /**
  * Transform an Assign element to AssignNode
@@ -172,7 +187,7 @@ function transformAssignWithFrom(
           if ('runtimeVars' in ctx && ctx.runtimeVars) {
             path = extractTemplateContentWithRuntimeVars(pathArg, ctx as unknown as RuntimeTransformContext);
           } else {
-            path = extractTemplateContent(pathArg);
+            path = extractTemplatePath(pathArg);
           }
         } else {
           throw ctx.createError('file() path must be a string or template literal', openingElement);
@@ -217,7 +232,7 @@ function transformAssignWithFrom(
           if ('runtimeVars' in ctx && ctx.runtimeVars) {
             content = extractTemplateContentWithRuntimeVars(cmdArg, ctx as unknown as RuntimeTransformContext);
           } else {
-            content = extractTemplateContent(cmdArg);
+            content = extractTemplatePath(cmdArg);
           }
         } else {
           throw ctx.createError('bash() command must be a string or template literal', openingElement);
@@ -248,7 +263,7 @@ function transformAssignWithFrom(
           if ('runtimeVars' in ctx && ctx.runtimeVars) {
             content = extractTemplateContentWithRuntimeVars(valArg, ctx as unknown as RuntimeTransformContext);
           } else {
-            content = extractTemplateContent(valArg);
+            content = extractTemplatePath(valArg);
           }
         } else {
           throw ctx.createError('value() must be a string or template literal', openingElement);
@@ -416,7 +431,7 @@ function extractAssignPropValue(
 
     // Template expression with substitution: prop={`ls ${VAR}`}
     if (Node.isTemplateExpression(expr)) {
-      return extractTemplateContent(expr);
+      return extractTemplatePath(expr);
     }
   }
 

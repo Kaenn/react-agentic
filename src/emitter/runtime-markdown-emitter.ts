@@ -37,7 +37,7 @@ import type {
   ShutdownSequenceNode,
   WorkflowNode,
 } from '../ir/index.js';
-import type { InlineNode } from '../ir/nodes.js';
+import type { InlineNode, SuccessCriteriaNode, OfferNextNode } from '../ir/nodes.js';
 import { assertNever } from './utils.js';
 import { TaskIdResolver, emitTaskDef, emitTaskPipeline, emitTeam, emitShutdownSequence, emitWorkflow } from './swarm-emitter.js';
 
@@ -330,6 +330,12 @@ export class RuntimeMarkdownEmitter {
       case 'assignGroup':
         return this.emitAssignGroup(node as AssignGroupNode);
 
+      // Semantic components (shared with V1)
+      case 'successCriteria':
+        return this.emitSuccessCriteria(node as SuccessCriteriaNode);
+      case 'offerNext':
+        return this.emitOfferNext(node as OfferNextNode);
+
       // V1 nodes that shouldn't appear in runtime documents
       case 'onStatus':
       case 'onStatusDefault':
@@ -338,8 +344,6 @@ export class RuntimeMarkdownEmitter {
       case 'readFiles':
       case 'promptTemplate':
       case 'step':
-      case 'successCriteria':
-      case 'offerNext':
       case 'mcpServer':
       case 'runtimeVarDecl':
         throw new Error(`Unexpected node kind in runtime document: ${node.kind}`);
@@ -918,6 +922,30 @@ Task(
     }
 
     lines.push('</execution_context>');
+    return lines.join('\n');
+  }
+
+  private emitSuccessCriteria(node: SuccessCriteriaNode): string {
+    const lines: string[] = ['<success_criteria>'];
+    for (const item of node.items) {
+      const checkbox = item.checked ? '[x]' : '[ ]';
+      lines.push(`- ${checkbox} ${item.text}`);
+    }
+    lines.push('</success_criteria>');
+    return lines.join('\n');
+  }
+
+  private emitOfferNext(node: OfferNextNode): string {
+    const lines: string[] = ['<offer_next>'];
+    for (const route of node.routes) {
+      if (route.description) {
+        lines.push(`- **${route.name}**: ${route.description}`);
+      } else {
+        lines.push(`- **${route.name}**`);
+      }
+      lines.push(`  \`${route.path}\``);
+    }
+    lines.push('</offer_next>');
     return lines.join('\n');
   }
 
