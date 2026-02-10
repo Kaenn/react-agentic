@@ -5,7 +5,7 @@
  * Supports RuntimeVar output binding.
  */
 
-import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
+import { Node, JsxElement, JsxSelfClosingElement, Expression, ObjectLiteralExpression } from 'ts-morph';
 import type {
   SpawnAgentNode,
   SpawnAgentInput,
@@ -15,7 +15,142 @@ import type {
 } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
-import { getAttributeValue, getAttributeExpression, extractJsonValue } from './runtime-utils.js';
+import { getAttributeValue, getAttributeExpression, extractJsonValue, resolveExprThroughProps } from './runtime-utils.js';
+
+// ============================================================================
+// AgentRef Resolution
+// ============================================================================
+
+/**
+ * Resolved AgentRef properties
+ */
+interface ResolvedAgentRef {
+  name: string;
+  path?: string;
+}
+
+/**
+ * Try to resolve an identifier as a defineAgent() call
+ *
+ * Looks for local variable declarations like:
+ *   const Researcher = defineAgent({ name: '...', path: '...' });
+ */
+function resolveAgentRef(
+  identName: string,
+  ctx: RuntimeTransformContext
+): ResolvedAgentRef | undefined {
+  if (!ctx.sourceFile) return undefined;
+
+  const symbol = ctx.sourceFile.getLocal(identName);
+  if (!symbol) return undefined;
+
+  const declarations = symbol.getDeclarations();
+  if (!declarations || declarations.length === 0) return undefined;
+
+  for (const decl of declarations) {
+    // Check for import specifier — trace to source file
+    if (Node.isImportSpecifier(decl)) {
+      let current: import('ts-morph').Node | undefined = decl;
+      while (current && !Node.isImportDeclaration(current)) {
+        current = current.getParent();
+      }
+      if (current && Node.isImportDeclaration(current)) {
+        const resolvedSource = current.getModuleSpecifierSourceFile();
+        if (resolvedSource) {
+          const exportedVar = resolvedSource.getVariableDeclaration(identName);
+          if (exportedVar) {
+            const init = exportedVar.getInitializer();
+            if (init && Node.isCallExpression(init)) {
+              const callExpr = init.getExpression();
+              if (callExpr && callExpr.getText() === 'defineAgent') {
+                const args = init.getArguments();
+                if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+                  return extractAgentRefFromObject(args[0] as ObjectLiteralExpression);
+                }
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    // Check for local variable declaration with defineAgent call
+    if (Node.isVariableDeclaration(decl)) {
+      const init = decl.getInitializer();
+      if (init && Node.isCallExpression(init)) {
+        const callExpr = init.getExpression();
+        if (callExpr && callExpr.getText() === 'defineAgent') {
+          const args = init.getArguments();
+          if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+            return extractAgentRefFromObject(args[0] as ObjectLiteralExpression);
+          }
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract name and path from a defineAgent config object literal
+ */
+function extractAgentRefFromObject(
+  obj: ObjectLiteralExpression
+): ResolvedAgentRef | undefined {
+  let name: string | undefined;
+  let path: string | undefined;
+
+  for (const prop of obj.getProperties()) {
+    if (Node.isPropertyAssignment(prop)) {
+      const propName = prop.getName();
+      const init = prop.getInitializer();
+
+      if (propName === 'name' && init && Node.isStringLiteral(init)) {
+        name = init.getLiteralValue();
+      }
+      if (propName === 'path' && init && Node.isStringLiteral(init)) {
+        path = init.getLiteralValue();
+      }
+    }
+  }
+
+  if (name) {
+    return { name, path };
+  }
+  return undefined;
+}
+
+/**
+ * Extract agent prop — handles string literal, RuntimeVar, or AgentRef identifier
+ *
+ * Returns:
+ * - agentName: string | RuntimeVarRefNode (for the agent name)
+ * - agentPath: string | undefined (if AgentRef with path)
+ */
+function extractAgentProp(
+  openingElement: import('ts-morph').JsxOpeningElement | import('ts-morph').JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
+): { agentName: string | RuntimeVarRefNode | undefined; agentPath: string | undefined } {
+  // First try string or RuntimeVar
+  const result = extractStringOrRuntimeVar(openingElement, 'agent', ctx);
+  if (result) {
+    return { agentName: result, agentPath: undefined };
+  }
+
+  // Try resolving as AgentRef identifier (resolve through component props first)
+  const rawExpr = getAttributeExpression(openingElement, 'agent');
+  const expr = rawExpr ? resolveExprThroughProps(rawExpr, ctx) : rawExpr;
+  if (expr && Node.isIdentifier(expr)) {
+    const ref = resolveAgentRef(expr.getText(), ctx);
+    if (ref) {
+      return { agentName: ref.name, agentPath: ref.path };
+    }
+  }
+
+  return { agentName: undefined, agentPath: undefined };
+}
 
 // ============================================================================
 // String or RuntimeVar Extraction
@@ -40,7 +175,8 @@ function extractStringOrRuntimeVar(
   // First, check for template expressions with RuntimeVar interpolation
   // We need to do this BEFORE calling getAttributeValue to avoid getting
   // the raw template string with ${...} placeholders unresolved
-  const expr = getAttributeExpression(openingElement, attrName);
+  const rawExpr = getAttributeExpression(openingElement, attrName);
+  const expr = rawExpr ? resolveExprThroughProps(rawExpr, ctx) : rawExpr;
   if (expr) {
     // Handle template expressions with RuntimeVar interpolation
     if (Node.isTemplateExpression(expr)) {
@@ -95,6 +231,9 @@ function parseInputValue(
   expr: Expression,
   ctx: RuntimeTransformContext
 ): InputValue {
+  // Resolve identifier through component props before checking RuntimeVar
+  expr = resolveExprThroughProps(expr, ctx);
+
   // Check for RuntimeVar reference first
   const ref = parseRuntimeVarRef(expr, ctx);
   if (ref) {
@@ -127,8 +266,11 @@ function parseInput(
   expr: Expression,
   ctx: RuntimeTransformContext
 ): SpawnAgentInput {
+  // Resolve identifier through component props before checking RuntimeVar
+  const resolvedExpr = resolveExprThroughProps(expr, ctx);
+
   // Check for RuntimeVar reference (variable binding)
-  const ref = parseRuntimeVarRef(expr, ctx);
+  const ref = parseRuntimeVarRef(resolvedExpr, ctx);
   if (ref) {
     return {
       type: 'variable',
@@ -152,10 +294,11 @@ function parseInput(
           });
         }
       } else if (Node.isShorthandPropertyAssignment(prop)) {
-        // { foo } shorthand - check if it's a RuntimeVar
+        // { foo } shorthand - check if it's a RuntimeVar (resolve through props first)
         const name = prop.getName();
         const nameNode = prop.getNameNode();
-        const ref = parseRuntimeVarRef(nameNode, ctx);
+        const resolvedNameExpr = resolveExprThroughProps(nameNode as unknown as Expression, ctx);
+        const ref = parseRuntimeVarRef(resolvedNameExpr, ctx);
 
         if (ref) {
           properties.push({
@@ -215,8 +358,8 @@ export function transformRuntimeSpawnAgent(
     ? node.getOpeningElement()
     : node;
 
-  // Extract agent prop (required) - supports static string or RuntimeVar
-  const agent = extractStringOrRuntimeVar(openingElement, 'agent', ctx);
+  // Extract agent prop (required) - supports static string, RuntimeVar, or AgentRef
+  const { agentName: agent, agentPath } = extractAgentProp(openingElement, ctx);
   if (!agent) {
     throw ctx.createError('SpawnAgent requires agent prop', openingElement);
   }
@@ -251,7 +394,8 @@ export function transformRuntimeSpawnAgent(
 
   // Extract optional output prop
   let outputVar: string | undefined;
-  const outputExpr = getAttributeExpression(openingElement, 'output');
+  const rawOutputExpr = getAttributeExpression(openingElement, 'output');
+  const outputExpr = rawOutputExpr ? resolveExprThroughProps(rawOutputExpr, ctx) : rawOutputExpr;
   if (outputExpr) {
     const outputRef = parseRuntimeVarRef(outputExpr, ctx);
     if (!outputRef) {
@@ -270,7 +414,39 @@ export function transformRuntimeSpawnAgent(
   }
 
   // Extract optional loadFromFile prop
-  const loadFromFile = getAttributeValue(openingElement, 'loadFromFile');
+  // Try explicit prop first, then fall back to AgentRef path for loadFromFile shorthand
+  let loadFromFile = getAttributeValue(openingElement, 'loadFromFile');
+  if (!loadFromFile) {
+    // Check for RuntimeVar reference in loadFromFile
+    const rawLoadFromFileExpr = getAttributeExpression(openingElement, 'loadFromFile');
+    const loadFromFileExpr = rawLoadFromFileExpr ? resolveExprThroughProps(rawLoadFromFileExpr, ctx) : rawLoadFromFileExpr;
+    if (loadFromFileExpr) {
+      const loadRef = parseRuntimeVarRef(loadFromFileExpr, ctx);
+      if (loadRef) {
+        // RuntimeVar reference — emit as $VAR.path notation
+        const pathStr = loadRef.path.length === 0
+          ? ''
+          : loadRef.path.reduce((acc, p) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+        loadFromFile = `$${loadRef.varName}${pathStr}`;
+      }
+    }
+    // Check for boolean shorthand: loadFromFile or loadFromFile={true}
+    const loadAttr = openingElement.getAttribute('loadFromFile');
+    if (loadAttr && Node.isJsxAttribute(loadAttr)) {
+      const init = loadAttr.getInitializer();
+      if (!init) {
+        // Boolean shorthand — use agentPath from AgentRef
+        if (agentPath) {
+          loadFromFile = agentPath;
+        }
+      } else if (Node.isJsxExpression(init)) {
+        const expr = init.getExpression();
+        if (expr && expr.getText() === 'true' && agentPath) {
+          loadFromFile = agentPath;
+        }
+      }
+    }
+  }
 
   // Extract optional readAgentFile prop
   const readAgentFileProp = openingElement.getAttribute('readAgentFile');

@@ -29,6 +29,8 @@ import {
 import type { BlockNode } from '../../ir/index.js';
 import type { RuntimeTransformContext, LocalComponentInfo } from './runtime-types.js';
 import { getElementName, extractJsonValue, isCustomComponent } from './runtime-utils.js';
+import { parseRuntimeVarRef } from './runtime-var.js';
+import { extractRuntimeFnDeclarations } from './runtime-fn.js';
 
 // Import will be resolved after this module is loaded (circular import handling)
 import { transformToRuntimeBlock as dispatchTransform, transformFragmentChildrenForComponent } from './runtime-dispatch.js';
@@ -97,6 +99,29 @@ export function extractExternalComponentDeclarations(
   sourceFile: SourceFile,
   ctx: RuntimeTransformContext
 ): void {
+  // Track processed files to avoid infinite recursion from circular imports
+  const processedFiles = new Set<string>();
+  extractExternalComponentsFromFile(sourceFile, ctx, processedFiles);
+}
+
+/**
+ * Extract external components from a source file and recursively scan their source files
+ *
+ * When component A imports component B which imports component C,
+ * all three must be registered for nested component resolution.
+ */
+function extractExternalComponentsFromFile(
+  sourceFile: SourceFile,
+  ctx: RuntimeTransformContext,
+  processedFiles: Set<string>
+): void {
+  const filePath = sourceFile.getFilePath();
+  if (processedFiles.has(filePath)) return;
+  processedFiles.add(filePath);
+
+  // Collect source files of newly discovered external components
+  const newExternalFiles: SourceFile[] = [];
+
   for (const importDecl of sourceFile.getImportDeclarations()) {
     const specifier = importDecl.getModuleSpecifierValue();
 
@@ -106,30 +131,43 @@ export function extractExternalComponentDeclarations(
     // Process default imports
     const defaultImport = importDecl.getDefaultImport();
     if (defaultImport && isCustomComponent(defaultImport.getText())) {
-      extractExternalComponent(defaultImport.getText(), importDecl, ctx, true);
+      const extFile = extractExternalComponent(defaultImport.getText(), importDecl, ctx, true);
+      if (extFile) newExternalFiles.push(extFile);
     }
 
     // Process named imports
     for (const namedImport of importDecl.getNamedImports()) {
       const name = namedImport.getName();
       if (isCustomComponent(name)) {
-        extractExternalComponent(name, importDecl, ctx, false);
+        const extFile = extractExternalComponent(name, importDecl, ctx, false);
+        if (extFile) newExternalFiles.push(extFile);
       }
     }
+  }
+
+  // Recursively scan source files of newly discovered external components
+  for (const extFile of newExternalFiles) {
+    // Extract runtimeFn declarations from external component files
+    // (import paths are resolved to absolute in extractRuntimeFnDeclarations)
+    extractRuntimeFnDeclarations(extFile, ctx);
+
+    extractExternalComponentsFromFile(extFile, ctx, processedFiles);
   }
 }
 
 /**
  * Extract a single external component and add to context
+ *
+ * @returns The external component's source file (for recursive scanning), or undefined if skipped
  */
 function extractExternalComponent(
   name: string,
   importDecl: ImportDeclaration,
   ctx: RuntimeTransformContext,
   isDefault: boolean
-): void {
+): SourceFile | undefined {
   // Skip if already defined locally (local definitions take precedence)
-  if (ctx.localComponents.has(name)) return;
+  if (ctx.localComponents.has(name)) return undefined;
 
   const externalFile = importDecl.getModuleSpecifierSourceFile();
   if (!externalFile) {
@@ -158,6 +196,8 @@ function extractExternalComponent(
     isExternal: true,
     importPath: importDecl.getModuleSpecifierValue(),
   });
+
+  return externalFile;
 }
 
 /**
@@ -348,12 +388,14 @@ interface ExtractedProps {
  * - prop={true} -> { prop: true }
  * - prop={{ key: "value" }} -> { prop: { key: "value" } }
  * - prop (no value) -> { prop: true }
+ * - prop={`text ${runtimeVar}`} -> { prop: "text $VAR" } (RuntimeVar resolution)
  *
  * Also stores original AST expressions for resolving prop identifiers
  * when composites use control flow (e.g., <If condition={condition}/>)
  */
 function extractPropsFromUsage(
-  node: JsxElement | JsxSelfClosingElement
+  node: JsxElement | JsxSelfClosingElement,
+  ctx: RuntimeTransformContext
 ): ExtractedProps {
   const values = new Map<string, unknown>();
   const expressions = new Map<string, Expression>();
@@ -373,7 +415,17 @@ function extractPropsFromUsage(
     } else if (Node.isJsxExpression(init)) {
       const expr = init.getExpression();
       if (expr) {
-        values.set(name, extractJsonValue(expr));
+        // Try to resolve template expressions with RuntimeVar interpolation
+        const resolved = resolveRuntimeVarPropValue(expr, ctx);
+        if (resolved !== undefined) {
+          values.set(name, resolved);
+        } else if (Node.isIdentifier(expr) && ctx.componentProps?.has(expr.getText())) {
+          // Resolve identifier through parent component's prop values
+          // Enables nested components to inherit string props transitively
+          values.set(name, ctx.componentProps.get(expr.getText()));
+        } else {
+          values.set(name, extractJsonValue(expr));
+        }
         // Store the original expression for condition resolution
         expressions.set(name, expr);
       }
@@ -381,6 +433,57 @@ function extractPropsFromUsage(
   }
 
   return { values, expressions };
+}
+
+/**
+ * Resolve a prop expression that may contain RuntimeVar references
+ *
+ * Handles:
+ * - Template expressions: `text ${ctx.field}` -> "text $CTX.field"
+ * - Direct RuntimeVar refs: ctx.field -> "$CTX.field"
+ *
+ * Returns undefined if the expression doesn't contain RuntimeVars.
+ */
+function resolveRuntimeVarPropValue(
+  expr: Expression,
+  ctx: RuntimeTransformContext
+): string | undefined {
+  // Template expression: `text ${ctx.field}`
+  if (Node.isTemplateExpression(expr)) {
+    let hasRuntimeVar = false;
+    const parts: string[] = [];
+    parts.push(expr.getHead().getLiteralText());
+
+    for (const span of expr.getTemplateSpans()) {
+      const spanExpr = span.getExpression();
+      const ref = parseRuntimeVarRef(spanExpr, ctx);
+      if (ref) {
+        hasRuntimeVar = true;
+        const pathStr = ref.path.length === 0
+          ? ''
+          : ref.path.reduce((acc: string, p: string) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+        parts.push(`$${ref.varName}${pathStr}`);
+      } else {
+        parts.push(`\${${spanExpr.getText()}}`);
+      }
+      parts.push(span.getLiteral().getLiteralText());
+    }
+
+    if (hasRuntimeVar) {
+      return parts.join('');
+    }
+  }
+
+  // Direct RuntimeVar reference: ctx.field
+  const ref = parseRuntimeVarRef(expr, ctx);
+  if (ref) {
+    const pathStr = ref.path.length === 0
+      ? ''
+      : ref.path.reduce((acc: string, p: string) => acc + (/^\d+$/.test(p) ? `[${p}]` : `.${p}`), '');
+    return `$${ref.varName}${pathStr}`;
+  }
+
+  return undefined;
 }
 
 // ============================================================================
@@ -427,7 +530,7 @@ export function transformLocalComponent(
     }
 
     // Extract props from usage site (values + expressions)
-    const { values: props, expressions: propExpressions } = extractPropsFromUsage(node);
+    const { values: props, expressions: propExpressions } = extractPropsFromUsage(node, ctx);
 
     // Extract children from usage site (for children prop support)
     const childrenBlocks = extractChildrenFromUsage(node, ctx, transformRuntimeBlockChildren);

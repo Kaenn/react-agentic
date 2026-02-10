@@ -5,6 +5,7 @@
  * Tracks wrapper names and import paths for runtime.js extraction.
  */
 
+import * as path from 'path';
 import { Node, SourceFile } from 'ts-morph';
 import type { RuntimeFunctionInfo, RuntimeTransformContext } from './runtime-types.js';
 
@@ -87,12 +88,20 @@ export function extractRuntimeFnDeclarations(
     // Check if function is imported
     const importInfo = importMap.get(fnName);
 
+    // Resolve import path relative to this source file's directory
+    // This ensures paths from external component files resolve correctly
+    let resolvedImportPath = importInfo?.path;
+    if (resolvedImportPath && resolvedImportPath.startsWith('.')) {
+      const sourceDir = path.dirname(sourceFile.getFilePath());
+      resolvedImportPath = path.resolve(sourceDir, resolvedImportPath);
+    }
+
     const info: RuntimeFunctionInfo = {
       fnName,
       wrapperName,
       sourceFilePath: sourceFile.getFilePath(),
       isImported: !!importInfo,
-      importPath: importInfo?.path,
+      importPath: resolvedImportPath,
     };
 
     // Check for duplicate wrapper name
@@ -105,9 +114,9 @@ export function extractRuntimeFnDeclarations(
 
     ctx.runtimeFunctions.set(wrapperName, info);
 
-    // Track import path for extraction
-    if (importInfo) {
-      ctx.runtimeImports.add(importInfo.path);
+    // Track import path for extraction (absolute path)
+    if (resolvedImportPath) {
+      ctx.runtimeImports.add(resolvedImportPath);
     }
   });
 }

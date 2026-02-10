@@ -187,6 +187,57 @@ Store output in: $ANALYSIS
 
 **Why this pattern?** Retry logic is common for flaky operations. The composite encapsulates Loop + If + Break so you don't repeat it.
 
+### 4. RuntimeVar Prop Forwarding Pattern
+
+Forward RuntimeVar references through component props to runtime primitives. The command declares RuntimeVars; the composite receives and forwards them.
+
+```tsx
+// components/agent-spawn-block.tsx
+import { SpawnAgent } from 'react-agentic';
+
+const AgentSpawnBlock = ({ agent, model, description, prompt, output, label }) => (
+  <>
+    <p>Spawning {label} agent...</p>
+    <SpawnAgent
+      agent={agent}
+      model={model}
+      description={description}
+      input={{ prompt }}
+      output={output}
+    />
+  </>
+);
+
+export default AgentSpawnBlock;
+```
+
+Usage in a command:
+
+```tsx
+import AgentSpawnBlock from './components/agent-spawn-block';
+
+const ctx = useRuntimeVar<Context>('CTX');
+const agentOutput = useRuntimeVar<string>('AGENT_OUTPUT');
+const prompt = useRuntimeVar<{ prompt: string }>('PROMPT');
+
+<AgentSpawnBlock
+  agent="code-reviewer"
+  model={ctx.models.reviewer}
+  description={`Review Phase ${ctx.phaseId}`}
+  prompt={prompt.prompt}
+  output={agentOutput}
+  label="reviewer"
+/>
+```
+
+The component itself doesn't call `useRuntimeVar` — it receives RuntimeVar proxy references as props and passes them through to `SpawnAgent`. The compiler resolves the original expressions at build time.
+
+Components **can** declare their own `runtimeFn()` wrappers. Import paths are resolved relative to the component's file, so `RuntimeFn.Call` works inside external components.
+
+**This works with:** `SpawnAgent`, `RuntimeFn.Call`, `AskUser`, `If`/`Else` conditions, and text interpolation.
+
+**Limitation:** Array props (like `AskUser` options) and static string props (`question`, `header`) are not yet forwarded through components. Keep those inline.
+
 ## Creating Your Own Composite
 
 Composites are just TypeScript functions. Here's a simple example:

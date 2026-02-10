@@ -10,7 +10,7 @@ import type { RuntimeCallNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
 import { resolveRuntimeFn, markRuntimeFnUsed } from './runtime-fn.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
-import { getAttributeExpression, extractRuntimeCallArgs } from './runtime-utils.js';
+import { getAttributeExpression, extractRuntimeCallArgs, resolveExprThroughProps } from './runtime-utils.js';
 import type { RuntimeCallArgValue } from '../../ir/index.js';
 
 // ============================================================================
@@ -103,8 +103,9 @@ export function transformRuntimeCall(
   // Mark function as used (for extraction)
   markRuntimeFnUsed(wrapperName, ctx);
 
-  // Extract args prop (required)
-  const argsExpr = getAttributeExpression(openingElement, 'args');
+  // Extract args prop (required) — resolve through component props
+  const rawArgsExpr = getAttributeExpression(openingElement, 'args');
+  const argsExpr = rawArgsExpr ? resolveExprThroughProps(rawArgsExpr, ctx) : rawArgsExpr;
   if (!argsExpr) {
     throw ctx.createError(
       `${wrapperName}.Call requires args prop`,
@@ -123,8 +124,9 @@ export function transformRuntimeCall(
     );
   }
 
-  // Extract output prop (required)
-  const outputExpr = getAttributeExpression(openingElement, 'output');
+  // Extract output prop (required) — resolve through component props
+  const rawOutputExpr = getAttributeExpression(openingElement, 'output');
+  const outputExpr = rawOutputExpr ? resolveExprThroughProps(rawOutputExpr, ctx) : rawOutputExpr;
   if (!outputExpr) {
     throw ctx.createError(
       `${wrapperName}.Call requires output prop (RuntimeVar reference)`,

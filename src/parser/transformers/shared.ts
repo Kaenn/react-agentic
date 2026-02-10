@@ -88,10 +88,9 @@ export const SPECIAL_COMPONENTS = new Set([
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation', 'Table', 'List',
   // Semantic workflow components
-  'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
+  'ExecutionContext',
   // Swarm components
   'TaskDef', 'TaskPipeline', 'Team', 'Teammate', 'Prompt', 'ShutdownSequence', 'Workflow',
-  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
   // Step workflow primitive
   'Step',
   // Code block primitives

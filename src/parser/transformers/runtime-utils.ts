@@ -10,6 +10,33 @@ import type { RuntimeTransformContext } from './runtime-types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 
 // ============================================================================
+// Component Prop Expression Resolution
+// ============================================================================
+
+/**
+ * Resolve an expression through componentPropExpressions
+ *
+ * When a composite component receives RuntimeVar props, the body references
+ * them as plain identifiers (function parameters). This resolves those
+ * identifiers back to the original usage-site expressions so that
+ * parseRuntimeVarRef can recognize them.
+ *
+ * Already used by runtime-control.ts for <If condition={...}>.
+ * This shared helper extends the pattern to SpawnAgent, RuntimeFn.Call, and AskUser.
+ */
+export function resolveExprThroughProps(
+  expr: Expression,
+  ctx: RuntimeTransformContext
+): Expression {
+  if (Node.isIdentifier(expr) && ctx.componentPropExpressions) {
+    const propName = expr.getText();
+    const original = ctx.componentPropExpressions.get(propName);
+    if (original) return original;
+  }
+  return expr;
+}
+
+// ============================================================================
 // Attribute Extraction
 // ============================================================================
 
@@ -187,8 +214,7 @@ const BUILTIN_COMPONENTS = new Set([
   'If', 'Else', 'Loop', 'Break', 'Return', 'AskUser', 'OnStatus', 'OnStatusDefault',
   'Skill', 'SkillFile', 'SkillStatic', 'ReadState', 'WriteState',
   'MCPServer', 'MCPStdioServer', 'MCPHTTPServer', 'MCPConfig', 'State', 'Operation',
-  'Table', 'List', 'ExecutionContext', 'SuccessCriteria', 'OfferNext', 'XmlSection',
-  'DeviationRules', 'CommitRules', 'WaveExecution', 'CheckpointHandling',
+  'Table', 'List', 'ExecutionContext',
   'Step', 'Bash', 'ReadFiles', 'PromptTemplate', 'Indent',
   'Role', 'UpstreamInput', 'DownstreamConsumer', 'Methodology',
   'StructuredReturns', 'StatusReturn', 'ReturnStatus',
@@ -507,6 +533,9 @@ export function extractRuntimeCallArg(
   expr: Expression,
   ctx: RuntimeTransformContext
 ): RuntimeCallArgValue {
+  // Resolve identifier through component props before checking RuntimeVar
+  expr = resolveExprThroughProps(expr, ctx);
+
   // Check for RuntimeVar reference FIRST (this is the key fix)
   const ref = parseRuntimeVarRef(expr, ctx);
   if (ref) {

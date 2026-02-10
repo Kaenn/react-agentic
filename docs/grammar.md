@@ -141,7 +141,7 @@ export default Card;
 | Relative imports only | External components must use relative paths (e.g., `./components/banner`). Node modules are ignored. |
 | PascalCase names | Only PascalCase identifiers are treated as components |
 | Local precedence | Local component definitions take precedence over imported components with the same name |
-| Static only | External components cannot use runtime features (`useRuntimeVar`, `runtimeFn`). Use runtime features in the consuming command/agent instead. |
+| No `useRuntimeVar` | External components cannot declare `useRuntimeVar` — those must be declared in the consuming command. However, components **can** declare `runtimeFn()` wrappers and **can receive** RuntimeVar references as props, forwarding them to runtime primitives (`SpawnAgent`, `RuntimeFn.Call`, `AskUser`, `If`). |
 
 ---
 

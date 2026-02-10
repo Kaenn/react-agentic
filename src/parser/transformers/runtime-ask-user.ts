@@ -8,7 +8,7 @@ import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
 import type { AskUserNode, AskUserOptionNode } from '../../ir/index.js';
 import type { RuntimeTransformContext } from './runtime-types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
-import { getAttributeValue, getAttributeExpression, getAttributeArray } from './runtime-utils.js';
+import { getAttributeValue, getAttributeExpression, getAttributeArray, resolveExprThroughProps } from './runtime-utils.js';
 
 // ============================================================================
 // Option Parsing
@@ -130,8 +130,9 @@ export function transformAskUser(
     parseOption(expr, ctx)
   );
 
-  // Extract output prop (required)
-  const outputExpr = getAttributeExpression(openingElement, 'output');
+  // Extract output prop (required) — resolve through component props
+  const rawOutputExpr = getAttributeExpression(openingElement, 'output');
+  const outputExpr = rawOutputExpr ? resolveExprThroughProps(rawOutputExpr, ctx) : rawOutputExpr;
   if (!outputExpr) {
     throw ctx.createError(
       'AskUser requires output prop (RuntimeVar reference)',
