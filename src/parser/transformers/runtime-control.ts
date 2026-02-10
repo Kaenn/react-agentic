@@ -19,7 +19,7 @@ import type {
   Condition,
   BlockNode,
 } from '../../ir/index.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import { getAttributeValue, getAttributeExpression } from './runtime-utils.js';
 
@@ -38,7 +38,7 @@ import { getAttributeValue, getAttributeExpression } from './runtime-utils.js';
  */
 export function parseConditionExpression(
   node: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): Condition {
   // Handle prefix unary expression (!expr)
   if (Node.isPrefixUnaryExpression(node)) {
@@ -223,8 +223,8 @@ function extractLiteralValue(node: Node): string | number | boolean | undefined 
  */
 export function transformRuntimeIf(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext,
-  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformChildren: (node: JsxElement, ctx: TransformContext) => BlockNode[]
 ): IfNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -260,8 +260,8 @@ export function transformRuntimeIf(
  */
 export function transformRuntimeElse(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext,
-  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformChildren: (node: JsxElement, ctx: TransformContext) => BlockNode[]
 ): ElseNode {
   const children = Node.isJsxElement(node)
     ? transformChildren(node, ctx)
@@ -282,8 +282,8 @@ export function transformRuntimeElse(
  */
 export function transformRuntimeLoop(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext,
-  transformChildren: (node: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformChildren: (node: JsxElement, ctx: TransformContext) => BlockNode[]
 ): LoopNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -336,7 +336,7 @@ export function transformRuntimeLoop(
  */
 export function transformBreak(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): BreakNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()
@@ -359,7 +359,7 @@ export function transformBreak(
  */
 export function transformReturn(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): ReturnNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

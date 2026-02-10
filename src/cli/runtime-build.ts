@@ -238,6 +238,10 @@ export async function buildRuntimeFile(
 
   // Phase 1: Extract declarations
   extractRuntimeVarDeclarations(sourceFile, ctx);
+  // Populate V1 variables map from runtimeVars for shared transformers
+  for (const [identifierName, info] of ctx.runtimeVars!.entries()) {
+    ctx.variables.set(identifierName, { localName: identifierName, envName: info.varName });
+  }
   extractRuntimeFnDeclarations(sourceFile, ctx);
   extractLocalComponentDeclarations(sourceFile, ctx);
   extractExternalComponentDeclarations(sourceFile, ctx);

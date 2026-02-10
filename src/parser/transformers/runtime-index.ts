@@ -6,7 +6,6 @@
 
 // Types
 export {
-  type RuntimeTransformContext,
   type RuntimeTransformResult,
   type RuntimeVarInfo,
   type RuntimeFunctionInfo,
@@ -71,7 +70,7 @@ export {
   transformToRuntimeBlock,
   transformRuntimeBlockChildren,
   transformRuntimeCommand,
-} from './runtime-dispatch.js';
+} from './dispatch.js';
 
 // Utilities
 export {

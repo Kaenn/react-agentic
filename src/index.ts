@@ -144,7 +144,6 @@ export {
 // ============================================================================
 
 export {
-  type RuntimeTransformContext,
   type RuntimeTransformResult,
   type RuntimeVarInfo,
   type RuntimeFunctionInfo,

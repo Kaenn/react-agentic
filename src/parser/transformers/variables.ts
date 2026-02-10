@@ -8,7 +8,6 @@
 import { Node, JsxElement, JsxSelfClosingElement, JsxOpeningElement, TemplateExpression, SourceFile, ObjectLiteralExpression } from 'ts-morph';
 import type { AssignNode, AssignGroupNode } from '../../ir/index.js';
 import type { TransformContext } from './types.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
 import { extractTemplateContentWithRuntimeVars } from './runtime-utils.js';
 
 /**
@@ -184,8 +183,8 @@ function transformAssignWithFrom(
           path = pathArg.getLiteralValue();
         } else if (Node.isTemplateExpression(pathArg)) {
           // Check if ctx has runtimeVars (V3 context)
-          if ('runtimeVars' in ctx && ctx.runtimeVars) {
-            path = extractTemplateContentWithRuntimeVars(pathArg, ctx as unknown as RuntimeTransformContext);
+          if (ctx.runtimeVars) {
+            path = extractTemplateContentWithRuntimeVars(pathArg, ctx);
           } else {
             path = extractTemplatePath(pathArg);
           }
@@ -229,8 +228,8 @@ function transformAssignWithFrom(
           content = cmdArg.getLiteralValue();
         } else if (Node.isTemplateExpression(cmdArg)) {
           // Check if ctx has runtimeVars (V3 context)
-          if ('runtimeVars' in ctx && ctx.runtimeVars) {
-            content = extractTemplateContentWithRuntimeVars(cmdArg, ctx as unknown as RuntimeTransformContext);
+          if (ctx.runtimeVars) {
+            content = extractTemplateContentWithRuntimeVars(cmdArg, ctx);
           } else {
             content = extractTemplatePath(cmdArg);
           }
@@ -260,8 +259,8 @@ function transformAssignWithFrom(
           content = valArg.getLiteralValue();
         } else if (Node.isTemplateExpression(valArg)) {
           // Check if ctx has runtimeVars (V3 context)
-          if ('runtimeVars' in ctx && ctx.runtimeVars) {
-            content = extractTemplateContentWithRuntimeVars(valArg, ctx as unknown as RuntimeTransformContext);
+          if (ctx.runtimeVars) {
+            content = extractTemplateContentWithRuntimeVars(valArg, ctx);
           } else {
             content = extractTemplatePath(valArg);
           }

@@ -1,14 +1,15 @@
 /**
- * Runtime Transform Context and Types
+ * Runtime Transform Types
  *
- * Transform context with runtime-specific tracking:
- * - Runtime variable declarations
- * - Runtime function usage
- * - Import paths for extraction
+ * Type definitions for runtime-specific data structures:
+ * - RuntimeVarInfo, RuntimeFunctionInfo, LocalComponentInfo
+ * - RuntimeTransformResult
+ * - createRuntimeContext() factory for V3 transform contexts.
  */
 
 import type { SourceFile, Node, JsxElement, JsxSelfClosingElement, JsxFragment } from 'ts-morph';
 import type { RuntimeVarDeclNode, BlockNode } from '../../ir/index.js';
+import type { TransformContext } from './types.js';
 
 // ============================================================================
 // Runtime Variable Info
@@ -80,58 +81,6 @@ export interface LocalComponentInfo {
 }
 
 // ============================================================================
-// Runtime Transform Context
-// ============================================================================
-
-/**
- * Context for runtime transformers
- *
- * Tracks:
- * - RuntimeVar declarations (for type-safe references)
- * - RuntimeFn usage (for extraction to runtime.js)
- */
-export interface RuntimeTransformContext {
-  /** Source file being transformed */
-  sourceFile: SourceFile | undefined;
-
-  /** Namespace for runtime functions (derived from filename) */
-  namespace: string;
-
-  /** Visited paths for circular import detection */
-  visitedPaths: Set<string>;
-
-  /** Runtime variable declarations: identifier name -> info */
-  runtimeVars: Map<string, RuntimeVarInfo>;
-
-  /** Runtime function wrappers: wrapper name -> info */
-  runtimeFunctions: Map<string, RuntimeFunctionInfo>;
-
-  /** Runtime function imports: paths to extract from */
-  runtimeImports: Set<string>;
-
-  /** Create error with source location */
-  createError: (message: string, node: Node) => Error;
-
-  /** Track runtime function usage during transformation */
-  usedRuntimeFunctions: Set<string>;
-
-  /** Local component definitions: name -> info */
-  localComponents: Map<string, LocalComponentInfo>;
-
-  /** Component expansion stack for circular reference detection */
-  componentExpansionStack: Set<string>;
-
-  /** Current component props during expansion (for prop substitution) */
-  componentProps: Map<string, unknown> | null;
-
-  /** Current component children during expansion (for children substitution) */
-  componentChildren: BlockNode[] | null;
-
-  /** Current component prop expressions (for resolving prop identifiers in conditions) */
-  componentPropExpressions: Map<string, import('ts-morph').Expression> | null;
-}
-
-// ============================================================================
 // Context Creation
 // ============================================================================
 
@@ -147,13 +96,17 @@ function toCamelCase(str: string): string {
 /**
  * Create a fresh runtime transform context
  *
+ * Returns a unified TransformContext with V3 fields populated and V1 fields
+ * set to defaults. The `variables` map is initially empty — callers should
+ * populate it after extractRuntimeVarDeclarations() runs.
+ *
  * @param sourceFile - Source file being transformed (optional)
  * @param namespace - Namespace for runtime functions (defaults to basename of sourceFile)
  */
 export function createRuntimeContext(
   sourceFile?: SourceFile,
   namespace?: string
-): RuntimeTransformContext {
+): TransformContext {
   // Derive namespace from source file if not provided
   let ns = namespace ?? '';
   if (!ns && sourceFile) {
@@ -163,6 +116,7 @@ export function createRuntimeContext(
   }
 
   return {
+    // V3 fields
     sourceFile,
     namespace: ns,
     visitedPaths: new Set(),
@@ -175,6 +129,11 @@ export function createRuntimeContext(
     componentProps: null,
     componentChildren: null,
     componentPropExpressions: null,
+    // V1 fields (defaults for V3 contexts)
+    variables: new Map(),
+    outputs: new Map(),
+    stateRefs: new Map(),
+    renderPropsContext: undefined,
     createError: (message: string, node: Node) => {
       const startLine = node.getStartLineNumber();
       const file = node.getSourceFile().getFilePath();

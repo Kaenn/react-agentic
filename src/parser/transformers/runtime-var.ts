@@ -2,11 +2,12 @@
  * Runtime Variable Transformer
  *
  * Extracts useRuntimeVar<T>('NAME') declarations from source files.
- * Populates the RuntimeTransformContext with variable info for reference resolution.
+ * Populates the TransformContext with variable info for reference resolution.
  */
 
 import { Node, SourceFile } from 'ts-morph';
-import type { RuntimeVarInfo, RuntimeTransformContext } from './runtime-types.js';
+import type { RuntimeVarInfo } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import type { RuntimeVarDeclNode, RuntimeVarRefNode } from '../../ir/index.js';
 
 // ============================================================================
@@ -25,7 +26,7 @@ import type { RuntimeVarDeclNode, RuntimeVarRefNode } from '../../ir/index.js';
  */
 export function extractRuntimeVarDeclarations(
   sourceFile: SourceFile,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): void {
   // Find all variable declarations
   sourceFile.forEachDescendant((node) => {
@@ -84,14 +85,14 @@ export function extractRuntimeVarDeclarations(
     };
 
     // Check for duplicate identifier
-    if (ctx.runtimeVars.has(identifierName)) {
+    if (ctx.runtimeVars!.has(identifierName)) {
       throw ctx.createError(
         `Duplicate runtime variable identifier: ${identifierName}`,
         node
       );
     }
 
-    ctx.runtimeVars.set(identifierName, info);
+    ctx.runtimeVars!.set(identifierName, info);
   });
 }
 
@@ -100,8 +101,8 @@ export function extractRuntimeVarDeclarations(
  *
  * Used to include declarations in the V3Document.
  */
-export function getRuntimeVarDecls(ctx: RuntimeTransformContext): RuntimeVarDeclNode[] {
-  return Array.from(ctx.runtimeVars.values()).map(info => ({
+export function getRuntimeVarDecls(ctx: TransformContext): RuntimeVarDeclNode[] {
+  return Array.from(ctx.runtimeVars!.values()).map(info => ({
     kind: 'runtimeVarDecl' as const,
     varName: info.varName,
     tsType: info.tsType,
@@ -121,9 +122,9 @@ export function getRuntimeVarDecls(ctx: RuntimeTransformContext): RuntimeVarDecl
  */
 export function resolveRuntimeVar(
   identifierName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): RuntimeVarInfo | undefined {
-  return ctx.runtimeVars.get(identifierName);
+  return ctx.runtimeVars?.get(identifierName);
 }
 
 /**
@@ -140,7 +141,7 @@ export function resolveRuntimeVar(
  */
 export function parseRuntimeVarRef(
   node: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): RuntimeVarRefNode | null {
   // Build path by walking property access chain
   const path: string[] = [];
@@ -159,7 +160,7 @@ export function parseRuntimeVarRef(
   }
 
   const identName = current.getText();
-  const info = ctx.runtimeVars.get(identName);
+  const info = ctx.runtimeVars?.get(identName);
 
   if (!info) {
     return null;
@@ -177,7 +178,7 @@ export function parseRuntimeVarRef(
  */
 export function isRuntimeVarReference(
   node: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): boolean {
   return parseRuntimeVarRef(node, ctx) !== null;
 }

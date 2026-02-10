@@ -6,7 +6,7 @@
 
 import { Node, JsxOpeningElement, JsxSelfClosingElement, Expression, SyntaxKind } from 'ts-morph';
 import type { RuntimeCallArgValue, RuntimeVarRefNode } from '../../ir/index.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 
 // ============================================================================
@@ -26,7 +26,7 @@ import { parseRuntimeVarRef } from './runtime-var.js';
  */
 export function resolveExprThroughProps(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): Expression {
   if (Node.isIdentifier(expr) && ctx.componentPropExpressions) {
     const propName = expr.getText();
@@ -391,7 +391,7 @@ export function extractJsonValue(expr: Expression): unknown {
  * status === 'PASSED'
  * // Returns: "status equals \"PASSED\""
  */
-export function describeExpression(expr: Expression, ctx: RuntimeTransformContext): string {
+export function describeExpression(expr: Expression, ctx: TransformContext): string {
   if (Node.isConditionalExpression(expr)) {
     // Ternary expression: cond ? then : else
     const condition = expr.getCondition();
@@ -451,7 +451,7 @@ export function describeExpression(expr: Expression, ctx: RuntimeTransformContex
 /**
  * Describe a part of an expression (for conditions in ternaries)
  */
-function describeExpressionPart(expr: Expression, ctx: RuntimeTransformContext): string {
+function describeExpressionPart(expr: Expression, ctx: TransformContext): string {
   // Check for RuntimeVar reference first
   const ref = parseRuntimeVarRef(expr, ctx);
   if (ref) {
@@ -472,7 +472,7 @@ function describeExpressionPart(expr: Expression, ctx: RuntimeTransformContext):
 /**
  * Describe a value expression (for results of ternaries)
  */
-function describeExpressionValue(expr: Expression, ctx: RuntimeTransformContext): string {
+function describeExpressionValue(expr: Expression, ctx: TransformContext): string {
   if (Node.isStringLiteral(expr)) {
     return `"${expr.getLiteralValue()}"`;
   }
@@ -510,7 +510,7 @@ function describeExpressionValue(expr: Expression, ctx: RuntimeTransformContext)
  */
 export function extractRuntimeCallArg(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): RuntimeCallArgValue {
   // Resolve identifier through component props before checking RuntimeVar
   expr = resolveExprThroughProps(expr, ctx);
@@ -620,7 +620,7 @@ export function extractRuntimeCallArg(
  */
 export function extractRuntimeCallArgs(
   objExpr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): Record<string, RuntimeCallArgValue> {
   if (!Node.isObjectLiteralExpression(objExpr)) {
     throw new Error('args must be an object literal');
@@ -665,7 +665,7 @@ export function extractRuntimeCallArgs(
 export function getArrayWithRuntimeVars(
   element: JsxOpeningElement | JsxSelfClosingElement,
   attrName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): string[] | undefined {
   const attr = element.getAttribute(attrName);
   if (!attr || !Node.isJsxAttribute(attr)) return undefined;
@@ -710,7 +710,7 @@ export function getArrayWithRuntimeVars(
  */
 export function extractTemplateContentWithRuntimeVars(
   expr: import('ts-morph').TemplateExpression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): string {
   const parts: string[] = [];
   parts.push(expr.getHead().getLiteralText());

@@ -7,7 +7,8 @@
 
 import * as path from 'path';
 import { Node, SourceFile } from 'ts-morph';
-import type { RuntimeFunctionInfo, RuntimeTransformContext } from './runtime-types.js';
+import type { RuntimeFunctionInfo } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 
 // ============================================================================
 // Extraction
@@ -27,7 +28,7 @@ import type { RuntimeFunctionInfo, RuntimeTransformContext } from './runtime-typ
  */
 export function extractRuntimeFnDeclarations(
   sourceFile: SourceFile,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): void {
   // First, build a map of imports: local name -> import path
   const importMap = new Map<string, { path: string; isDefault: boolean }>();
@@ -105,18 +106,18 @@ export function extractRuntimeFnDeclarations(
     };
 
     // Check for duplicate wrapper name
-    if (ctx.runtimeFunctions.has(wrapperName)) {
+    if (ctx.runtimeFunctions!.has(wrapperName)) {
       throw ctx.createError(
         `Duplicate runtime function wrapper: ${wrapperName}`,
         node
       );
     }
 
-    ctx.runtimeFunctions.set(wrapperName, info);
+    ctx.runtimeFunctions!.set(wrapperName, info);
 
     // Track import path for extraction (absolute path)
     if (resolvedImportPath) {
-      ctx.runtimeImports.add(resolvedImportPath);
+      ctx.runtimeImports!.add(resolvedImportPath);
     }
   });
 }
@@ -127,8 +128,8 @@ export function extractRuntimeFnDeclarations(
  * Returns the list of function names (not wrapper names) that need
  * to be extracted to runtime.js.
  */
-export function getRuntimeFunctionNames(ctx: RuntimeTransformContext): string[] {
-  return Array.from(ctx.usedRuntimeFunctions);
+export function getRuntimeFunctionNames(ctx: TransformContext): string[] {
+  return Array.from(ctx.usedRuntimeFunctions!);
 }
 
 /**
@@ -136,8 +137,8 @@ export function getRuntimeFunctionNames(ctx: RuntimeTransformContext): string[] 
  *
  * Returns paths that need to be parsed for function extraction.
  */
-export function getRuntimeImportPaths(ctx: RuntimeTransformContext): string[] {
-  return Array.from(ctx.runtimeImports);
+export function getRuntimeImportPaths(ctx: TransformContext): string[] {
+  return Array.from(ctx.runtimeImports!);
 }
 
 // ============================================================================
@@ -153,9 +154,9 @@ export function getRuntimeImportPaths(ctx: RuntimeTransformContext): string[] {
  */
 export function resolveRuntimeFn(
   wrapperName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): RuntimeFunctionInfo | undefined {
-  return ctx.runtimeFunctions.get(wrapperName);
+  return ctx.runtimeFunctions!.get(wrapperName);
 }
 
 /**
@@ -163,9 +164,9 @@ export function resolveRuntimeFn(
  */
 export function isRuntimeFnWrapper(
   identifierName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): boolean {
-  return ctx.runtimeFunctions.has(identifierName);
+  return ctx.runtimeFunctions!.has(identifierName);
 }
 
 /**
@@ -176,10 +177,10 @@ export function isRuntimeFnWrapper(
  */
 export function markRuntimeFnUsed(
   wrapperName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): void {
-  const info = ctx.runtimeFunctions.get(wrapperName);
+  const info = ctx.runtimeFunctions!.get(wrapperName);
   if (info) {
-    ctx.usedRuntimeFunctions.add(info.fnName);
+    ctx.usedRuntimeFunctions!.add(info.fnName);
   }
 }

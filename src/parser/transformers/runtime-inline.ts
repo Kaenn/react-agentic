@@ -15,7 +15,7 @@
 
 import { Node, JsxElement } from 'ts-morph';
 import type { InlineNode } from '../../ir/nodes.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { extractInlineText, getElementName, getAttributeValue } from '../utils/index.js';
 import { extractAllText } from './html.js';
 
@@ -30,7 +30,7 @@ import { extractAllText } from './html.js';
  */
 export function transformRuntimeInlineChildren(
   node: JsxElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InlineNode[] {
   const children = node.getJsxChildren();
   const inlines: InlineNode[] = [];
@@ -106,7 +106,7 @@ function trimBoundaryTextNodes(inlines: InlineNode[]): void {
  */
 function transformRuntimeToInline(
   node: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InlineNode | InlineNode[] | null {
   if (Node.isJsxText(node)) {
     const text = extractInlineText(node);
@@ -173,7 +173,7 @@ function transformRuntimeToInline(
         }
       }
 
-      const runtimeVar = ctx.runtimeVars.get(varName);
+      const runtimeVar = ctx.runtimeVars!.get(varName);
       if (runtimeVar) {
         // This is a RuntimeVar reference - emit shell variable syntax
         const value = `$${runtimeVar.varName}`;
@@ -232,7 +232,7 @@ function collectPropertyPath(expr: Node): string[] {
  */
 function transformPropertyAccess(
   expr: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InlineNode | null {
   if (!Node.isPropertyAccessExpression(expr)) return null;
 
@@ -253,7 +253,7 @@ function transformPropertyAccess(
     }
   }
 
-  const runtimeVar = ctx.runtimeVars.get(rootName);
+  const runtimeVar = ctx.runtimeVars!.get(rootName);
 
   if (runtimeVar) {
     // This is a RuntimeVar reference - emit shell variable syntax
@@ -283,7 +283,7 @@ function transformPropertyAccess(
  */
 function transformTemplateLiteral(
   expr: Node,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InlineNode[] {
   if (!Node.isTemplateExpression(expr)) return [];
 
@@ -315,7 +315,7 @@ function transformTemplateLiteral(
           }
         } else {
           // Check if it's a RuntimeVar
-          const runtimeVar = ctx.runtimeVars.get(varName);
+          const runtimeVar = ctx.runtimeVars!.get(varName);
           if (runtimeVar) {
             // Emit shell variable syntax
             const value = `$${runtimeVar.varName}`;
@@ -352,7 +352,7 @@ function transformTemplateLiteral(
 function transformRuntimeInlineElement(
   name: string,
   node: JsxElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InlineNode {
   // Bold
   if (name === 'b' || name === 'strong') {

@@ -6,7 +6,7 @@
 
 import { Node, JsxElement, JsxSelfClosingElement, Expression } from 'ts-morph';
 import type { AskUserNode, AskUserOptionNode } from '../../ir/index.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import { getAttributeValue, getAttributeExpression, getAttributeArray, resolveExprThroughProps } from './runtime-utils.js';
 
@@ -21,7 +21,7 @@ import { getAttributeValue, getAttributeExpression, getAttributeArray, resolveEx
  */
 function parseOption(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): AskUserOptionNode {
   if (!Node.isObjectLiteralExpression(expr)) {
     throw ctx.createError(
@@ -91,7 +91,7 @@ function parseOption(
  */
 export function transformAskUser(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): AskUserNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

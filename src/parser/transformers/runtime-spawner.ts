@@ -13,7 +13,7 @@ import type {
   InputValue,
   RuntimeVarRefNode,
 } from '../../ir/index.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import { getAttributeValue, getAttributeExpression, extractJsonValue, resolveExprThroughProps } from './runtime-utils.js';
 
@@ -37,7 +37,7 @@ interface ResolvedAgentRef {
  */
 function resolveAgentRef(
   identName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): ResolvedAgentRef | undefined {
   if (!ctx.sourceFile) return undefined;
 
@@ -131,7 +131,7 @@ function extractAgentRefFromObject(
  */
 function extractAgentProp(
   openingElement: import('ts-morph').JsxOpeningElement | import('ts-morph').JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): { agentName: string | RuntimeVarRefNode | undefined; agentPath: string | undefined } {
   // First try string or RuntimeVar
   const result = extractStringOrRuntimeVar(openingElement, 'agent', ctx);
@@ -170,7 +170,7 @@ function extractAgentProp(
 function extractStringOrRuntimeVar(
   openingElement: import('ts-morph').JsxOpeningElement | import('ts-morph').JsxSelfClosingElement,
   attrName: string,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): string | RuntimeVarRefNode | undefined {
   // First, check for template expressions with RuntimeVar interpolation
   // We need to do this BEFORE calling getAttributeValue to avoid getting
@@ -229,7 +229,7 @@ function extractStringOrRuntimeVar(
  */
 function parseInputValue(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): InputValue {
   // Resolve identifier through component props before checking RuntimeVar
   expr = resolveExprThroughProps(expr, ctx);
@@ -264,7 +264,7 @@ function parseInputValue(
  */
 function parseInput(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): SpawnAgentInput {
   // Resolve identifier through component props before checking RuntimeVar
   const resolvedExpr = resolveExprThroughProps(expr, ctx);
@@ -352,7 +352,7 @@ function parseInput(
  */
 export function transformRuntimeSpawnAgent(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): SpawnAgentNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

@@ -27,13 +27,14 @@ import {
   Expression,
 } from 'ts-morph';
 import type { BlockNode } from '../../ir/index.js';
-import type { RuntimeTransformContext, LocalComponentInfo } from './runtime-types.js';
+import type { LocalComponentInfo } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { getElementName, extractJsonValue, isCustomComponent } from './runtime-utils.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import { extractRuntimeFnDeclarations } from './runtime-fn.js';
 
 // Import will be resolved after this module is loaded (circular import handling)
-import { transformToRuntimeBlock as dispatchTransform, transformFragmentChildrenForComponent } from './runtime-dispatch.js';
+import { transformToRuntimeBlock as dispatchTransform, transformFragmentChildrenForComponent } from './dispatch.js';
 
 // ============================================================================
 // Component Extraction
@@ -53,7 +54,7 @@ import { transformToRuntimeBlock as dispatchTransform, transformFragmentChildren
  */
 export function extractLocalComponentDeclarations(
   sourceFile: SourceFile,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): void {
   // Find variable declarations with PascalCase names that are arrow functions or function expressions
   for (const varDecl of sourceFile.getVariableDeclarations()) {
@@ -64,7 +65,7 @@ export function extractLocalComponentDeclarations(
     if (!init) continue;
 
     if (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) {
-      ctx.localComponents.set(name, {
+      ctx.localComponents!.set(name, {
         name,
         declaration: varDecl,
         propNames: extractPropNames(init),
@@ -77,7 +78,7 @@ export function extractLocalComponentDeclarations(
     const name = funcDecl.getName();
     if (!name || !isCustomComponent(name)) continue;
 
-    ctx.localComponents.set(name, {
+    ctx.localComponents!.set(name, {
       name,
       declaration: funcDecl,
       propNames: extractFunctionPropNames(funcDecl),
@@ -97,7 +98,7 @@ export function extractLocalComponentDeclarations(
  */
 export function extractExternalComponentDeclarations(
   sourceFile: SourceFile,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): void {
   // Track processed files to avoid infinite recursion from circular imports
   const processedFiles = new Set<string>();
@@ -112,7 +113,7 @@ export function extractExternalComponentDeclarations(
  */
 function extractExternalComponentsFromFile(
   sourceFile: SourceFile,
-  ctx: RuntimeTransformContext,
+  ctx: TransformContext,
   processedFiles: Set<string>
 ): void {
   const filePath = sourceFile.getFilePath();
@@ -163,11 +164,11 @@ function extractExternalComponentsFromFile(
 function extractExternalComponent(
   name: string,
   importDecl: ImportDeclaration,
-  ctx: RuntimeTransformContext,
+  ctx: TransformContext,
   isDefault: boolean
 ): SourceFile | undefined {
   // Skip if already defined locally (local definitions take precedence)
-  if (ctx.localComponents.has(name)) return undefined;
+  if (ctx.localComponents!.has(name)) return undefined;
 
   const externalFile = importDecl.getModuleSpecifierSourceFile();
   if (!externalFile) {
@@ -188,7 +189,7 @@ function extractExternalComponent(
   const propNames = extractExternalPropNames(decl);
 
   // Store in localComponents (same map, isExternal flag differentiates)
-  ctx.localComponents.set(name, {
+  ctx.localComponents!.set(name, {
     name,
     declaration: decl,
     propNames,
@@ -395,7 +396,7 @@ interface ExtractedProps {
  */
 function extractPropsFromUsage(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): ExtractedProps {
   const values = new Map<string, unknown>();
   const expressions = new Map<string, Expression>();
@@ -446,7 +447,7 @@ function extractPropsFromUsage(
  */
 function resolveRuntimeVarPropValue(
   expr: Expression,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): string | undefined {
   // Template expression: `text ${ctx.field}`
   if (Node.isTemplateExpression(expr)) {
@@ -498,19 +499,19 @@ function resolveRuntimeVarPropValue(
  */
 export function transformLocalComponent(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext,
-  transformRuntimeBlockChildren: (parent: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformRuntimeBlockChildren: (parent: JsxElement, ctx: TransformContext) => BlockNode[]
 ): BlockNode | BlockNode[] | null {
   const name = getElementName(node);
-  const info = ctx.localComponents.get(name);
+  const info = ctx.localComponents?.get(name);
   if (!info) return null;
 
   // Circular reference detection
-  if (ctx.componentExpansionStack.has(name)) {
+  if (ctx.componentExpansionStack!.has(name)) {
     throw ctx.createError(`Circular component reference detected: ${name}`, node);
   }
 
-  ctx.componentExpansionStack.add(name);
+  ctx.componentExpansionStack!.add(name);
 
   // Save current context values
   const prevProps = ctx.componentProps;
@@ -547,7 +548,7 @@ export function transformLocalComponent(
     ctx.componentProps = prevProps;
     ctx.componentChildren = prevChildren;
     ctx.componentPropExpressions = prevPropExpressions;
-    ctx.componentExpansionStack.delete(name);
+    ctx.componentExpansionStack!.delete(name);
   }
 }
 
@@ -556,8 +557,8 @@ export function transformLocalComponent(
  */
 function extractChildrenFromUsage(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext,
-  transformRuntimeBlockChildren: (parent: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformRuntimeBlockChildren: (parent: JsxElement, ctx: TransformContext) => BlockNode[]
 ): BlockNode[] | null {
   // Self-closing elements have no children
   if (Node.isJsxSelfClosingElement(node)) return null;
@@ -596,8 +597,8 @@ function transformComponentJsx(
   props: Map<string, unknown>,
   childrenBlocks: BlockNode[] | null,
   propNames: string[],
-  ctx: RuntimeTransformContext,
-  transformRuntimeBlockChildren: (parent: JsxElement, ctx: RuntimeTransformContext) => BlockNode[]
+  ctx: TransformContext,
+  transformRuntimeBlockChildren: (parent: JsxElement, ctx: TransformContext) => BlockNode[]
 ): BlockNode | BlockNode[] | null {
   // For fragments, use If/Else-aware processing via dispatch's transformFragmentChildren
   // This handles If/Else sibling pairs correctly when composites contain control flow
@@ -618,7 +619,7 @@ function transformComponentChild(
   props: Map<string, unknown>,
   childrenBlocks: BlockNode[] | null,
   propNames: string[],
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): BlockNode | BlockNode[] | null {
   // Handle JSX expressions that might be {children}
   if (Node.isJsxExpression(child)) {

@@ -7,7 +7,7 @@
 
 import { Node, JsxElement, JsxSelfClosingElement } from 'ts-morph';
 import type { RuntimeCallNode } from '../../ir/index.js';
-import type { RuntimeTransformContext } from './runtime-types.js';
+import type { TransformContext } from './types.js';
 import { resolveRuntimeFn, markRuntimeFnUsed } from './runtime-fn.js';
 import { parseRuntimeVarRef } from './runtime-var.js';
 import { getAttributeExpression, extractRuntimeCallArgs, resolveExprThroughProps } from './runtime-utils.js';
@@ -28,7 +28,7 @@ import type { RuntimeCallArgValue } from '../../ir/index.js';
  */
 export function isRuntimeFnCall(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): boolean {
   const tagName = getTagName(node);
   if (!tagName) return false;
@@ -40,7 +40,7 @@ export function isRuntimeFnCall(
   const wrapperName = tagName.slice(0, -5); // Remove '.Call'
 
   // Check if wrapper is a registered RuntimeFn
-  return ctx.runtimeFunctions.has(wrapperName);
+  return ctx.runtimeFunctions?.has(wrapperName) ?? false;
 }
 
 /**
@@ -78,7 +78,7 @@ function getTagName(node: JsxElement | JsxSelfClosingElement): string | null {
  */
 export function transformRuntimeCall(
   node: JsxElement | JsxSelfClosingElement,
-  ctx: RuntimeTransformContext
+  ctx: TransformContext
 ): RuntimeCallNode {
   const openingElement = Node.isJsxElement(node)
     ? node.getOpeningElement()

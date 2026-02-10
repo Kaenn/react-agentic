@@ -10,9 +10,6 @@ import type { BlockNode, BaseBlockNode, XmlBlockNode, GroupNode } from '../../ir
 import type { TransformContext } from './types.js';
 import { getAttributeValue, resolveComponentImport } from '../utils/index.js';
 import { isValidXmlName, isCustomComponent } from './shared.js';
-// Circular import: dispatch.ts imports from markdown.ts and vice versa.
-// ESM handles this correctly because these are used only inside functions
-// (after all modules are fully initialized), not at top-level.
 import { transformToBlock, transformBlockChildren } from './dispatch.js';
 
 /**
@@ -215,6 +212,7 @@ export function extractStaticLocalComponentDeclarations(
 
     if (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) {
       ctx.localComponents.set(compName, {
+        name: compName,
         declaration: varDecl,
         propNames: extractPropNames(init),
       });
@@ -227,6 +225,7 @@ export function extractStaticLocalComponentDeclarations(
     if (!compName || !isCustomComponent(compName)) continue;
 
     ctx.localComponents.set(compName, {
+      name: compName,
       declaration: funcDecl,
       propNames: extractFunctionPropNames(funcDecl),
     });
